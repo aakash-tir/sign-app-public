@@ -4,9 +4,16 @@ version = "0.0.0"
 description = "ASL recognition training & tooling pipeline for Sign App (build-time only)."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
-# Heavy ML deps (mediapipe, tensorflow, tensorflowjs) are added in M2 when the
-# recognition pipeline lands. M0 keeps this minimal so the gates run fast.
+dependencies = [
+    "numpy>=2.4.6",
+    "scikit-learn>=1.8.0",
+]
+
+[project.optional-dependencies]
+# Only needed to extract landmarks from real ASL-alphabet images. Kept optional
+# (and import-guarded) so the core pipeline + gates don't depend on mediapipe,
+# which is heavy and version-sensitive. Install with: uv sync --extra images
+images = ["mediapipe>=0.10"]
 
 [dependency-groups]
 dev = ["ruff>=0.6", "mypy>=1.11", "pytest>=8"]
@@ -30,6 +37,11 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.12"
 strict = true
 files = ["src", "tests"]
+
+# Third-party packages without bundled type stubs.
+[[tool.mypy.overrides]]
+module = ["sklearn.*", "mediapipe.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

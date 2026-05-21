@@ -41,3 +41,20 @@
   font-size: 0.85rem;
   color: #fca5a5;
 }
+
+.prediction {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+}
+
+.prediction-letter {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.prediction-confidence,
+.prediction-empty {
+  color: #94a3b8;
+}

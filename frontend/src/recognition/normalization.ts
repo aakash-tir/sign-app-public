@@ -4,6 +4,9 @@ import { HAND_LANDMARK_COUNT, MIDDLE_FINGER_MCP, WRIST } from './types'
 /** The single handedness the model is trained to see; Left hands are mirrored. */
 export const CANONICAL_HANDEDNESS: Handedness = 'Right'
 
+/** Identifier of this normalization scheme; must match a model's `normalization`. */
+export const NORMALIZATION_ID = 'wrist-mcp9-mirror-v1'
+
 function subtract(a: Landmark, b: Landmark): Landmark {
   return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }
 }

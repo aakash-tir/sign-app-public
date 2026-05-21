@@ -55,7 +55,7 @@ files over HTTPS.
 | State | **Zustand** (lightweight) | domain state kept in pure TS; store is thin |
 | Camera | **getUserMedia / WebRTC** | cross-platform camera access |
 | Landmarks | **`@mediapipe/tasks-vision`** | Hand Landmarker / Gesture Recognizer, on-device WASM/WebGL |
-| Inference | **TensorFlow.js** (`@tensorflow/tfjs`) | runs the exported sign classifier client-side |
+| Inference (static) | **hand-written MLP** over bundled JSON weights | zero-dep, offline (ADR-011); TF.js/ONNX revisited for dynamic models (M6) |
 | Storage | **IndexedDB** via **Dexie** | word bank, progress, proficiency |
 | Lint/format | **ESLint + Prettier** | |
 | Types | **tsc --noEmit** | gate |

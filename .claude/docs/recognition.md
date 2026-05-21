@@ -135,7 +135,9 @@ Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:
 1. **extract/** — run MediaPipe over dataset videos/images → cached landmark
    arrays (+ the shared normalization).
 2. **train/** — train static MLP and/or dynamic GRU/LSTM; track metrics.
-3. **export/** — convert to **TF.js** format → `frontend/public/models/`.
+3. **export/** — export the trained model. *Static MVP:* plain JSON weights
+   (`format: "mlp-1"`) → `frontend/src/recognition/models/` (ADR-011). *Dynamic
+   (M6):* TF.js / onnxruntime-web.
 4. **eval/** — report top-1/top-5 per vocabulary subset; gate vocabulary
    expansion on measured accuracy.
 
@@ -144,8 +146,9 @@ Quality gates on this code: **`ruff format` + `ruff check`**, **`mypy .`**,
 
 ## 8. Runtime inference (frontend)
 
-- Load the exported model with **TensorFlow.js**; cache it via the service worker
-  for offline use.
+- *Static MVP:* a small hand-written MLP forward pass over the bundled JSON model
+  (no ML runtime; ADR-011). *Dynamic (M6):* load with TF.js / onnxruntime-web and
+  cache via the service worker.
 - Feed normalized landmarks (single frame or window) → `{label, confidence}`.
 - Domain layer applies threshold + debounce, then emits correct/incorrect, which
   drives bucket transitions (Practice) or "Good job"/sentence unlock (Learn).

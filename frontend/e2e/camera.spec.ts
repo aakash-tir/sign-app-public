@@ -15,4 +15,5 @@ test('enabling the camera turns it on (fake media stream)', async ({
   await expect(page.getByTestId('camera-status')).toContainText(/camera on/i, {
     timeout: 15_000,
   })
+  await expect(page.getByTestId('prediction')).toBeVisible()
 })

@@ -139,6 +139,21 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   the new level immediately; the beginner unlock is latched so it doesn't flap.
   Implemented in M5 (FR-13).
 
+## ADR-011 — Static classifier: JSON-weights MLP, not TF.js (for the MVP)
+
+- **Status:** accepted (2026-05-20). Refines ADR-002 for the static path.
+- **Context:** The static fingerspelling classifier is tiny. Pulling in the full
+  TensorFlow + tensorflowjs-converter toolchain (Python) plus a TF.js runtime
+  (browser) is heavy and version-fragile.
+- **Decision:** Train the static MLP with **scikit-learn** and export **plain
+  JSON weights** (`format: "mlp-1"`); the frontend runs a small hand-written
+  forward pass (dense → relu → softmax) with **no ML runtime dependency**. The
+  model JSON is bundled for full offline use, and carries a `normalization` id the
+  frontend asserts against (train/serve skew guard).
+- **Consequences:** Tiny, zero-dependency, fully offline static recognition that
+  avoids a fragile toolchain. **Dynamic** sequence models (M6) will revisit
+  TF.js / onnxruntime-web, which suit larger recurrent models better.
+
 ---
 
 ## Open questions (non-blocking, revisit at the noted milestone)

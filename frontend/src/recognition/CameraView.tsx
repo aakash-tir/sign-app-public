@@ -2,14 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCamera } from './useCamera'
 import { drawHands } from './drawLandmarks'
 import { createMediaPipeHandDetector } from './mediapipeDetector'
+import { recognizeSign } from './signClassifier'
+import { LabelStabilizer } from './debounce'
 import type { LandmarkDetector } from './types'
 import './CameraView.css'
 
+// Consecutive agreeing frames required before a predicted sign is shown.
+const STABILIZER_FRAMES = 5
+
 /**
- * Live camera view with a real-time hand-landmark overlay (MediaPipe). This is
- * the M1 foundation; recognition/classification is layered on in later
- * milestones. Camera activation is independent of the tracker loading, so a
- * tracker failure still leaves a working camera.
+ * Live camera view: MediaPipe hand-landmark overlay plus debounced static-sign
+ * (fingerspelling) recognition. Camera activation is independent of the tracker
+ * loading, so a tracker failure still leaves a working camera.
  */
 export function CameraView() {
   const { videoRef, status, error, start, stop } = useCamera()
@@ -18,6 +22,11 @@ export function CameraView() {
   const rafRef = useRef<number | null>(null)
   const [handCount, setHandCount] = useState(0)
   const [trackerError, setTrackerError] = useState<string | null>(null)
+  const stabilizerRef = useRef(new LabelStabilizer(STABILIZER_FRAMES))
+  const [prediction, setPrediction] = useState<{
+    label: string
+    confidence: number
+  } | null>(null)
 
   // Lazily load the MediaPipe detector once the camera is on.
   useEffect(() => {
@@ -55,6 +64,21 @@ export function CameraView() {
             const hands = detector.detect(video, performance.now())
             setHandCount(hands.length)
             drawHands(ctx, hands, canvas.width, canvas.height)
+
+            const hand = hands[0]
+            if (hand) {
+              const result = recognizeSign(hand)
+              const stable = stabilizerRef.current.push(
+                result.accepted ? result.label : null,
+              )
+              setPrediction(
+                stable
+                  ? { label: stable, confidence: result.confidence }
+                  : null,
+              )
+            } else {
+              stabilizerRef.current.push(null)
+            }
           } catch {
             // Transient per-frame detect errors are non-fatal; keep looping.
           }
@@ -78,6 +102,11 @@ export function CameraView() {
   }, [])
 
   const handleStart = useCallback(() => void start(), [start])
+  const handleStop = useCallback(() => {
+    stop()
+    stabilizerRef.current.reset()
+    setPrediction(null)
+  }, [stop])
 
   return (
     <section className="camera-view" aria-label="Camera and hand tracking">
@@ -104,7 +133,19 @@ export function CameraView() {
             <p role="status" data-testid="camera-status">
               Camera on — {handCount} hand{handCount === 1 ? '' : 's'} detected
             </p>
-            <button type="button" onClick={stop}>
+            <div className="prediction" data-testid="prediction">
+              {prediction ? (
+                <>
+                  <span className="prediction-letter">{prediction.label}</span>
+                  <span className="prediction-confidence">
+                    {Math.round(prediction.confidence * 100)}%
+                  </span>
+                </>
+              ) : (
+                <span className="prediction-empty">Show a sign…</span>
+              )}
+            </div>
+            <button type="button" onClick={handleStop}>
               Stop camera
             </button>
           </>
