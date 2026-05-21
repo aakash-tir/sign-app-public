@@ -5,11 +5,12 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **M1 ✅ merged** (PR #2) — live camera + MediaPipe hand-landmark
-  overlay, plus the pure-TS normalization core with golden-vector parity fixture.
-- **Next milestone:** **M2 — Recognition (fingerspelling MVP)** (not started).
+- **Phase:** **M2 ✅ merged** (PR #3) — end-to-end fingerspelling slice: Python
+  train→export pipeline + on-device JSON-MLP classifier with debounce, wired into
+  the camera. Trained on **synthetic** data (real dataset is a follow-up).
+- **Next milestone:** **M3 — Word bank & domain logic** (not started).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
-- **Blocked on:** owner's go-ahead to begin M2.
+- **Blocked on:** owner's go-ahead to begin M3.
 
 ## Milestone checklist
 
@@ -17,7 +18,7 @@ is in [`docs/milestones.md`](docs/milestones.md).
 | --- | --- | --- | --- |
 | M0 — Foundation & tooling | ☑ merged | `milestone/M0-foundation` | [#1](https://github.com/aakash-tir/sign-app/pull/1) |
 | M1 — Camera + hand tracking | ☑ merged | `milestone/M1-camera-landmarks` | [#2](https://github.com/aakash-tir/sign-app/pull/2) |
-| M2 — Recognition (fingerspelling MVP) | ☐ not started | `milestone/M2-recognition-static` | — |
+| M2 — Recognition (fingerspelling MVP) | ☑ merged | `milestone/M2-recognition-static` | [#3](https://github.com/aakash-tir/sign-app/pull/3) |
 | M3 — Word bank & domain logic | ☐ not started | `milestone/M3-domain` | — |
 | M4 — Practice mode UI | ☐ not started | `milestone/M4-practice-ui` | — |
 | M5 — Learn mode + levels | ☐ not started | `milestone/M5-learn` | — |
@@ -65,3 +66,10 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   with golden-vector fixture (10 Vitest tests) and a fake-media Playwright camera
   test. Follow-ups: bundle/cache MediaPipe assets for offline (later); manual iOS
   Safari device check (can't automate).
+- **2026-05-20** — **M2 merged (PR #3).** End-to-end fingerspelling: `ml/`
+  pipeline (sklearn MLP → JSON `mlp-1` export, ADR-011) with Python normalization
+  verified against the shared golden fixture; frontend `mlpClassifier` +
+  `signClassifier` (skew-guard) + `debounce`, wired into `CameraView`.
+  **Follow-up (needs Kaggle creds):** train on the real ASL Alphabet dataset via
+  `extract.py` — current model is synthetic-trained, so it doesn't recognize real
+  letters yet.
