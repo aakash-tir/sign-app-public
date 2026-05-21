@@ -5,22 +5,16 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **M5 ✅ merged** (PR #7) — levels + profile (ADR-009/010), routing
-  (React Router), Settings (level reassign + placement), and Learn mode (guided
-  letters + sentence-gated spell-a-word). Core app modes are now in place.
-- **Current milestone:** **M6 — Dynamic word-level signs** — **scoped into four
-  sub-milestones** (M6.1–M6.4) in [`docs/milestones.md`](docs/milestones.md).
-  Decisions locked: WLASL via Kaggle + own extraction (ADR-014); curated 20-sign
-  accuracy-gated starter (ADR-014); MediaPipe HolisticLandmarker (ADR-013);
-  **PyTorch→ONNX→onnxruntime-web** dynamic runtime (ADR-015, pivoted from TF.js —
-  tensorflowjs unavailable on Windows + numpy conflict).
+- **Phase:** **M6 ✅ merged** (PR #8 + #11) — dynamic word-level signs end to end:
+  Holistic capture + frozen 161-d normalization (ADR-013), PyTorch→ONNX→
+  onnxruntime-web runtime (ADR-015), 5-fold-CV accuracy gate (16/20 signs ship),
+  and dynamic signs **merged into Practice & Learn** via a unified single-camera
+  recognizer. The app now teaches/verifies fingerspelling **and** word-level signs.
+- **Next milestone:** **M7 — Offline, polish & deploy.** Credential-free parts
+  (offline caching of MediaPipe + ONNX assets, code-split the >500 kB chunk, PWA
+  install polish) proceed now; the **Cloudflare Pages deploy needs the owner's
+  account/login** (ADR-006, stop-and-ask per workflow rules).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
-- **M6 feature-complete.** **M6.1 merged** (PR #8). **M6.2–M6.4 consolidated into
-  PR #11** (the stacked squash-merge tangled doc edits, so M6.2/6.3/6.4 land
-  together): pipeline+model, onnxruntime-web runtime + Signs view, accuracy/gate +
-  **dynamic signs merged into Practice & Learn** via a unified single-camera
-  recognizer. All gates green locally (ml: ruff/mypy/**46 pytest**; frontend:
-  prettier/eslint/tsc/**118 vitest**/**12 playwright**).
 - **Dynamic model (20-sign starter, 193 clips, GRU + augmentation):** 5-fold CV
   **top-1 ≈62% / top-5 ≈95%**. **Accuracy gate (≥0.50 per-gloss top-1): 16/20 signs
   ship**; held back: `like` (0.00), `bad`, `happy`, `thank you`. Per-gloss table in
@@ -40,12 +34,12 @@ is in [`docs/milestones.md`](docs/milestones.md).
 | M3 — Word bank & domain logic | ☑ merged | `milestone/M3-domain` | [#5](https://github.com/aakash-tir/sign-app/pull/5) |
 | M4 — Practice mode UI | ☑ merged | `milestone/M4-practice-ui` | [#6](https://github.com/aakash-tir/sign-app/pull/6) |
 | M5 — Learn mode + levels | ☑ merged | `milestone/M5-learn` | [#7](https://github.com/aakash-tir/sign-app/pull/7) |
-| M6 — Dynamic signs (stretch) | ☐ not started (scoped) | — | — |
+| M6 — Dynamic signs (stretch) | ☑ merged | (sub-milestones below) | [#8](https://github.com/aakash-tir/sign-app/pull/8) + [#11](https://github.com/aakash-tir/sign-app/pull/11) |
 | ↳ M6.1 — Dynamic landmark foundation | ☑ merged | `milestone/M6.1-dynamic-foundation` | [#8](https://github.com/aakash-tir/sign-app/pull/8) |
-| ↳ M6.2 — Dataset + training pipeline | ◐ PR open | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
-| ↳ M6.3 — Runtime inference + Signs view | ◐ PR open | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
-| ↳ M6.4 — Accuracy gate + Practice/Learn merge | ◐ PR open | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
-| M7 — Offline, polish & deploy | ☐ not started | `milestone/M7-deploy` | — |
+| ↳ M6.2 — Dataset + training pipeline | ☑ merged | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
+| ↳ M6.3 — Runtime inference + Signs view | ☑ merged | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
+| ↳ M6.4 — Accuracy gate + Practice/Learn merge | ☑ merged | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
+| M7 — Offline, polish & deploy | ◐ in progress | `milestone/M7-deploy` | — |
 
 Legend: ☐ not started · ◐ in progress · ☑ merged
 
@@ -115,6 +109,10 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   loop with deferred-commit (I forgot / that's-what-I-did override / Next),
   bank = 24 letters (ADR-012), App mode toggle. Vitest component (mocked
   recognition) + Playwright button branches. Routing deferred to M5.
+- **2026-05-21** — **M6 merged.** Squash-merged to `main`: **#8** (M6.1) and **#11**
+  (M6.2–M6.4 consolidated — the stacked squash-merge tangled overlapping doc edits,
+  so M6.2/6.3/6.4 landed together; #9/#10 closed as superseded). CI green both lanes
+  on both PRs. M6 (dynamic word-level signs) is done. Next: **M7** (offline + deploy).
 - **2026-05-21** — **M6.4: Practice/Learn merge (full).** Built a unified
   single-camera recognizer (`useUnifiedSignRecognition`): one Holistic detector
   feeds both the static letter MLP (on the detected hand) and the dynamic ONNX
