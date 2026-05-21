@@ -1,0 +1,15 @@
+# Normalize line endings to LF across all platforms (keeps Prettier/CI happy).
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.task binary
+*.tflite binary
+*.bin binary

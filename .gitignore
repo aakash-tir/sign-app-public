@@ -1,0 +1,42 @@
+# ---- Node / frontend ----
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dev-dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+frontend/.vite/
+*.local
+
+# ---- Python / ml ----
+__pycache__/
+*.py[cod]
+.venv/
+ml/.venv/
+ml/.mypy_cache/
+ml/.ruff_cache/
+ml/.pytest_cache/
+ml/dist/
+ml/build/
+*.egg-info/
+.python-version
+
+# ---- Secrets / env (NEVER commit — see .claude/rules/workflow.md) ----
+.env
+.env.*
+!.env.example
+
+# ---- Claude Code local overrides (personal, not shared) ----
+.claude/settings.local.json
+.claude/CLAUDE.local.json
+
+# ---- Editor / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- Logs ----
+*.log
+npm-debug.log*
