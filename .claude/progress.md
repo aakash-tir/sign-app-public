@@ -5,12 +5,12 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **M2 ✅ merged** (PR #3) + **real-data training** — the
-  fingerspelling model is now trained on the real **ASL Alphabet** dataset
-  (24 static letters, ~99.5% held-out accuracy), replacing the synthetic model.
-- **Next milestone:** **M3 — Word bank & domain logic** (not started).
+- **Phase:** **M3 ✅ merged** (PR #5) — pure domain layer (bucket state machine +
+  1:2/no-repeat-10 selection, seeded RNG) and Dexie IndexedDB persistence, fully
+  unit-tested (42 Vitest). No UI yet.
+- **Next milestone:** **M4 — Practice mode UI** (not started).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
-- **Blocked on:** owner's go-ahead to begin M3.
+- **Blocked on:** owner's go-ahead to begin M4.
 
 ## Milestone checklist
 
@@ -19,7 +19,7 @@ is in [`docs/milestones.md`](docs/milestones.md).
 | M0 — Foundation & tooling | ☑ merged | `milestone/M0-foundation` | [#1](https://github.com/aakash-tir/sign-app/pull/1) |
 | M1 — Camera + hand tracking | ☑ merged | `milestone/M1-camera-landmarks` | [#2](https://github.com/aakash-tir/sign-app/pull/2) |
 | M2 — Recognition (fingerspelling MVP) | ☑ merged | `milestone/M2-recognition-static` | [#3](https://github.com/aakash-tir/sign-app/pull/3) |
-| M3 — Word bank & domain logic | ☐ not started | `milestone/M3-domain` | — |
+| M3 — Word bank & domain logic | ☑ merged | `milestone/M3-domain` | [#5](https://github.com/aakash-tir/sign-app/pull/5) |
 | M4 — Practice mode UI | ☐ not started | `milestone/M4-practice-ui` | — |
 | M5 — Learn mode + levels | ☐ not started | `milestone/M5-learn` | — |
 | M6 — Dynamic signs (stretch) | ☐ not started | `milestone/M6-dynamic` | — |
@@ -83,3 +83,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   (accepted for now, fix later):** S-like fist letters (A/E/M/N/S/T/O) sometimes
   all read as "S"; J/Z (dynamic) misclassified — not in the static model, slated
   for M6. Details in `docs/recognition.md`.
+- **2026-05-20** — **M3 merged (PR #5).** Pure domain layer: `buckets`
+  (promote-at-3/demote) + `selection` (`PracticeSession`, 1:2 bias,
+  no-repeat-within-10, seeded RNG) + Dexie persistence (`WordBankRepo`). 42
+  Vitest incl. the 1:2 ratio over a long seeded run and an IndexedDB round-trip
+  (fake-indexeddb). No UI.
