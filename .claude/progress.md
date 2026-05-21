@@ -5,12 +5,12 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **M3 ✅ merged** (PR #5) — pure domain layer (bucket state machine +
-  1:2/no-repeat-10 selection, seeded RNG) and Dexie IndexedDB persistence, fully
-  unit-tested (42 Vitest). No UI yet.
-- **Next milestone:** **M4 — Practice mode UI** (not started).
+- **Phase:** **M4 ✅ merged** (PR #6) — Practice mode UI: target letter → camera
+  match / "I forgot" reveal / "That's what I did" override / "Next", deferred-commit
+  (ADR-008), wired to the domain + persistence. Practice bank = 24 letters (ADR-012).
+- **Next milestone:** **M5 — Learn mode + levels + curriculum** (not started).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
-- **Blocked on:** owner's go-ahead to begin M4.
+- **Blocked on:** owner's go-ahead to begin M5.
 
 ## Milestone checklist
 
@@ -20,7 +20,7 @@ is in [`docs/milestones.md`](docs/milestones.md).
 | M1 — Camera + hand tracking | ☑ merged | `milestone/M1-camera-landmarks` | [#2](https://github.com/aakash-tir/sign-app/pull/2) |
 | M2 — Recognition (fingerspelling MVP) | ☑ merged | `milestone/M2-recognition-static` | [#3](https://github.com/aakash-tir/sign-app/pull/3) |
 | M3 — Word bank & domain logic | ☑ merged | `milestone/M3-domain` | [#5](https://github.com/aakash-tir/sign-app/pull/5) |
-| M4 — Practice mode UI | ☐ not started | `milestone/M4-practice-ui` | — |
+| M4 — Practice mode UI | ☑ merged | `milestone/M4-practice-ui` | [#6](https://github.com/aakash-tir/sign-app/pull/6) |
 | M5 — Learn mode + levels | ☐ not started | `milestone/M5-learn` | — |
 | M6 — Dynamic signs (stretch) | ☐ not started | `milestone/M6-dynamic` | — |
 | M7 — Offline, polish & deploy | ☐ not started | `milestone/M7-deploy` | — |
@@ -88,3 +88,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   no-repeat-within-10, seeded RNG) + Dexie persistence (`WordBankRepo`). 42
   Vitest incl. the 1:2 ratio over a long seeded run and an IndexedDB round-trip
   (fake-indexeddb). No UI.
+- **2026-05-20** — **M4 merged (PR #6).** Practice mode UI on the M2 recognizer +
+  M3 domain: `useSignRecognition` hook (shared with CameraView), `PracticeMode`
+  loop with deferred-commit (I forgot / that's-what-I-did override / Next),
+  bank = 24 letters (ADR-012), App mode toggle. Vitest component (mocked
+  recognition) + Playwright button branches. Routing deferred to M5.
