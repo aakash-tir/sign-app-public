@@ -1,112 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useCamera } from './useCamera'
-import { drawHands } from './drawLandmarks'
-import { createMediaPipeHandDetector } from './mediapipeDetector'
-import { recognizeSign } from './signClassifier'
-import { LabelStabilizer } from './debounce'
-import type { LandmarkDetector } from './types'
+import { useSignRecognition } from './useSignRecognition'
 import './CameraView.css'
 
-// Consecutive agreeing frames required before a predicted sign is shown.
-const STABILIZER_FRAMES = 5
-
 /**
- * Live camera view: MediaPipe hand-landmark overlay plus debounced static-sign
- * (fingerspelling) recognition. Camera activation is independent of the tracker
- * loading, so a tracker failure still leaves a working camera.
+ * Free-form camera demo: live hand-landmark overlay + debounced fingerspelling
+ * prediction. Thin presentational wrapper over {@link useSignRecognition}.
  */
 export function CameraView() {
-  const { videoRef, status, error, start, stop } = useCamera()
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const detectorRef = useRef<LandmarkDetector | null>(null)
-  const rafRef = useRef<number | null>(null)
-  const [handCount, setHandCount] = useState(0)
-  const [trackerError, setTrackerError] = useState<string | null>(null)
-  const stabilizerRef = useRef(new LabelStabilizer(STABILIZER_FRAMES))
-  const [prediction, setPrediction] = useState<{
-    label: string
-    confidence: number
-  } | null>(null)
-
-  // Lazily load the MediaPipe detector once the camera is on.
-  useEffect(() => {
-    if (status !== 'on' || detectorRef.current) return
-    let cancelled = false
-    createMediaPipeHandDetector()
-      .then((detector) => {
-        if (cancelled) detector.close()
-        else detectorRef.current = detector
-      })
-      .catch((err: unknown) => {
-        setTrackerError(
-          err instanceof Error ? err.message : 'Failed to load hand tracker.',
-        )
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [status])
-
-  // Render loop: detect + draw landmarks while the camera is on.
-  useEffect(() => {
-    if (status !== 'on') return
-
-    const loop = () => {
-      const video = videoRef.current
-      const canvas = canvasRef.current
-      const detector = detectorRef.current
-      if (video && canvas && detector && video.readyState >= 2) {
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          try {
-            const hands = detector.detect(video, performance.now())
-            setHandCount(hands.length)
-            drawHands(ctx, hands, canvas.width, canvas.height)
-
-            const hand = hands[0]
-            if (hand) {
-              const result = recognizeSign(hand)
-              const stable = stabilizerRef.current.push(
-                result.accepted ? result.label : null,
-              )
-              setPrediction(
-                stable
-                  ? { label: stable, confidence: result.confidence }
-                  : null,
-              )
-            } else {
-              stabilizerRef.current.push(null)
-            }
-          } catch {
-            // Transient per-frame detect errors are non-fatal; keep looping.
-          }
-        }
-      }
-      rafRef.current = requestAnimationFrame(loop)
-    }
-
-    rafRef.current = requestAnimationFrame(loop)
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
-    }
-  }, [status, videoRef])
-
-  // Close the detector on unmount.
-  useEffect(() => {
-    return () => {
-      detectorRef.current?.close()
-      detectorRef.current = null
-    }
-  }, [])
-
-  const handleStart = useCallback(() => void start(), [start])
-  const handleStop = useCallback(() => {
-    stop()
-    stabilizerRef.current.reset()
-    setPrediction(null)
-  }, [stop])
+  const {
+    videoRef,
+    canvasRef,
+    status,
+    error,
+    trackerError,
+    handCount,
+    prediction,
+    start,
+    stop,
+  } = useSignRecognition()
 
   return (
     <section className="camera-view" aria-label="Camera and hand tracking">
@@ -123,7 +33,7 @@ export function CameraView() {
 
       <div className="camera-controls">
         {status === 'idle' && (
-          <button type="button" onClick={handleStart}>
+          <button type="button" onClick={start}>
             Enable camera
           </button>
         )}
@@ -145,7 +55,7 @@ export function CameraView() {
                 <span className="prediction-empty">Show a sign…</span>
               )}
             </div>
-            <button type="button" onClick={handleStop}>
+            <button type="button" onClick={stop}>
               Stop camera
             </button>
           </>

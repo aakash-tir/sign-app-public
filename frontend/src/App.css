@@ -21,3 +21,14 @@
   font-size: 1.05rem;
   color: #cbd5e1;
 }
+
+.mode-switch {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.mode-switch button[aria-pressed='true'] {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}

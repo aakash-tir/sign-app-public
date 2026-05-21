@@ -154,6 +154,20 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   avoids a fragile toolchain. **Dynamic** sequence models (M6) will revisit
   TF.js / onnxruntime-web, which suit larger recurrent models better.
 
+## ADR-012 — Practice word bank = fingerspelling letters (MVP)
+
+- **Status:** accepted (2026-05-20).
+- **Context:** The spec's "word bank" holds words the user knows, shown one at a
+  time to sign. But current recognition is per-letter fingerspelling (M2) — there
+  is no multi-sign word recognition yet.
+- **Decision:** For the MVP, the practice bank is seeded with the **24 static
+  fingerspelling letters** the model knows (each letter is a practice item). The
+  domain layer (buckets, selection) is word-agnostic.
+- **Consequences:** Practice is fully usable now on letters; real words/glosses
+  drop into the same bank once the dynamic recognizer lands (M6+), with no domain
+  changes. Also note: M4 uses a simple in-`App` mode toggle (Practice/Camera);
+  proper routing (React Router) arrives with levels/modes in M5.
+
 ---
 
 ## Open questions (non-blocking, revisit at the noted milestone)

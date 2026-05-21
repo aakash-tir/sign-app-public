@@ -1,0 +1,88 @@
+.practice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 640px;
+}
+
+.practice-progress {
+  margin: 0;
+  align-self: flex-end;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.practice-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.practice-cue {
+  font-size: 0.95rem;
+  color: #cbd5e1;
+}
+
+.practice-target {
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Camera stage (shared shape with the camera demo). */
+.camera-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #0b1020;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.camera-video,
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-overlay {
+  pointer-events: none;
+}
+
+.practice-reveal,
+.practice-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reveal-hint {
+  margin: 0;
+  max-width: 40ch;
+  text-align: center;
+  color: #cbd5e1;
+}
+
+.feedback-text {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #4ade80;
+}
+
+.practice-secondary {
+  background: transparent;
+  color: #94a3b8;
+}
+
+.tracker-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #fca5a5;
+}
