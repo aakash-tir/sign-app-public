@@ -61,3 +61,6 @@ Thumbs.db
 *.log
 npm-debug.log*
 /images/
+
+# Local scratch (pasted logs, notes)
+/input.md
