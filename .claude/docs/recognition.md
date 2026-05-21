@@ -82,6 +82,13 @@ Start with **WLASL100** (100 most common glosses) for the dynamic vocabulary —
 best accuracy/effort trade-off — and expand to WLASL300/2000 only as accuracy
 allows.
 
+**Status (static fingerspelling):** trained on the **ASL Alphabet** dataset
+(24 static letters, ~500 images/letter → ~10.8k landmark samples) at **~99.5%**
+accuracy on a held-out split. Caveat: that split shares the dataset's signer and
+recording conditions, so real-world accuracy on a user's own camera/hand will be
+lower (domain shift). Broadening signer/condition diversity (more data, or
+augmentation) is a later improvement.
+
 ## 5. Normalization spec (shared TS ↔ Python)
 
 To avoid train/serve skew, both the Python trainer and the TS runtime must apply

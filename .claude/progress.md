@@ -5,9 +5,9 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **M2 ✅ merged** (PR #3) — end-to-end fingerspelling slice: Python
-  train→export pipeline + on-device JSON-MLP classifier with debounce, wired into
-  the camera. Trained on **synthetic** data (real dataset is a follow-up).
+- **Phase:** **M2 ✅ merged** (PR #3) + **real-data training** — the
+  fingerspelling model is now trained on the real **ASL Alphabet** dataset
+  (24 static letters, ~99.5% held-out accuracy), replacing the synthetic model.
 - **Next milestone:** **M3 — Word bank & domain logic** (not started).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
 - **Blocked on:** owner's go-ahead to begin M3.
@@ -73,3 +73,9 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   **Follow-up (needs Kaggle creds):** train on the real ASL Alphabet dataset via
   `extract.py` — current model is synthetic-trained, so it doesn't recognize real
   letters yet.
+- **2026-05-20** — **Real-data training done** (branch `milestone/M2-real-data`).
+  Owner downloaded the ASL Alphabet dataset; installed MediaPipe (`images` extra,
+  Python 3.13), extracted ~10.8k landmark samples (24 letters × ~500 imgs), trained
+  + exported the real model → **~99.5%** held-out accuracy. Dataset + `ml/models/`
+  gitignored. Caveat: held-out split shares signer/conditions; real-world camera
+  accuracy will be lower (domain shift).

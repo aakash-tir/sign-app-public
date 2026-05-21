@@ -47,8 +47,13 @@ def extract_dataset(
     images_dir: Path,
     model_asset_path: Path,
     labels: list[str] | None = None,
+    max_per_class: int | None = None,
 ) -> tuple[FloatArray, IntArray, list[str]]:  # pragma: no cover - real-data path
-    """Detect, normalize and flatten landmarks for every labeled image."""
+    """Detect, normalize and flatten landmarks for every labeled image.
+
+    ``max_per_class`` caps how many images per class are processed (the first N
+    by filename) — useful for a faster first training pass.
+    """
     detector, mp = _load_detector(model_asset_path)
     class_dirs = sorted(p for p in images_dir.iterdir() if p.is_dir())
     names = labels if labels is not None else [p.name for p in class_dirs]
@@ -58,10 +63,15 @@ def extract_dataset(
     for class_index, name in enumerate(names):
         class_dir = images_dir / name
         if not class_dir.is_dir():
+            print(f"  [skip] no folder for '{name}'")
             continue
-        for image_path in sorted(class_dir.iterdir()):
-            if image_path.suffix.lower() not in IMAGE_SUFFIXES:
-                continue
+        images = sorted(
+            p for p in class_dir.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES
+        )
+        if max_per_class is not None:
+            images = images[:max_per_class]
+        detected = 0
+        for image_path in images:
             image = mp.Image.create_from_file(str(image_path))
             result = detector.detect(image)
             if not result.hand_landmarks:
@@ -72,6 +82,8 @@ def extract_dataset(
                 flatten_landmarks(normalize_hand_landmarks(landmarks, handedness))
             )
             targets.append(class_index)
+            detected += 1
+        print(f"  {name}: {detected}/{len(images)} hands detected")
 
     detector.close()
     x = np.asarray(features, dtype=np.float64)

@@ -22,10 +22,11 @@ ml/build/
 *.egg-info/
 .python-version
 
-# ---- Datasets (large; never commit raw data — only trained models) ----
+# ---- Datasets / large build-time assets (never commit; only trained models) ----
 /asl_alphabet_train/
 /asl_alphabet_test/
 ml/data/
+ml/models/
 
 # ---- Secrets / env (NEVER commit — see .claude/rules/workflow.md) ----
 .env
