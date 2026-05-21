@@ -220,20 +220,28 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   if WLASL coverage or accuracy is poor for specific signs. Vocabulary expansion
   past the starter is **Q5**, resolved with measured accuracy in M6.4 (ADR-007).
 
-## ADR-015 — Dynamic runtime: TF.js (confirms the M6 branch of ADR-011)
+## ADR-015 — Dynamic runtime: ONNX / onnxruntime-web, trained in PyTorch
 
-- **Status:** accepted (2026-05-20). Complements ADR-011.
-- **Context:** ADR-011 chose a zero-dependency **JSON-weights MLP** for the *static*
-  classifier and explicitly deferred the dynamic-model runtime. A recurrent
-  sequence model (GRU/LSTM over ~30 frames) is not a good fit for a hand-written
-  forward pass.
-- **Decision:** the **dynamic** model runs on **TF.js** in the browser; the Python
-  pipeline exports to TF.js (`tensorflowjs` converter). The static path keeps its
-  JSON-MLP runtime unchanged.
-- **Consequences:** adds a TF.js runtime dependency (lazy-loaded + service-worker
-  cached for offline). Two runtimes coexist — tiny hand-written MLP for static,
-  TF.js for dynamic — each suited to its model. onnxruntime-web remains a fallback
-  if TF.js export proves fragile.
+- **Status:** accepted (2026-05-21). Complements ADR-011; this is the M6 branch of
+  ADR-002 ("dynamic models will revisit TF.js / onnxruntime-web").
+- **Context:** ADR-011 chose a zero-dependency JSON-weights MLP for the *static*
+  classifier and deferred the dynamic runtime. A recurrent sequence model (GRU over
+  ~30 frames) is not a good fit for a hand-written forward pass, so it needs a real
+  runtime + a build-time converter. The first plan was TF.js — but it is
+  **not installable on the owner's toolchain**: `tensorflowjs` depends on
+  `tensorflow-decision-forests` (no Windows wheels) and pins `tensorflow`→
+  `numpy<2.2`, which conflicts with the project's `numpy>=2.4.6` (TensorFlow itself
+  has the same numpy conflict).
+- **Decision:** train the dynamic model in **PyTorch** and export to **ONNX**
+  (`torch.onnx`); the frontend runs it with **onnxruntime-web**. PyTorch coexists
+  with numpy 2.x, installs on Windows + Python 3.13, and exports ONNX natively (no
+  extra converter). The static path keeps its JSON-MLP runtime unchanged.
+- **Consequences:** adds an onnxruntime-web runtime dependency (lazy-loaded +
+  service-worker cached for offline). Two runtimes coexist — tiny hand-written MLP
+  for static, onnxruntime-web for dynamic. The exported model emits **logits**
+  (softmax applied at inference) and ships with a `metadata.json` skew guard
+  (labels + normalization id + window/feature shape). Training deps live in an
+  optional `train` extra (`torch`, `onnx`); they never gate CI.
 
 ---
 
@@ -245,4 +253,4 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 | ~~Q2~~ | ~~"good enough" proficiency threshold to unlock sentence usage~~ | ✅ **Resolved:** sentence-eligible once `confident`; beginner sentences need ≥20 confident words (ADR-009). | done |
 | ~~Q3~~ | ~~Mapping of signs → levels~~ | ✅ **Resolved:** level *behavior* fixed (ADR-009); concrete vocab lists are M5 content work. | done |
 | ~~Q4~~ | ~~Final **hosting** provider (ADR-006).~~ | ✅ **Resolved:** Cloudflare Pages (ADR-006, [`hosting.md`](hosting.md)). | done |
-| Q5 | Should dynamic-sign vocabulary expand past the curated starter, and how far? | Gated on measured accuracy; curated ~15–25-sign starter first (ADR-014). | M6.4 |
+| ~~Q5~~ | ~~Should dynamic-sign vocabulary expand past the curated starter, and how far?~~ | ✅ **Resolved (2026-05-21):** stay at the **curated 20-sign starter** for now — accuracy is data-limited for these signs (≈193 local clips; the rest are WLASL link-rot) and expanding to WLASL100 would lower per-class accuracy. Expansion deferred until more data is available; M6.4 documents accuracy via cross-validation and gates the ship list. | done |

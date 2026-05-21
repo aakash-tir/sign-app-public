@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSignRecognition } from '../../recognition/useSignRecognition'
+import { useUnifiedSignRecognition } from '../../recognition/useUnifiedSignRecognition'
 import { fingerspellingModel } from '../../recognition/signClassifier'
 import { db } from '../../data/db'
 import { WordBankRepo } from '../../data/wordBankRepo'
 import { PracticeSession } from '../../domain/selection'
 import type { AttemptOutcome, WordProgress } from '../../domain/types'
 import { LETTER_HINTS } from '../../content/fingerspelling'
+import { SHIPPED_GLOSSES, isDynamicGloss } from '../../content/dynamicVocab'
+import { signDictionaryUrl } from '../../content/signReference'
 import './PracticeMode.css'
 
 type Phase = 'loading' | 'signing' | 'revealed' | 'correct'
@@ -18,10 +20,11 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
     canvasRef,
     status: cameraStatus,
     trackerError,
-    prediction,
+    recognized,
     start: startCamera,
-    resetPrediction,
-  } = useSignRecognition()
+    setMode,
+    reset: resetRecognition,
+  } = useUnifiedSignRecognition()
 
   const sessionRef = useRef(new PracticeSession())
   const committingRef = useRef(false)
@@ -29,22 +32,19 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
   const [current, setCurrent] = useState<WordProgress | null>(null)
   const [phase, setPhase] = useState<Phase>('loading')
 
-  const advance = useCallback(
-    (fromBank: WordProgress[]) => {
-      const next = sessionRef.current.next(fromBank)
-      setCurrent(next)
-      setPhase('signing')
-      committingRef.current = false
-      resetPrediction()
-    },
-    [resetPrediction],
-  )
+  const advance = useCallback((fromBank: WordProgress[]) => {
+    const next = sessionRef.current.next(fromBank)
+    setCurrent(next)
+    setPhase('signing')
+    committingRef.current = false
+  }, [])
 
-  // Seed + load + pick the first word on mount.
+  // Seed letters + the shipped dynamic signs, then pick the first word.
   useEffect(() => {
     let active = true
     void (async () => {
       await repo.ensureSeeded(fingerspellingModel.labels)
+      await repo.ensurePresent([...SHIPPED_GLOSSES])
       const all = await repo.allProgress()
       if (!active) return
       setBank(all)
@@ -56,6 +56,14 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
       active = false
     }
   }, [repo])
+
+  // Point the recognizer at the right model for the current item, and clear the
+  // previous prompt's debounce/window.
+  useEffect(() => {
+    if (!current) return
+    setMode(isDynamicGloss(current.wordId) ? 'sign' : 'letter')
+    resetRecognition()
+  }, [current, setMode, resetRecognition])
 
   // Commit one attempt outcome (deferred-commit per ADR-008).
   const commit = useCallback(
@@ -74,22 +82,21 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
     [current, repo, advance],
   )
 
-  // Camera recognized the target letter -> correct. Reacts to a new debounced
-  // prediction from the recognition loop; guarded by phase + committingRef so it
-  // commits at most once per attempt.
+  // Camera recognized the target -> correct (letter match or dynamic acceptance).
   useEffect(() => {
     if (phase !== 'signing' || !current) return
-    if (prediction && prediction.label === current.wordId) {
+    if (recognized && recognized.label === current.wordId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       void commit('correct')
     }
-  }, [prediction, phase, current, commit])
+  }, [recognized, phase, current, commit])
 
   if (phase === 'loading' || !current) {
     return <p className="practice-loading">Loading practice…</p>
   }
 
   const target = current.wordId
+  const isSign = isDynamicGloss(target)
   const hint = LETTER_HINTS[target] ?? 'Form the letter with your hand.'
   const confidentCount = bank.filter((w) => w.bucket === 'confident').length
 
@@ -100,7 +107,9 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
       </p>
 
       <div className="practice-prompt">
-        <span className="practice-cue">Sign this letter</span>
+        <span className="practice-cue">
+          {isSign ? 'Sign this word' : 'Sign this letter'}
+        </span>
         <span className="practice-target" data-testid="practice-target">
           {target}
         </span>
@@ -132,7 +141,19 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
 
       {phase === 'revealed' && (
         <div className="practice-reveal" data-testid="reveal">
-          <p className="reveal-hint">{hint}</p>
+          {isSign ? (
+            <a
+              className="sign-reference-link"
+              href={signDictionaryUrl(target)}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="sign-reference"
+            >
+              How to sign “{target}” ↗
+            </a>
+          ) : (
+            <p className="reveal-hint">{hint}</p>
+          )}
           <button
             type="button"
             data-testid="thats-what-i-did"

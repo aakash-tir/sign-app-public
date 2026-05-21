@@ -8,18 +8,27 @@ is in [`docs/milestones.md`](docs/milestones.md).
 - **Phase:** **M5 ✅ merged** (PR #7) — levels + profile (ADR-009/010), routing
   (React Router), Settings (level reassign + placement), and Learn mode (guided
   letters + sentence-gated spell-a-word). Core app modes are now in place.
-- **Next milestone:** **M6 — Dynamic word-level signs** — now **scoped into four
+- **Current milestone:** **M6 — Dynamic word-level signs** — **scoped into four
   sub-milestones** (M6.1–M6.4) in [`docs/milestones.md`](docs/milestones.md).
-  Decisions locked: WLASL via Kaggle + own extraction (ADR-014); curated ~15–25-sign
-  accuracy-gated starter (ADR-014); MediaPipe HolisticLandmarker (ADR-013); TF.js
-  dynamic runtime (ADR-015).
+  Decisions locked: WLASL via Kaggle + own extraction (ADR-014); curated 20-sign
+  accuracy-gated starter (ADR-014); MediaPipe HolisticLandmarker (ADR-013);
+  **PyTorch→ONNX→onnxruntime-web** dynamic runtime (ADR-015, pivoted from TF.js —
+  tensorflowjs unavailable on Windows + numpy conflict).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
-- **In progress:** **M6.1** — dynamic landmark foundation implemented; all gates
-  green locally (ml: ruff/mypy/20 pytest; frontend: prettier/eslint/tsc/93
-  vitest/10 playwright). Awaiting commit + PR.
-- **M6.2 data ready:** owner downloaded WLASL and it's consolidated (gitignored) at
-  `ml/data/wlasl/` — `videos/` (≈11,980 clips), `WLASL_v0.3.json`, `nslt_*.json`,
-  `wlasl_class_list.txt`, `missing.txt`. So M6.2 is unblocked on data.
+- **M6 feature-complete.** **M6.1 merged** (PR #8). **M6.2–M6.4 consolidated into
+  PR #11** (the stacked squash-merge tangled doc edits, so M6.2/6.3/6.4 land
+  together): pipeline+model, onnxruntime-web runtime + Signs view, accuracy/gate +
+  **dynamic signs merged into Practice & Learn** via a unified single-camera
+  recognizer. All gates green locally (ml: ruff/mypy/**46 pytest**; frontend:
+  prettier/eslint/tsc/**118 vitest**/**12 playwright**).
+- **Dynamic model (20-sign starter, 193 clips, GRU + augmentation):** 5-fold CV
+  **top-1 ≈62% / top-5 ≈95%**. **Accuracy gate (≥0.50 per-gloss top-1): 16/20 signs
+  ship**; held back: `like` (0.00), `bad`, `happy`, `thank you`. Per-gloss table in
+  `recognition.md` §6.1. ONNX (296 KB) bundled at `frontend/public/models/dynamic/`;
+  the app only prompts shipped glosses (`content/dynamicVocab.ts`). Real-camera
+  accuracy will be lower (domain shift); "That's what I did" absorbs misses.
+- **Data:** WLASL + ASL-Alphabet consolidated (gitignored) under `ml/data/`;
+  holistic model at `ml/models/holistic_landmarker.task`.
 
 ## Milestone checklist
 
@@ -32,10 +41,10 @@ is in [`docs/milestones.md`](docs/milestones.md).
 | M4 — Practice mode UI | ☑ merged | `milestone/M4-practice-ui` | [#6](https://github.com/aakash-tir/sign-app/pull/6) |
 | M5 — Learn mode + levels | ☑ merged | `milestone/M5-learn` | [#7](https://github.com/aakash-tir/sign-app/pull/7) |
 | M6 — Dynamic signs (stretch) | ☐ not started (scoped) | — | — |
-| ↳ M6.1 — Dynamic landmark foundation | ◐ in progress | `milestone/M6.1-dynamic-foundation` | — |
-| ↳ M6.2 — Dataset + training pipeline | ☐ not started | `milestone/M6.2-wlasl-training` | — |
-| ↳ M6.3 — Runtime inference + integration | ☐ not started | `milestone/M6.3-dynamic-runtime` | — |
-| ↳ M6.4 — Vocab scale-up + accuracy gate | ☐ not started | `milestone/M6.4-vocab-gate` | — |
+| ↳ M6.1 — Dynamic landmark foundation | ☑ merged | `milestone/M6.1-dynamic-foundation` | [#8](https://github.com/aakash-tir/sign-app/pull/8) |
+| ↳ M6.2 — Dataset + training pipeline | ◐ PR open | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
+| ↳ M6.3 — Runtime inference + Signs view | ◐ PR open | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
+| ↳ M6.4 — Accuracy gate + Practice/Learn merge | ◐ PR open | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
 | M7 — Offline, polish & deploy | ☐ not started | `milestone/M7-deploy` | — |
 
 Legend: ☐ not started · ◐ in progress · ☑ merged
@@ -106,6 +115,53 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   loop with deferred-commit (I forgot / that's-what-I-did override / Next),
   bank = 24 letters (ADR-012), App mode toggle. Vitest component (mocked
   recognition) + Playwright button branches. Routing deferred to M5.
+- **2026-05-21** — **M6.4: Practice/Learn merge (full).** Built a unified
+  single-camera recognizer (`useUnifiedSignRecognition`): one Holistic detector
+  feeds both the static letter MLP (on the detected hand) and the dynamic ONNX
+  classifier (on the 30-frame window), switched by a per-prompt mode — so one
+  camera serves letters and signs. Practice now seeds letters + 16 shipped signs
+  (`ensurePresent`) and prompts both; Learn gained a "Learn signs" view with
+  dictionary reference links. `isDynamicGloss` routes each item. +6 vitest (118);
+  all gates green incl. 12 playwright. **M6 feature-complete** (kept local per
+  owner; no PRs yet).
+- **2026-05-21** — **M6.4: CV eval + accuracy gate + reference media.** Added
+  5-fold stratified CV (`cross_validate`, `stratified_folds`, `crossval` CLI) →
+  **top-1 ≈62% / top-5 ≈95%**; documented per-gloss table in `recognition.md` §6.1.
+  **Ship gate at 0.50 → 16/20 glosses ship** (`content/dynamicVocab.ts`; held back
+  like/bad/happy/thank you); Signs view only prompts shipped glosses. Reference
+  media = external ASL-dictionary links (`content/signReference.ts` → signasl.org)
+  shown in the Signs view. **Q5 resolved** (stay at curated 20, no WLASL100
+  expansion now). +1 pytest, +6 vitest. All gates green. **Remaining M6.4:** the
+  deeper curriculum merge into the letter-based Practice/Learn bucket flow.
+- **2026-05-21** — **M6.4 started: accuracy push** (branch
+  `milestone/M6.4-vocab-gate`, stacked on M6.3). Added landmark-sequence
+  augmentation (`augment_sequences`: scale/noise jitter + frame dropout, presence
+  flags preserved), per-epoch shuffle fix, Adam weight decay. Retrained →
+  **top-1 52.4% / top-5 95.2%** (from 47.6% / 90.5%); refreshed bundled ONNX.
+  +3 pytest (45). Decisions for the rest of M6.4: **push accuracy first** and
+  **Learn reference media = external ASL-dictionary links**. Still open: a robust
+  per-gloss accuracy estimate (tiny test split), the ship gate, curriculum merge,
+  and Q5.
+- **2026-05-21** — **M6.3 dynamic runtime + Signs view** (branch
+  `milestone/M6.3-dynamic-runtime`, stacked on M6.2). Added **onnxruntime-web**;
+  trained ONNX model bundled at `frontend/public/models/dynamic/`. Pure classifier
+  helpers (`softmax`/`topPrediction`/per-sign `accepts`) + skew guard
+  (`assertMetadataCompatible`) in `dynamicClassifier.ts`; ONNX impl in
+  `onnxDynamicClassifier.ts`; `useDynamicSignRecognition` (camera + Holistic +
+  `FrameWindow` + throttled async inference) + live overlay (`drawHolistic`); new
+  `/signs` route (`DynamicSignView`). +16 vitest (109), +2 playwright (12); all
+  gates green. **Curriculum merge into Learn/Practice + reference media + accuracy
+  gate moved to M6.4.**
+- **2026-05-21** — **M6.2 pipeline + first model** (branch
+  `milestone/M6.2-wlasl-training`, stacked on M6.1). WLASL adapter (`wlasl.py`),
+  holistic extraction (`dynamic_extract.py`, IMAGE-mode fresh-detector-per-clip),
+  GRU training (`dynamic_model.py`), ONNX export (`dynamic_export.py`), CLI
+  (`dynamic_pipeline.py`). **Toolchain pivot (ADR-015): TF.js → PyTorch/ONNX/
+  onnxruntime-web** — `tensorflowjs` has no Windows wheels and TF pins numpy<2.2
+  (conflicts with our numpy 2.4.6). Extracted 193 clips for the 20-sign starter →
+  trained GRU → **top-1 47.6% / top-5 90.5%** (test n=21); ONNX 296 KB exported.
+  +22 pytest (now 42); all gates green. Optional extras `video` (mediapipe+opencv)
+  and `train` (torch+onnx). Datasets/model artifacts gitignored under `ml/`.
 - **2026-05-20** — **M6.1 implemented** (branch `milestone/M6.1-dynamic-foundation`).
   Headless dynamic-capture foundation: `HolisticDetector` interface +
   HolisticLandmarker-backed impl (`holisticDetector.ts`); frozen dynamic

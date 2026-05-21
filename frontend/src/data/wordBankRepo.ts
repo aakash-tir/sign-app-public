@@ -38,6 +38,19 @@ export class WordBankRepo {
     }
   }
 
+  /**
+   * Ensure each id exists in the bank (adding any missing as need-practice),
+   * without the empty-bank guard — used to add the dynamic-sign vocabulary to
+   * banks that were already seeded with letters.
+   */
+  async ensurePresent(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      if (!(await this.db.progress.get(id))) {
+        await this.putWord({ id, gloss: id })
+      }
+    }
+  }
+
   async getProgress(wordId: string): Promise<WordProgress | undefined> {
     return this.db.progress.get(wordId)
   }

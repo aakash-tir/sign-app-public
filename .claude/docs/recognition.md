@@ -188,6 +188,31 @@ Research reality check (2025 literature):
 5. **Expand vocabulary in phases** (M6 stretch), publishing measured accuracy per
    batch so scope stays honest.
 
+### 6.1 Measured accuracy — curated 20-sign starter (M6.4)
+
+GRU over the frozen 161-d features, 193 local WLASL clips, with landmark-sequence
+augmentation. The native WLASL test split is ≈1 clip/gloss (too small to gate on),
+so accuracy is measured by **5-fold stratified cross-validation** (every sample
+predicted once in its held-out fold):
+
+- **Aggregate: top-1 ≈ 62%, top-5 ≈ 95%** (5-fold, n=193).
+
+**Per-gloss top-1 (CV)** drives the ship gate (**bar = 0.50**):
+
+| Shipped (≥ 0.50) | | Excluded (< 0.50) |
+| --- | --- | --- |
+| family 1.00 · sorry 0.86 · help 0.86 · finish 0.78 | yes 0.75 · more 0.75 · drink 0.73 · please 0.71 | **like 0.00** · bad 0.30 |
+| want 0.67 · no 0.64 · sad 0.62 · go 0.60 | love 0.57 · eat 0.57 · good 0.50 · learn 0.50 | happy 0.38 · thank you 0.43 |
+
+**Gate result:** **16 of 20 signs ship**; `like`, `bad`, `happy`, `thank you` are
+**held back** (likely confusable handshapes/motion; revisit with more clips or
+augmentation). The shipped set lives in `frontend/src/content/dynamicVocab.ts` and
+the app only prompts shipped glosses. Reproduce with
+`uv run --project ml python -m sign_ml.dynamic_pipeline crossval`.
+
+> These are starting numbers on a small, signer-limited set; real-camera accuracy
+> will be lower (domain shift). The "That's what I did" valve absorbs misses.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:
@@ -197,7 +222,8 @@ Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:
 2. **train/** — train static MLP and/or dynamic GRU/LSTM; track metrics.
 3. **export/** — export the trained model. *Static MVP:* plain JSON weights
    (`format: "mlp-1"`) → `frontend/src/recognition/models/` (ADR-011). *Dynamic
-   (M6):* TF.js / onnxruntime-web.
+   (M6):* PyTorch → **ONNX** (`torch.onnx`), with a `metadata.json` skew guard
+   (ADR-015).
 4. **eval/** — report top-1/top-5 per vocabulary subset; gate vocabulary
    expansion on measured accuracy.
 
@@ -207,8 +233,8 @@ Quality gates on this code: **`ruff format` + `ruff check`**, **`mypy .`**,
 ## 8. Runtime inference (frontend)
 
 - *Static MVP:* a small hand-written MLP forward pass over the bundled JSON model
-  (no ML runtime; ADR-011). *Dynamic (M6):* load with TF.js / onnxruntime-web and
-  cache via the service worker.
+  (no ML runtime; ADR-011). *Dynamic (M6):* load the ONNX model with
+  **onnxruntime-web** and cache via the service worker (ADR-015).
 - Feed normalized landmarks (single frame or window) → `{label, confidence}`.
 - Domain layer applies threshold + debounce, then emits correct/incorrect, which
   drives bucket transitions (Practice) or "Good job"/sentence unlock (Learn).

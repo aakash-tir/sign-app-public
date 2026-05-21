@@ -2,24 +2,25 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
-// Controllable stub for the recognition hook (lets us simulate a camera match).
+// Controllable stub for the unified recognition hook (simulates a camera match).
 const mocks = vi.hoisted(() => ({
-  prediction: null as { label: string; confidence: number } | null,
-  resetPrediction: vi.fn(),
+  recognized: null as { label: string; confidence: number } | null,
+  reset: vi.fn(),
+  setMode: vi.fn(),
 }))
 
-vi.mock('../../recognition/useSignRecognition', () => ({
-  useSignRecognition: () => ({
+vi.mock('../../recognition/useUnifiedSignRecognition', () => ({
+  useUnifiedSignRecognition: () => ({
     videoRef: { current: null },
     canvasRef: { current: null },
     status: 'on',
     error: null,
     trackerError: null,
-    handCount: 0,
-    prediction: mocks.prediction,
+    recognized: mocks.recognized,
     start: vi.fn(),
     stop: vi.fn(),
-    resetPrediction: mocks.resetPrediction,
+    setMode: mocks.setMode,
+    reset: mocks.reset,
   }),
 }))
 
@@ -32,8 +33,9 @@ let database: SignAppDB
 let repo: WordBankRepo
 
 beforeEach(async () => {
-  mocks.prediction = null
-  mocks.resetPrediction.mockClear()
+  mocks.recognized = null
+  mocks.reset.mockClear()
+  mocks.setMode.mockClear()
   database = new SignAppDB(`test-practice-${++counter}`)
   await database.open()
   repo = new WordBankRepo(database)
@@ -52,17 +54,25 @@ async function renderAndGetTarget() {
 }
 
 describe('PracticeMode', () => {
-  it('seeds the bank and shows a target letter', async () => {
+  it('seeds the bank (letters + dynamic signs) and shows a target', async () => {
     const { target } = await renderAndGetTarget()
-    expect(target.length).toBe(1)
+    expect(target.length).toBeGreaterThan(0)
     expect(await repo.getProgress(target)).toBeDefined()
+    // bank holds 24 letters + 16 shipped dynamic glosses
+    expect(await repo.allProgress()).toHaveLength(40)
+  })
+
+  it('points the recognizer at the right model for the prompt', async () => {
+    await renderAndGetTarget()
+    expect(mocks.setMode).toHaveBeenCalledWith(
+      expect.stringMatching(/letter|sign/),
+    )
   })
 
   it('"I forgot" reveals the sign without committing anything', async () => {
     const { target } = await renderAndGetTarget()
     fireEvent.click(screen.getByTestId('i-forgot'))
     expect(await screen.findByTestId('reveal')).toBeInTheDocument()
-    // Nothing committed yet (deferred-commit): the word is untouched.
     expect((await repo.getProgress(target))?.timesSeen).toBe(0)
   })
 
@@ -80,7 +90,6 @@ describe('PracticeMode', () => {
     const { target } = await renderAndGetTarget()
     fireEvent.click(screen.getByTestId('i-forgot'))
     fireEvent.click(await screen.findByTestId('reveal-next'))
-    // Advances straight to the next signing prompt — no error/incorrect screen.
     expect(await screen.findByTestId('practice-target')).toBeInTheDocument()
     expect(screen.queryByTestId('correct-feedback')).toBeNull()
     const progress = await repo.getProgress(target)
@@ -89,9 +98,9 @@ describe('PracticeMode', () => {
     expect(progress?.timesSeen).toBe(1)
   })
 
-  it('a camera-recognized target letter commits a correct answer', async () => {
+  it('a camera-recognized target commits a correct answer', async () => {
     const { view, target } = await renderAndGetTarget()
-    mocks.prediction = { label: target, confidence: 0.99 }
+    mocks.recognized = { label: target, confidence: 0.99 }
     view.rerender(<PracticeMode repo={repo} />)
     expect(await screen.findByTestId('correct-feedback')).toBeInTheDocument()
     expect((await repo.getProgress(target))?.timesSeen).toBe(1)

@@ -1,0 +1,30 @@
+{
+  "format": "onnx",
+  "modelFile": "model.onnx",
+  "normalization": "pose-shoulder-hands-v1",
+  "window": 30,
+  "featureDim": 161,
+  "output": "logits",
+  "labels": [
+    "bad",
+    "drink",
+    "eat",
+    "family",
+    "finish",
+    "go",
+    "good",
+    "happy",
+    "help",
+    "learn",
+    "like",
+    "love",
+    "more",
+    "no",
+    "please",
+    "sad",
+    "sorry",
+    "thank you",
+    "want",
+    "yes"
+  ]
+}

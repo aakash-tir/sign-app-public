@@ -10,6 +10,7 @@ import { CameraView } from './recognition/CameraView'
 import { PracticeMode } from './modes/practice/PracticeMode'
 import { LearnMode } from './modes/learn/LearnMode'
 import { SettingsView } from './modes/settings/SettingsView'
+import { DynamicSignView } from './modes/dynamic/DynamicSignView'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <nav className="mode-switch" aria-label="Main">
             <NavLink to="/practice">Practice</NavLink>
             <NavLink to="/learn">Learn</NavLink>
+            <NavLink to="/signs">Signs</NavLink>
             <NavLink to="/settings">Settings</NavLink>
             <NavLink to="/camera">Camera</NavLink>
           </nav>
@@ -30,6 +32,7 @@ function App() {
             <Route path="/" element={<Navigate to="/practice" replace />} />
             <Route path="/practice" element={<PracticeMode />} />
             <Route path="/learn" element={<LearnMode />} />
+            <Route path="/signs" element={<DynamicSignView />} />
             <Route path="/settings" element={<SettingsView />} />
             <Route path="/camera" element={<CameraView />} />
             <Route path="*" element={<Navigate to="/practice" replace />} />

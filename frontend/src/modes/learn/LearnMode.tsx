@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSignRecognition } from '../../recognition/useSignRecognition'
+import { useUnifiedSignRecognition } from '../../recognition/useUnifiedSignRecognition'
 import { fingerspellingModel } from '../../recognition/signClassifier'
 import { db } from '../../data/db'
 import { WordBankRepo } from '../../data/wordBankRepo'
@@ -7,18 +7,19 @@ import { sentencesEnabled } from '../../domain/levels'
 import type { UserProfile, WordProgress } from '../../domain/types'
 import { LETTER_HINTS } from '../../content/fingerspelling'
 import { spellableWords } from '../../content/words'
+import { SHIPPED_GLOSSES } from '../../content/dynamicVocab'
+import { signDictionaryUrl } from '../../content/signReference'
 import './LearnMode.css'
 
 const defaultRepo = new WordBankRepo(db)
 const LABELS = fingerspellingModel.labels
 
-type View = 'teach' | 'spell'
+type View = 'teach' | 'spell' | 'signs'
 
-function notConfident(bank: WordProgress[]): string[] {
-  const confident = new Set(
+function confidentIds(bank: WordProgress[]): Set<string> {
+  return new Set(
     bank.filter((w) => w.bucket === 'confident').map((w) => w.wordId),
   )
-  return LABELS.filter((letter) => !confident.has(letter))
 }
 
 function pickNext(remaining: string[], after: string | null): string | null {
@@ -35,19 +36,24 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
     canvasRef,
     status: cameraStatus,
     trackerError,
-    prediction,
+    recognized,
     start: startCamera,
-    resetPrediction,
-  } = useSignRecognition()
+    setMode,
+    reset: resetRecognition,
+  } = useUnifiedSignRecognition()
 
   const committingRef = useRef(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [bank, setBank] = useState<WordProgress[]>([])
   const [view, setView] = useState<View>('teach')
 
-  // Teach state
+  // Teach (letters) state
   const [target, setTarget] = useState<string | null>(null)
   const [taught, setTaught] = useState(false)
+
+  // Signs (dynamic) state
+  const [signTarget, setSignTarget] = useState<string | null>(null)
+  const [signTaught, setSignTaught] = useState(false)
 
   // Spell state
   const [word, setWord] = useState<string | null>(null)
@@ -59,6 +65,7 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
     let active = true
     void (async () => {
       await repo.ensureSeeded(LABELS)
+      await repo.ensurePresent([...SHIPPED_GLOSSES])
       const [loadedProfile, all] = await Promise.all([
         repo.getProfile(),
         repo.allProgress(),
@@ -66,23 +73,34 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
       if (!active) return
       setProfile(loadedProfile)
       setBank(all)
-      setTarget(pickNext(notConfident(all), null))
+      const confident = confidentIds(all)
+      setTarget(
+        pickNext(
+          LABELS.filter((l) => !confident.has(l)),
+          null,
+        ),
+      )
     })()
     return () => {
       active = false
     }
   }, [repo])
 
-  const confidentSet = new Set(
-    bank.filter((w) => w.bucket === 'confident').map((w) => w.wordId),
-  )
-  const spellable = spellableWords(confidentSet)
+  // Point the recognizer at the right model for the active view.
+  useEffect(() => {
+    setMode(view === 'signs' ? 'sign' : 'letter')
+  }, [view, setMode])
+
+  const confident = confidentIds(bank)
+  const spellable = spellableWords(confident)
   const canSpell =
     profile !== null &&
     sentencesEnabled(profile.level, profile.sentencesUnlocked) &&
     spellable.length > 0
+  const remainingLetters = LABELS.filter((l) => !confident.has(l))
+  const remainingSigns = SHIPPED_GLOSSES.filter((g) => !confident.has(g))
 
-  // ----- Teaching -----
+  // ----- Teaching letters -----
   const teachCorrect = useCallback(async () => {
     if (!target || committingRef.current) return
     committingRef.current = true
@@ -94,17 +112,43 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
   const teachNext = useCallback(() => {
     setTaught(false)
     committingRef.current = false
-    setTarget((prev) => pickNext(notConfident(bank), prev))
-    resetPrediction()
-  }, [bank, resetPrediction])
+    setTarget((prev) => pickNext(remainingLetters, prev))
+    resetRecognition()
+  }, [remainingLetters, resetRecognition])
 
-  // Camera recognized the target letter -> correct.
   useEffect(() => {
     if (view !== 'teach' || taught || !target) return
-    if (prediction && prediction.label === target) {
-      void teachCorrect()
-    }
-  }, [prediction, view, taught, target, teachCorrect])
+    if (recognized && recognized.label === target) void teachCorrect()
+  }, [recognized, view, taught, target, teachCorrect])
+
+  // ----- Teaching dynamic signs -----
+  const startSigns = useCallback(() => {
+    setView('signs')
+    setSignTaught(false)
+    committingRef.current = false
+    setSignTarget((prev) => prev ?? pickNext(remainingSigns, null))
+    resetRecognition()
+  }, [remainingSigns, resetRecognition])
+
+  const signCorrect = useCallback(async () => {
+    if (!signTarget || committingRef.current) return
+    committingRef.current = true
+    await repo.recordAttempt(signTarget, 'correct')
+    setBank(await repo.allProgress())
+    setSignTaught(true)
+  }, [repo, signTarget])
+
+  const signNext = useCallback(() => {
+    setSignTaught(false)
+    committingRef.current = false
+    setSignTarget((prev) => pickNext(remainingSigns, prev))
+    resetRecognition()
+  }, [remainingSigns, resetRecognition])
+
+  useEffect(() => {
+    if (view !== 'signs' || signTaught || !signTarget) return
+    if (recognized && recognized.label === signTarget) void signCorrect()
+  }, [recognized, view, signTaught, signTarget, signCorrect])
 
   // ----- Spelling -----
   const startSpell = useCallback(() => {
@@ -114,21 +158,18 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
     setSpellIndex(0)
     setSpellDone(false)
     setView('spell')
-    resetPrediction()
-  }, [spellable, resetPrediction])
+    resetRecognition()
+  }, [spellable, resetRecognition])
 
-  // Camera recognized the next letter of the word -> advance.
   useEffect(() => {
     if (view !== 'spell' || spellDone || !word) return
-    if (prediction && prediction.label === word[spellIndex]) {
+    if (recognized && recognized.label === word[spellIndex]) {
       const nextIndex = spellIndex + 1
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSpellIndex(nextIndex)
-      if (nextIndex >= word.length) {
-        setSpellDone(true)
-      }
+      if (nextIndex >= word.length) setSpellDone(true)
     }
-  }, [prediction, view, spellDone, word, spellIndex])
+  }, [recognized, view, spellDone, word, spellIndex])
 
   if (!profile) {
     return <p className="learn-loading">Loading…</p>
@@ -159,6 +200,14 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
           onClick={() => setView('teach')}
         >
           Learn letters
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === 'signs'}
+          data-testid="signs-tab"
+          onClick={startSigns}
+        >
+          Learn signs
         </button>
         {canSpell && (
           <button
@@ -214,6 +263,64 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
                     className="learn-secondary"
                     data-testid="learn-skip"
                     onClick={teachNext}
+                  >
+                    Skip
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {view === 'signs' && (
+        <div className="learn-teach">
+          {signTarget === null ? (
+            <p data-testid="signs-done">
+              You&apos;ve learned all the signs! 🎉
+            </p>
+          ) : (
+            <>
+              <div className="learn-prompt">
+                <span className="learn-target" data-testid="sign-target">
+                  {signTarget}
+                </span>
+                <a
+                  className="sign-reference-link"
+                  href={signDictionaryUrl(signTarget)}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-testid="sign-reference"
+                >
+                  How to sign “{signTarget}” ↗
+                </a>
+              </div>
+              {cameraBlock}
+              {signTaught ? (
+                <div className="learn-feedback" data-testid="sign-good">
+                  <p className="feedback-text">Good job! ✅</p>
+                  <button
+                    type="button"
+                    data-testid="sign-next"
+                    onClick={signNext}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : (
+                <div className="learn-actions">
+                  <button
+                    type="button"
+                    data-testid="sign-got-it"
+                    onClick={() => void signCorrect()}
+                  >
+                    That&apos;s what I did
+                  </button>
+                  <button
+                    type="button"
+                    className="learn-secondary"
+                    data-testid="sign-skip"
+                    onClick={signNext}
                   >
                     Skip
                   </button>

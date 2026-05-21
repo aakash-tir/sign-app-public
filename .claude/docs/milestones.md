@@ -178,8 +178,10 @@ vocabulary **only as far as measured accuracy allows**.
   **accuracy-gated**, then expand. Not the full WLASL100 up front. See ADR-014.
 - **Landmark stack:** MediaPipe **HolisticLandmarker** (Tasks Vision; pose + hands
   in one model), not the deprecated legacy Holistic. See ADR-013.
-- **Runtime:** dynamic model runs on **TF.js** (the JSON-MLP path of ADR-011 is
-  static-only). See ADR-015.
+- **Runtime:** dynamic model trained in **PyTorch**, exported to **ONNX**, run with
+  **onnxruntime-web** (the JSON-MLP path of ADR-011 is static-only). TF.js was
+  rejected — `tensorflowjs` has no Windows wheels and conflicts with our numpy. See
+  ADR-015.
 
 > Each sub-milestone is its own branch → PR → squash-merge, with all gates green,
 > per the working agreement. Sub-dependency: **M6.1 → M6.2 → M6.3 → M6.4**; M6.1
@@ -238,13 +240,13 @@ Deliverables:
   filtering/any link rot in the mirror).
 - `ml/src/sign_ml/train/`: **GRU/LSTM** sequence model (research baseline ≈ 2 dense
   + 2 LSTM); seeded; logs config + metrics.
-- `ml/src/sign_ml/export/`: export to **TF.js**; record dataset, subset, and
-  **measured accuracy** alongside the artifact (ADR-007 gate inputs).
+- `ml/src/sign_ml/` export: export to **ONNX** (`torch.onnx`); record dataset,
+  subset, and **measured accuracy** alongside the artifact (ADR-007 gate inputs).
 - `ml/src/sign_ml/eval/`: top-1 / top-5 per subset.
 
 Acceptance:
 - Pipeline runs end-to-end on the curated subset and reproduces its metrics from a
-  seed; an exported TF.js model + an accuracy report are produced.
+  seed; an exported **ONNX** model + an accuracy report are produced.
 - Python normalization still matches the M6.1 golden vectors.
 
 Tests: pytest for extract/train/export **shapes** + the eval metric on **tiny
@@ -257,48 +259,55 @@ fixtures** (not the full dataset).
 
 ---
 
-### M6.3 — Runtime dynamic inference + Learn/Practice integration
+### M6.3 — Runtime dynamic inference + a dedicated Signs view
 
-**Goal:** the app recognizes dynamic signs live and uses them in both modes.
+**Goal:** the app recognizes dynamic signs **live** through the full runtime stack,
+on a dedicated surface. (Merging dynamic glosses into the existing letter-based
+Learn/Practice + reference media is **M6.4**, alongside the accuracy gate — the
+static modes are letter-based and the model is still a baseline, so a clean merge
+belongs with the content work.)
 
 Deliverables:
-- Add the **TF.js runtime** dependency; load the exported model and **cache it via
-  the service worker** for offline use.
-- `DynamicSignClassifier` behind the existing recognition interface: consume the
-  M6.1 window buffer → `{ label, confidence }`, with **confidence threshold +
-  temporal debounce** and **per-sign acceptance** (verification only needs "did the
-  user perform the *prompted* gloss?", not open-set N-way classification — ADR-007
-  §6.4).
-- **Skew guard:** assert the model's `normalization` id at load (as the static MLP
-  path does).
-- Wire dynamic glosses through `useSignRecognition` so Learn and Practice can prompt
-  them; add reference-media metadata for the curated signs in
-  `frontend/src/content/`.
+- Add the **onnxruntime-web** dependency; load the exported ONNX model
+  (`createOnnxDynamicClassifier`) and the trained model into
+  `frontend/public/models/dynamic/`. *(Service-worker caching for offline is M7.)*
+- `DynamicClassifier` interface + ONNX impl behind it; pure helpers (`softmax`,
+  `topPrediction`, **per-sign `accepts`** — verification, not open-set N-way) and a
+  **skew guard** (`assertMetadataCompatible`) asserting the model's `normalization`
+  id + window/feature shape at load (as the static MLP path does).
+- `useDynamicSignRecognition`: camera + Holistic detector + `FrameWindow` +
+  throttled async inference; **live Holistic overlay** (`drawHolistic`, deferred
+  from M6.1); always releases the camera/detector on unmount.
+- `DynamicSignView` (route `/signs`): pick a target gloss, perform it, see the live
+  prediction + per-sign acceptance.
 
 Acceptance:
-- A curated dynamic sign can be prompted in Learn **and** Practice and verified live
-  on a device; the deferred-commit / "That's what I did" safety valves still apply.
-- Recognition works **offline** after first load (model cached).
+- A curated dynamic sign can be prompted on the Signs view and verified live; the
+  loaded model is rejected if its normalization id doesn't match the build.
+- All gates green (pure classifier helpers + skew guard unit-tested; Playwright
+  mounts the view and turns the camera on with a fake stream).
 
-Tests: Vitest adapter (stubbed model: window → label/confidence, debounce,
-per-sign acceptance); Playwright happy-path for a dynamic-sign prompt with stubbed
-recognition.
+Tests: Vitest for the classifier helpers + skew guard + the view (mocked hook);
+Playwright happy-path for the Signs view.
 
 ---
 
 ### M6.4 — Curated vocabulary scale-up + accuracy gate
 
-**Goal:** ship the curated dynamic vocabulary at **documented** accuracy and resolve
-the open vocabulary question (Q5).
+**Goal:** lift accuracy, ship the curated dynamic vocabulary at **documented**
+accuracy, **merge it into Learn/Practice**, and resolve the open vocabulary
+question (Q5).
 
 Deliverables:
-- Expand from the M6.2 prototype subset to the full curated starter (~15–25 signs);
-  measure **per-gloss accuracy**.
+- Improve the M6.2 baseline (more clips/gloss, augmentation, model tuning, and/or
+  the owner's pre-extracted landmarks); measure **per-gloss accuracy** on the
+  20-sign starter (and expand toward WLASL100 as accuracy allows).
 - **Accuracy gate:** only glosses meeting the acceptance bar **ship**; the rest are
   excluded or flagged. Publish measured numbers in [`recognition.md`](recognition.md).
 - Reference media/content for each shipped dynamic gloss (Learn mode).
-- Integrate the shipped glosses into the word bank / curriculum / levels (the domain
-  layer is already word-agnostic — ADR-012).
+- **Merge dynamic glosses into the word bank / curriculum / levels** and wire the
+  M6.3 dynamic recognizer into Learn/Practice (the domain layer is already
+  word-agnostic — ADR-012); keep the deferred-commit / "That's what I did" valves.
 - Resolve **Q5** (how far to expand the dynamic vocabulary) using the accuracy data.
 
 Acceptance:

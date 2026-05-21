@@ -2,22 +2,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 const mocks = vi.hoisted(() => ({
-  prediction: null as { label: string; confidence: number } | null,
-  resetPrediction: vi.fn(),
+  recognized: null as { label: string; confidence: number } | null,
+  reset: vi.fn(),
+  setMode: vi.fn(),
 }))
 
-vi.mock('../../recognition/useSignRecognition', () => ({
-  useSignRecognition: () => ({
+vi.mock('../../recognition/useUnifiedSignRecognition', () => ({
+  useUnifiedSignRecognition: () => ({
     videoRef: { current: null },
     canvasRef: { current: null },
     status: 'on',
     error: null,
     trackerError: null,
-    handCount: 0,
-    prediction: mocks.prediction,
+    recognized: mocks.recognized,
     start: vi.fn(),
     stop: vi.fn(),
-    resetPrediction: mocks.resetPrediction,
+    setMode: mocks.setMode,
+    reset: mocks.reset,
   }),
 }))
 
@@ -30,7 +31,8 @@ let database: SignAppDB
 let repo: WordBankRepo
 
 beforeEach(async () => {
-  mocks.prediction = null
+  mocks.recognized = null
+  mocks.setMode.mockClear()
   database = new SignAppDB(`test-learn-${++counter}`)
   await database.open()
   repo = new WordBankRepo(database)
@@ -41,7 +43,7 @@ afterEach(async () => {
   await database.delete()
 })
 
-describe('LearnMode teaching', () => {
+describe('LearnMode teaching letters', () => {
   it('shows the first un-learned letter with a hint', async () => {
     render(<LearnMode repo={repo} />)
     expect((await screen.findByTestId('learn-target')).textContent).toBe('A')
@@ -58,7 +60,7 @@ describe('LearnMode teaching', () => {
   it('a camera-recognized letter records correct', async () => {
     const view = render(<LearnMode repo={repo} />)
     await screen.findByTestId('learn-target')
-    mocks.prediction = { label: 'A', confidence: 0.99 }
+    mocks.recognized = { label: 'A', confidence: 0.99 }
     view.rerender(<LearnMode repo={repo} />)
     expect(await screen.findByTestId('learn-good')).toBeInTheDocument()
     expect((await repo.getProgress('A'))?.timesSeen).toBe(1)
@@ -75,9 +77,33 @@ describe('LearnMode teaching', () => {
   })
 })
 
+describe('LearnMode teaching dynamic signs', () => {
+  it('teaches a sign with a reference link and records correct', async () => {
+    render(<LearnMode repo={repo} />)
+    fireEvent.click(await screen.findByTestId('signs-tab'))
+    expect((await screen.findByTestId('sign-target')).textContent).toBe('drink')
+    expect(screen.getByTestId('sign-reference')).toHaveAttribute(
+      'href',
+      'https://www.signasl.org/sign/drink',
+    )
+    fireEvent.click(screen.getByTestId('sign-got-it'))
+    expect(await screen.findByTestId('sign-good')).toBeInTheDocument()
+    expect((await repo.getProgress('drink'))?.needPracticeStreak).toBe(1)
+  })
+
+  it('a camera-recognized sign records correct', async () => {
+    const view = render(<LearnMode repo={repo} />)
+    fireEvent.click(await screen.findByTestId('signs-tab'))
+    await screen.findByTestId('sign-target')
+    mocks.recognized = { label: 'drink', confidence: 0.99 }
+    view.rerender(<LearnMode repo={repo} />)
+    expect(await screen.findByTestId('sign-good')).toBeInTheDocument()
+    expect((await repo.getProgress('drink'))?.timesSeen).toBe(1)
+  })
+})
+
 describe('LearnMode spelling (gated)', () => {
   it('spells a word from confident letters via the camera', async () => {
-    // Make CAT spellable and enable sentences.
     for (const letter of ['C', 'A', 'T']) await repo.markKnown(letter)
     await repo.setLevel('intermediate')
 
@@ -86,7 +112,7 @@ describe('LearnMode spelling (gated)', () => {
     expect(await screen.findByTestId('spell-word')).toHaveTextContent('CAT')
 
     for (const letter of ['C', 'A', 'T']) {
-      mocks.prediction = { label: letter, confidence: 0.99 }
+      mocks.recognized = { label: letter, confidence: 0.99 }
       view.rerender(<LearnMode repo={repo} />)
     }
     expect(await screen.findByTestId('spell-done')).toBeInTheDocument()
