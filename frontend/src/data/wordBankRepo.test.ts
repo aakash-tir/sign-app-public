@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { SENTENCE_UNLOCK_THRESHOLD } from '../domain/types'
 import { SignAppDB } from './db'
 import { WordBankRepo } from './wordBankRepo'
 
@@ -51,5 +52,42 @@ describe('WordBankRepo', () => {
     expect(progress?.bucket).toBe('confident')
     expect(progress?.timesSeen).toBe(3)
     await reopened.delete()
+  })
+
+  it('ensureSeeded seeds once and is idempotent', async () => {
+    await repo.ensureSeeded(['A', 'B', 'C'])
+    await repo.ensureSeeded(['X']) // no-op: already seeded
+    const ids = (await repo.allProgress()).map((p) => p.wordId).sort()
+    expect(ids).toEqual(['A', 'B', 'C'])
+  })
+
+  it('defaults the profile to beginner with sentences locked', async () => {
+    expect(await repo.getProfile()).toEqual({
+      level: 'beginner',
+      sentencesUnlocked: false,
+    })
+  })
+
+  it('reassigns the level without touching progress', async () => {
+    await repo.putWord({ id: 'a', gloss: 'A' })
+    await repo.recordAttempt('a', 'correct', 1)
+    await repo.setLevel('intermediate')
+    expect((await repo.getProfile()).level).toBe('intermediate')
+    expect((await repo.getProgress('a'))?.needPracticeStreak).toBe(1)
+  })
+
+  it('markKnown moves a word straight to confident', async () => {
+    await repo.markKnown('Z')
+    expect((await repo.getProgress('Z'))?.bucket).toBe('confident')
+  })
+
+  it('refreshSentenceUnlock latches once enough words are confident', async () => {
+    await repo.markKnown('A')
+    expect((await repo.refreshSentenceUnlock()).sentencesUnlocked).toBe(false)
+
+    for (let i = 0; i < SENTENCE_UNLOCK_THRESHOLD; i++) {
+      await repo.markKnown(`L${i}`)
+    }
+    expect((await repo.refreshSentenceUnlock()).sentencesUnlocked).toBe(true)
   })
 })

@@ -1,0 +1,40 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 640px;
+}
+
+.settings h2 {
+  margin: 1rem 0 0.25rem;
+  font-size: 1.1rem;
+}
+
+.settings-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.level-options {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.level-options button[aria-pressed='true'] {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.letter-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.4rem;
+}
+
+.letter-grid button.known {
+  background: #166534;
+  color: #ecfdf5;
+}

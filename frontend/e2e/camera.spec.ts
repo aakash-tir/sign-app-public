@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 // The camera demo lives behind the "Camera" tab (Practice is the default mode).
 async function openCameraTab(page: import('@playwright/test').Page) {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Camera', exact: true }).click()
+  await page.getByRole('link', { name: 'Camera' }).click()
 }
 
 test('camera view mounts with an enable button', async ({ page }) => {

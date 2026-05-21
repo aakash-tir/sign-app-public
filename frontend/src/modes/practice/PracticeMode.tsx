@@ -12,15 +12,6 @@ type Phase = 'loading' | 'signing' | 'revealed' | 'correct'
 
 const defaultRepo = new WordBankRepo(db)
 
-/** Seed the word bank with the letters the recognizer knows, if it's empty. */
-async function seedIfEmpty(repo: WordBankRepo): Promise<void> {
-  const existing = await repo.allProgress()
-  if (existing.length > 0) return
-  for (const letter of fingerspellingModel.labels) {
-    await repo.putWord({ id: letter, gloss: letter })
-  }
-}
-
 export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
   const {
     videoRef,
@@ -53,7 +44,7 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
   useEffect(() => {
     let active = true
     void (async () => {
-      await seedIfEmpty(repo)
+      await repo.ensureSeeded(fingerspellingModel.labels)
       const all = await repo.allProgress()
       if (!active) return
       setBank(all)

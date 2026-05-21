@@ -16,19 +16,26 @@
   font-size: 2.25rem;
 }
 
-.tagline {
-  margin: 0.25rem 0 0;
-  font-size: 1.05rem;
-  color: #cbd5e1;
+.app-main {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .mode-switch {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: 1rem;
   margin-top: 1rem;
 }
 
-.mode-switch button[aria-pressed='true'] {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
+.mode-switch a {
+  color: #cbd5e1;
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+.mode-switch a.active {
+  color: #fff;
+  background: #1e3a8a;
 }

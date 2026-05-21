@@ -165,8 +165,10 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   domain layer (buckets, selection) is word-agnostic.
 - **Consequences:** Practice is fully usable now on letters; real words/glosses
   drop into the same bank once the dynamic recognizer lands (M6+), with no domain
-  changes. Also note: M4 uses a simple in-`App` mode toggle (Practice/Camera);
-  proper routing (React Router) arrives with levels/modes in M5.
+  changes. **Routing** (React Router) landed in M5. In Learn mode the
+  fingerspelling **"sentence" = a short word spelled letter-by-letter** from the
+  user's confident letters (gated by ADR-009); real multi-sign sentences come
+  with the dynamic recognizer.
 
 ---
 
