@@ -8,10 +8,18 @@ is in [`docs/milestones.md`](docs/milestones.md).
 - **Phase:** **M5 ✅ merged** (PR #7) — levels + profile (ADR-009/010), routing
   (React Router), Settings (level reassign + placement), and Learn mode (guided
   letters + sentence-gated spell-a-word). Core app modes are now in place.
-- **Next milestone:** **M6 — Dynamic word-level signs (stretch)** or **M7 —
-  offline/polish/deploy** (owner's call).
+- **Next milestone:** **M6 — Dynamic word-level signs** — now **scoped into four
+  sub-milestones** (M6.1–M6.4) in [`docs/milestones.md`](docs/milestones.md).
+  Decisions locked: WLASL via Kaggle + own extraction (ADR-014); curated ~15–25-sign
+  accuracy-gated starter (ADR-014); MediaPipe HolisticLandmarker (ADR-013); TF.js
+  dynamic runtime (ADR-015).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
-- **Blocked on:** owner's go-ahead for the next milestone.
+- **In progress:** **M6.1** — dynamic landmark foundation implemented; all gates
+  green locally (ml: ruff/mypy/20 pytest; frontend: prettier/eslint/tsc/93
+  vitest/10 playwright). Awaiting commit + PR.
+- **M6.2 data ready:** owner downloaded WLASL and it's consolidated (gitignored) at
+  `ml/data/wlasl/` — `videos/` (≈11,980 clips), `WLASL_v0.3.json`, `nslt_*.json`,
+  `wlasl_class_list.txt`, `missing.txt`. So M6.2 is unblocked on data.
 
 ## Milestone checklist
 
@@ -23,7 +31,11 @@ is in [`docs/milestones.md`](docs/milestones.md).
 | M3 — Word bank & domain logic | ☑ merged | `milestone/M3-domain` | [#5](https://github.com/aakash-tir/sign-app/pull/5) |
 | M4 — Practice mode UI | ☑ merged | `milestone/M4-practice-ui` | [#6](https://github.com/aakash-tir/sign-app/pull/6) |
 | M5 — Learn mode + levels | ☑ merged | `milestone/M5-learn` | [#7](https://github.com/aakash-tir/sign-app/pull/7) |
-| M6 — Dynamic signs (stretch) | ☐ not started | `milestone/M6-dynamic` | — |
+| M6 — Dynamic signs (stretch) | ☐ not started (scoped) | — | — |
+| ↳ M6.1 — Dynamic landmark foundation | ◐ in progress | `milestone/M6.1-dynamic-foundation` | — |
+| ↳ M6.2 — Dataset + training pipeline | ☐ not started | `milestone/M6.2-wlasl-training` | — |
+| ↳ M6.3 — Runtime inference + integration | ☐ not started | `milestone/M6.3-dynamic-runtime` | — |
+| ↳ M6.4 — Vocab scale-up + accuracy gate | ☐ not started | `milestone/M6.4-vocab-gate` | — |
 | M7 — Offline, polish & deploy | ☐ not started | `milestone/M7-deploy` | — |
 
 Legend: ☐ not started · ◐ in progress · ☑ merged
@@ -94,6 +106,24 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   loop with deferred-commit (I forgot / that's-what-I-did override / Next),
   bank = 24 letters (ADR-012), App mode toggle. Vitest component (mocked
   recognition) + Playwright button branches. Routing deferred to M5.
+- **2026-05-20** — **M6.1 implemented** (branch `milestone/M6.1-dynamic-foundation`).
+  Headless dynamic-capture foundation: `HolisticDetector` interface +
+  HolisticLandmarker-backed impl (`holisticDetector.ts`); frozen dynamic
+  normalization (`dynamicNormalization.ts`, spec `recognition.md` §5.1, id
+  `pose-shoulder-hands-v1`, 161-d frame); pure `FrameWindow` + FPS-throttle
+  (`frameWindow.ts`); Python mirror (`dynamic_normalization.py`) + committed
+  fixture generator (`golden_dynamic.py`) → shared golden fixture. New tests: 3
+  Vitest files (+29) and 1 pytest file (+9); all gates green locally. No UI/model
+  (deferred to M6.3). Also: consolidated the owner's WLASL download into
+  `ml/data/wlasl/` and gitignored it. Awaiting commit + PR.
+- **2026-05-20** — **M6 scoped** into four sub-milestones (M6.1 dynamic landmark
+  foundation → M6.2 dataset + training → M6.3 runtime inference + integration →
+  M6.4 vocab scale-up + accuracy gate); detail in `docs/milestones.md`. Owner
+  decisions captured as ADR-013 (HolisticLandmarker), ADR-014 (WLASL via Kaggle +
+  our own extraction; curated ~15–25-sign accuracy-gated starter), ADR-015 (TF.js
+  dynamic runtime). Q5 (vocab expansion) now revisited in M6.4. Pending owner
+  action for M6.2: download the WLASL Kaggle mirror (account already held; dataset
+  gitignored). Awaiting go-ahead to start M6.1.
 - **2026-05-20** — **M5 merged (PR #7).** Levels + profile (ADR-009/010, Dexie
   v2): `sentencesEnabled` + unlock latch, non-destructive `setLevel`, placement
   (`markKnown`). React Router (Practice/Learn/Settings/Camera). SettingsView and

@@ -23,10 +23,24 @@ ml/build/
 .python-version
 
 # ---- Datasets / large build-time assets (never commit; only trained models) ----
-/asl_alphabet_train/
-/asl_alphabet_test/
+# All datasets live under ml/data/ (e.g. ml/data/asl_alphabet/, ml/data/wlasl/).
 ml/data/
 ml/models/
+# Root-anchored safety nets in case an archive is extracted to the repo root again.
+/asl_alphabet_train/
+/asl_alphabet_test/
+# WLASL (dynamic-sign dataset, M6) — consolidated under ml/data/wlasl/ (covered by
+# ml/data/ above) per ADR-014. Root entries are a safety net in case an archive is
+# ever extracted to the repo root again.
+/videos/
+/WLASL_v0.3.json
+/nslt_*.json
+/missing.txt
+/wlasl_class_list.txt
+# Landmark-extraction artifacts (WLASL preprocessing outputs — never commit).
+*.npz
+/WLASL_parsed_data.json
+/filtered_labels.txt
 
 # ---- Secrets / env (NEVER commit — see .claude/rules/workflow.md) ----
 .env

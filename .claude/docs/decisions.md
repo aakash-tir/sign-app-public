@@ -170,6 +170,71 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   user's confident letters (gated by ADR-009); real multi-sign sentences come
   with the dynamic recognizer.
 
+## ADR-013 — Dynamic landmark stack: MediaPipe HolisticLandmarker
+
+- **Status:** accepted (owner-scoped for M6, 2026-05-20). Extends ADR-002 for the
+  dynamic path.
+- **Context:** Dynamic word-level signs need **body pose + both hands** over time,
+  not just one hand's landmarks. The new `@mediapipe/tasks-vision` API offers two
+  ways to get this: a single **HolisticLandmarker** (pose + hands + face) or
+  manually combining a **PoseLandmarker** with **HandLandmarker(s)**. The legacy
+  `@mediapipe/holistic` solution is deprecated and not part of the Tasks API.
+- **Decision:** use the Tasks-Vision **HolisticLandmarker** — one model, one
+  inference, consistent topology across pose + hands, and the same topology is
+  available in Python for extraction. Face landmarks are captured but unused for
+  now (sign meaning here is hands + pose + motion).
+- **Consequences:** simpler runtime than wiring multiple landmarkers; one place to
+  cache for offline. The **normalization spec** ([`recognition.md`](recognition.md)
+  §5) is extended for the dynamic case (pose **shoulder-centered**, per-frame hand
+  normalization, motion representation) and **frozen with new golden vectors in
+  M6.1** before any training. If HolisticLandmarker proves too slow on low-end
+  mobile, falling back to Pose+Hand landmarkers is possible without changing the
+  normalization spec.
+
+## ADR-014 — Dynamic dataset & vocabulary strategy
+
+- **Status:** accepted (owner, 2026-05-20).
+- **Context:** M6 needs dynamic-sign training data. **WLASL** (2,000 glosses,
+  ~21k clips) is the standard set. Three sourcing options were weighed: (a) the
+  *official* WLASL (a list of video URLs the user downloads — heavy **link rot**
+  today); (b) a **Kaggle mirror** that hosts the actual clips; (c) a **pre-encoded
+  landmark** version (landmarks already extracted). Vocabulary ambition ranged from
+  a small curated set to the full WLASL100.
+- **Decision:**
+  - **Source:** a **Kaggle WLASL mirror** (hosts real clips → avoids link rot),
+    with **our own MediaPipe extraction** rather than pre-encoded landmarks — so
+    the landmark topology + normalization stay under our **golden-vector parity
+    guarantee** (no train/serve skew). The owner already has a Kaggle account
+    (used for the M2 ASL-Alphabet download).
+  - **Vocabulary:** a **small curated starter of ~15–25 high-frequency signs**,
+    **accuracy-gated**, then expand — not the full WLASL100 up front. Cheaper
+    extraction, a usable slice sooner, and it honestly confronts the accuracy
+    ceiling on a small set first.
+  - **Provisional starter candidates** (to be confirmed against WLASL coverage +
+    accuracy in M6.2/M6.4): HELLO, THANK-YOU, PLEASE, SORRY, YES, NO, GOOD, BAD,
+    NAME, LEARN, HELP, EAT, DRINK, MORE, FINISH, WANT, LIKE, LOVE, FAMILY, FRIEND,
+    HAPPY, SAD, GO, COME.
+- **Consequences:** download + extraction compute is an **owner action** (flagged
+  per [`../rules/workflow.md`](workflow.md), not assumed); dataset + `ml/models/`
+  stay **gitignored**. Self-collected landmark sequences remain a fallback/supplement
+  if WLASL coverage or accuracy is poor for specific signs. Vocabulary expansion
+  past the starter is **Q5**, resolved with measured accuracy in M6.4 (ADR-007).
+
+## ADR-015 — Dynamic runtime: TF.js (confirms the M6 branch of ADR-011)
+
+- **Status:** accepted (2026-05-20). Complements ADR-011.
+- **Context:** ADR-011 chose a zero-dependency **JSON-weights MLP** for the *static*
+  classifier and explicitly deferred the dynamic-model runtime. A recurrent
+  sequence model (GRU/LSTM over ~30 frames) is not a good fit for a hand-written
+  forward pass.
+- **Decision:** the **dynamic** model runs on **TF.js** in the browser; the Python
+  pipeline exports to TF.js (`tensorflowjs` converter). The static path keeps its
+  JSON-MLP runtime unchanged.
+- **Consequences:** adds a TF.js runtime dependency (lazy-loaded + service-worker
+  cached for offline). Two runtimes coexist — tiny hand-written MLP for static,
+  TF.js for dynamic — each suited to its model. onnxruntime-web remains a fallback
+  if TF.js export proves fragile.
+
 ---
 
 ## Open questions (non-blocking, revisit at the noted milestone)
@@ -180,4 +245,4 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 | ~~Q2~~ | ~~"good enough" proficiency threshold to unlock sentence usage~~ | ✅ **Resolved:** sentence-eligible once `confident`; beginner sentences need ≥20 confident words (ADR-009). | done |
 | ~~Q3~~ | ~~Mapping of signs → levels~~ | ✅ **Resolved:** level *behavior* fixed (ADR-009); concrete vocab lists are M5 content work. | done |
 | ~~Q4~~ | ~~Final **hosting** provider (ADR-006).~~ | ✅ **Resolved:** Cloudflare Pages (ADR-006, [`hosting.md`](hosting.md)). | done |
-| Q5 | Should dynamic-sign vocabulary expand past the curated set, and how far? | Gated on measured accuracy. | M6 |
+| Q5 | Should dynamic-sign vocabulary expand past the curated starter, and how far? | Gated on measured accuracy; curated ~15–25-sign starter first (ADR-014). | M6.4 |

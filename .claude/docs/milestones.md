@@ -161,22 +161,161 @@ Playwright for the learn flow incl. the beginner sentence-unlock transition.
 
 ## M6 — Dynamic word-level signs (stretch)
 
-**Goal:** expand beyond fingerspelling to a curated set of dynamic signs.
+**Goal:** expand beyond static fingerspelling to **dynamic, word-level signs** —
+signs with motion, two hands, and upper-body position captured over a window of
+frames. This is the project's **main accuracy risk** (research: ~75% top-1 on
+WLASL100, ~30–38% on full WLASL2000), so M6 is split into **four sub-milestones**
+that de-risk normalization parity first, prove one vertical slice, then scale the
+vocabulary **only as far as measured accuracy allows**.
+
+**Decisions locked for M6** (owner, 2026-05-20):
+- **Dataset:** **WLASL** via a **Kaggle** mirror, with **our own MediaPipe
+  extraction** (not pre-encoded landmarks) so train/serve parity stays under our
+  golden-vector guarantee. See ADR-014. *(Owner already has a Kaggle account from
+  the M2 ASL-Alphabet download — no new credential, but the download is an owner
+  action; see [`../progress.md`](../progress.md).)*
+- **Vocabulary:** a **small curated starter (~15–25 high-frequency signs)**,
+  **accuracy-gated**, then expand. Not the full WLASL100 up front. See ADR-014.
+- **Landmark stack:** MediaPipe **HolisticLandmarker** (Tasks Vision; pose + hands
+  in one model), not the deprecated legacy Holistic. See ADR-013.
+- **Runtime:** dynamic model runs on **TF.js** (the JSON-MLP path of ADR-011 is
+  static-only). See ADR-015.
+
+> Each sub-milestone is its own branch → PR → squash-merge, with all gates green,
+> per the working agreement. Sub-dependency: **M6.1 → M6.2 → M6.3 → M6.4**; M6.1
+> and the dataset-ingestion half of M6.2 can be worked in parallel, but M6.3 needs
+> both M6.1 (capture/normalization) and M6.2 (an exported model).
+
+---
+
+### M6.1 — Dynamic landmark foundation (capture + normalization parity)
+
+**Goal:** the **headless** capture + normalization layer for dynamic signs, with a
+**frozen, golden-vector-tested** normalization shared TS↔Python. **No model and no
+UI yet** — like M3, this lands the hard-to-get-right core fully unit-tested before
+any UI. (Live holistic overlay + camera wiring is **M6.3**.)
 
 Deliverables:
-- `ml/`: sequence model (Holistic/Pose + Hands → GRU/LSTM) trained on WLASL100
-  (or a curated subset); export to TF.js.
-- `frontend/`: windowed sequence capture + inference.
+- `frontend/src/recognition/`: a **HolisticDetector** interface + a MediaPipe
+  **HolisticLandmarker**-backed implementation that emits per-frame
+  `{ pose, leftHand, rightHand }` (mirrors the existing `LandmarkDetector` pattern;
+  left/right slots give handedness for free). The pure result→observation mapper is
+  unit-tested; live camera wiring is deferred to M6.3.
+- **Dynamic normalization** (`dynamicNormalization.ts`): pose **shoulder-centered +
+  shoulder-width-scaled** block over a fixed upper-body landmark subset, plus
+  per-hand shape via the existing `normalizeHandLandmarks`, plus hand-presence flags
+  → one fixed-length **frame feature vector**. Frozen + documented in
+  [`recognition.md`](recognition.md) §5.
+- **Sliding-window frame buffer** + FPS-throttle helper (pure TS): fixed ~30-frame
+  window, front zero-padding for short sequences, missing-hand handling.
+  Deterministically testable.
+- `ml/src/sign_ml/dynamic_normalization.py`: a numerically identical Python mirror.
+- **New golden-vector fixture** (`dynamic-normalization.golden.json`): same frame
+  inputs → same normalized feature vector in TS and Python.
 
 Acceptance:
-- Recognizes the curated dynamic-sign set with **documented, measured** accuracy.
-- Vocabulary expansion is explicitly gated on accuracy (see
-  [`recognition.md`](recognition.md) §6).
+- Dynamic normalization reproduces the new golden vectors **on both sides** to 1e-9
+  (no train/serve skew).
+- Window buffer + throttle behavior unit-tested (full/partial windows, padding,
+  reset, sampling cadence).
+- The HolisticDetector mapper is unit-tested; the frontend `tsc`/lint gates pass
+  with the MediaPipe-backed detector compiling behind the interface.
 
-Tests: pytest eval thresholds; Vitest for the windowing/inference adapter.
+Tests: Vitest (normalization parity + windowing, seeded); pytest (normalization
+shapes + golden-vector parity). Tiny synthetic fixtures only — **no dataset needed**.
 
-> This milestone carries the project's main accuracy risk. It is intentionally
-> *after* a usable fingerspelling product so the app is shippable without it.
+---
+
+### M6.2 — Dataset ingestion + sequence-model training (curated subset)
+
+**Goal:** a reproducible Python pipeline that turns the curated WLASL subset into a
+trained, exported dynamic model.
+
+Deliverables:
+- `ml/src/sign_ml/data/`: **WLASL adapter** — parse the gloss metadata, select the
+  curated subset, locate clips, and extract → cached landmark-**sequence** arrays
+  using the M6.1 extractor. **Report coverage** (clips available per gloss after
+  filtering/any link rot in the mirror).
+- `ml/src/sign_ml/train/`: **GRU/LSTM** sequence model (research baseline ≈ 2 dense
+  + 2 LSTM); seeded; logs config + metrics.
+- `ml/src/sign_ml/export/`: export to **TF.js**; record dataset, subset, and
+  **measured accuracy** alongside the artifact (ADR-007 gate inputs).
+- `ml/src/sign_ml/eval/`: top-1 / top-5 per subset.
+
+Acceptance:
+- Pipeline runs end-to-end on the curated subset and reproduces its metrics from a
+  seed; an exported TF.js model + an accuracy report are produced.
+- Python normalization still matches the M6.1 golden vectors.
+
+Tests: pytest for extract/train/export **shapes** + the eval metric on **tiny
+fixtures** (not the full dataset).
+
+> **Owner action / credential:** download the WLASL Kaggle mirror (account already
+> held). Dataset + `ml/models/` are **gitignored**, exactly like the M2 ASL-Alphabet
+> data. Per [`../rules/workflow.md`](../rules/workflow.md), this is flagged, not
+> assumed.
+
+---
+
+### M6.3 — Runtime dynamic inference + Learn/Practice integration
+
+**Goal:** the app recognizes dynamic signs live and uses them in both modes.
+
+Deliverables:
+- Add the **TF.js runtime** dependency; load the exported model and **cache it via
+  the service worker** for offline use.
+- `DynamicSignClassifier` behind the existing recognition interface: consume the
+  M6.1 window buffer → `{ label, confidence }`, with **confidence threshold +
+  temporal debounce** and **per-sign acceptance** (verification only needs "did the
+  user perform the *prompted* gloss?", not open-set N-way classification — ADR-007
+  §6.4).
+- **Skew guard:** assert the model's `normalization` id at load (as the static MLP
+  path does).
+- Wire dynamic glosses through `useSignRecognition` so Learn and Practice can prompt
+  them; add reference-media metadata for the curated signs in
+  `frontend/src/content/`.
+
+Acceptance:
+- A curated dynamic sign can be prompted in Learn **and** Practice and verified live
+  on a device; the deferred-commit / "That's what I did" safety valves still apply.
+- Recognition works **offline** after first load (model cached).
+
+Tests: Vitest adapter (stubbed model: window → label/confidence, debounce,
+per-sign acceptance); Playwright happy-path for a dynamic-sign prompt with stubbed
+recognition.
+
+---
+
+### M6.4 — Curated vocabulary scale-up + accuracy gate
+
+**Goal:** ship the curated dynamic vocabulary at **documented** accuracy and resolve
+the open vocabulary question (Q5).
+
+Deliverables:
+- Expand from the M6.2 prototype subset to the full curated starter (~15–25 signs);
+  measure **per-gloss accuracy**.
+- **Accuracy gate:** only glosses meeting the acceptance bar **ship**; the rest are
+  excluded or flagged. Publish measured numbers in [`recognition.md`](recognition.md).
+- Reference media/content for each shipped dynamic gloss (Learn mode).
+- Integrate the shipped glosses into the word bank / curriculum / levels (the domain
+  layer is already word-agnostic — ADR-012).
+- Resolve **Q5** (how far to expand the dynamic vocabulary) using the accuracy data.
+
+Acceptance:
+- Every shipped dynamic gloss has a recorded accuracy at/above the agreed bar; signs
+  below it are not shipped.
+- The expansion decision (Q5) is recorded with its evidence.
+
+Tests: pytest eval-threshold gate; Vitest for any new content/selection wiring.
+
+> **Optional follow-on (not required for M6):** with real glosses recognized,
+> Learn-mode "sentences" could become real multi-sign sequences instead of words
+> spelled letter-by-letter (ADR-012). Candidate for a later milestone. **J/Z**
+> dynamic fingerspelling letters are also a possible hand-only add-on here *if*
+> motion data can be sourced (the static ASL-Alphabet set lacks them).
+
+> M6 carries the project's main accuracy risk. It sits **after** a usable
+> fingerspelling product (M2–M5) so the app is already shippable without it.
 
 ---
 
