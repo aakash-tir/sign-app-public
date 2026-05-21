@@ -79,3 +79,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   + exported the real model → **~99.5%** held-out accuracy. Dataset + `ml/models/`
   gitignored. Caveat: held-out split shares signer/conditions; real-world camera
   accuracy will be lower (domain shift).
+- **2026-05-20** — Live testing: most letters recognize well. **Known issues
+  (accepted for now, fix later):** S-like fist letters (A/E/M/N/S/T/O) sometimes
+  all read as "S"; J/Z (dynamic) misclassified — not in the static model, slated
+  for M6. Details in `docs/recognition.md`.

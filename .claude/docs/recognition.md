@@ -89,6 +89,20 @@ recording conditions, so real-world accuracy on a user's own camera/hand will be
 lower (domain shift). Broadening signer/condition diversity (more data, or
 augmentation) is a later improvement.
 
+**Observed in live testing (2026-05-20) — accepted for now, fix later:**
+
+- **Fist-shape confusion:** closed-fist letters similar to **S** (e.g. A, E, M,
+  N, T, O) are sometimes all classified as **S**. They differ mainly in thumb
+  position, which 2D webcam landmarks capture weakly. Candidate fixes: more
+  diverse data / augmentation, weighting the z (depth) coordinate, or
+  confusion-aware thresholds.
+- **J and Z misclassified:** these are *dynamic* (motion) letters and are **not**
+  in the static model's label set, so attempts map to some other static letter.
+  Expected — handled by the dynamic sequence model in **M6**.
+
+Owner decision (2026-05-20): most letters work, so accept these for now; revisit
+when improving the static model and when building the dynamic recognizer (M6).
+
 ## 5. Normalization spec (shared TS ↔ Python)
 
 To avoid train/serve skew, both the Python trainer and the TS runtime must apply
