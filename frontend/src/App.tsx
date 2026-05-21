@@ -1,14 +1,16 @@
 import './App.css'
+import { CameraView } from './recognition/CameraView'
 
 function App() {
   return (
     <main className="app-shell">
-      <h1>Sign App</h1>
-      <p className="tagline">Learn American Sign Language with your camera.</p>
-      <p className="status">
-        Foundation milestone (M0). Learn &amp; Practice modes and on-device sign
-        recognition arrive in later milestones.
-      </p>
+      <header className="app-header">
+        <h1>Sign App</h1>
+        <p className="tagline">
+          Learn American Sign Language with your camera.
+        </p>
+      </header>
+      <CameraView />
     </main>
   )
 }
