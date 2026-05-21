@@ -5,18 +5,18 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **M0 ✅ merged** (PR #1) — monorepo, installable PWA shell, all
-  quality gates, and CI are in place.
-- **Next milestone:** **M1 — Camera + hand tracking** (not started).
+- **Phase:** **M1 ✅ merged** (PR #2) — live camera + MediaPipe hand-landmark
+  overlay, plus the pure-TS normalization core with golden-vector parity fixture.
+- **Next milestone:** **M2 — Recognition (fingerspelling MVP)** (not started).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
-- **Blocked on:** owner's go-ahead to begin M1.
+- **Blocked on:** owner's go-ahead to begin M2.
 
 ## Milestone checklist
 
 | Milestone | Status | Branch | PR |
 | --- | --- | --- | --- |
 | M0 — Foundation & tooling | ☑ merged | `milestone/M0-foundation` | [#1](https://github.com/aakash-tir/sign-app/pull/1) |
-| M1 — Camera + hand tracking | ☐ not started | `milestone/M1-camera-landmarks` | — |
+| M1 — Camera + hand tracking | ☑ merged | `milestone/M1-camera-landmarks` | [#2](https://github.com/aakash-tir/sign-app/pull/2) |
 | M2 — Recognition (fingerspelling MVP) | ☐ not started | `milestone/M2-recognition-static` | — |
 | M3 — Word bank & domain logic | ☐ not started | `milestone/M3-domain` | — |
 | M4 — Practice mode UI | ☐ not started | `milestone/M4-practice-ui` | — |
@@ -59,3 +59,9 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   `aakash-tir/sign-app`; monorepo scaffold: frontend (Vite + React 19 + TS
   strict PWA via vite-plugin-pwa, gates = Prettier/ESLint/tsc/Vitest/Playwright)
   and ml (uv project, gates = ruff/mypy/pytest). CI runs both lanes; all green.
+- **2026-05-20** — **M1 merged (PR #2).** Camera (`useCamera`) + MediaPipe Hand
+  Landmarker (`mediapipeDetector`) behind a `LandmarkDetector` interface; live
+  21-point overlay (`CameraView` + `drawLandmarks`); pure-TS `normalizeHand­Landmarks`
+  with golden-vector fixture (10 Vitest tests) and a fake-media Playwright camera
+  test. Follow-ups: bundle/cache MediaPipe assets for offline (later); manual iOS
+  Safari device check (can't automate).
