@@ -41,9 +41,17 @@ of current scope.
 ## How to deploy (M7) — click-by-click
 
 The repo is already deploy-ready: the trained model is committed (no secrets or
-datasets needed to build), heavy WASM loads from a CDN, and a `frontend/public/_redirects`
-file makes client-side routes (`/practice`, `/signs`, …) work. You just connect
-the repo once.
+datasets needed to build), heavy WASM loads from a CDN, and `frontend/wrangler.jsonc`
+serves the build as a static-assets Worker with **SPA fallback**
+(`not_found_handling: "single-page-application"`) so client-side routes
+(`/practice`, `/signs`, …) work. You just connect the repo once.
+
+> **Note:** Cloudflare now funnels Git deploys through **Workers (Static Assets)**
+> rather than the classic Pages flow. The build/deploy that actually shipped uses
+> Workers Builds: build command `npm install && npm run build`, deploy command
+> `npx wrangler deploy`, **Path** `frontend`, env `NODE_VERSION=20`. Don't use a
+> Pages `_redirects` file here — Workers rejects the `/* → /index.html` rule as a
+> loop; SPA routing is handled by `wrangler.jsonc` instead.
 
 1. **Make a free Cloudflare account** at <https://dash.cloudflare.com/sign-up> (no
    card needed for the free tier).
@@ -75,7 +83,8 @@ the repo once.
   recognition should still work (first online load primes the caches).
 
 > If the build fails on Node version, double-check the `NODE_VERSION=20` env var.
-> If routes 404 on refresh, confirm `frontend/public/_redirects` shipped in the build.
+> SPA routing (no 404 on refresh) is handled by `wrangler.jsonc`'s
+> `not_found_handling: "single-page-application"` — no `_redirects` file needed.
 
 ## Alternatives (equivalent, if ever needed)
 
