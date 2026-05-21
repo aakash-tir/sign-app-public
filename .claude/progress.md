@@ -5,12 +5,13 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **M4 ✅ merged** (PR #6) — Practice mode UI: target letter → camera
-  match / "I forgot" reveal / "That's what I did" override / "Next", deferred-commit
-  (ADR-008), wired to the domain + persistence. Practice bank = 24 letters (ADR-012).
-- **Next milestone:** **M5 — Learn mode + levels + curriculum** (not started).
+- **Phase:** **M5 ✅ merged** (PR #7) — levels + profile (ADR-009/010), routing
+  (React Router), Settings (level reassign + placement), and Learn mode (guided
+  letters + sentence-gated spell-a-word). Core app modes are now in place.
+- **Next milestone:** **M6 — Dynamic word-level signs (stretch)** or **M7 —
+  offline/polish/deploy** (owner's call).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
-- **Blocked on:** owner's go-ahead to begin M5.
+- **Blocked on:** owner's go-ahead for the next milestone.
 
 ## Milestone checklist
 
@@ -21,7 +22,7 @@ is in [`docs/milestones.md`](docs/milestones.md).
 | M2 — Recognition (fingerspelling MVP) | ☑ merged | `milestone/M2-recognition-static` | [#3](https://github.com/aakash-tir/sign-app/pull/3) |
 | M3 — Word bank & domain logic | ☑ merged | `milestone/M3-domain` | [#5](https://github.com/aakash-tir/sign-app/pull/5) |
 | M4 — Practice mode UI | ☑ merged | `milestone/M4-practice-ui` | [#6](https://github.com/aakash-tir/sign-app/pull/6) |
-| M5 — Learn mode + levels | ☐ not started | `milestone/M5-learn` | — |
+| M5 — Learn mode + levels | ☑ merged | `milestone/M5-learn` | [#7](https://github.com/aakash-tir/sign-app/pull/7) |
 | M6 — Dynamic signs (stretch) | ☐ not started | `milestone/M6-dynamic` | — |
 | M7 — Offline, polish & deploy | ☐ not started | `milestone/M7-deploy` | — |
 
@@ -93,3 +94,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   loop with deferred-commit (I forgot / that's-what-I-did override / Next),
   bank = 24 letters (ADR-012), App mode toggle. Vitest component (mocked
   recognition) + Playwright button branches. Routing deferred to M5.
+- **2026-05-20** — **M5 merged (PR #7).** Levels + profile (ADR-009/010, Dexie
+  v2): `sentencesEnabled` + unlock latch, non-destructive `setLevel`, placement
+  (`markKnown`). React Router (Practice/Learn/Settings/Camera). SettingsView and
+  LearnMode (guided letters + gated spell-a-word). 64 Vitest + 10 Playwright.
+  Follow-up: code-split MediaPipe (>500 kB chunk warning) in M7.
