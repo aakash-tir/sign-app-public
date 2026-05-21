@@ -5,15 +5,17 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** Planning ✅ complete — documentation written, no code yet.
-- **Next milestone:** **M0 — Foundation & tooling** (not started).
-- **Blocked on:** owner's go-ahead to begin implementation.
+- **Phase:** **M0 ✅ merged** (PR #1) — monorepo, installable PWA shell, all
+  quality gates, and CI are in place.
+- **Next milestone:** **M1 — Camera + hand tracking** (not started).
+- **Repo:** https://github.com/aakash-tir/sign-app (private).
+- **Blocked on:** owner's go-ahead to begin M1.
 
 ## Milestone checklist
 
 | Milestone | Status | Branch | PR |
 | --- | --- | --- | --- |
-| M0 — Foundation & tooling | ☐ not started | `milestone/M0-foundation` | — |
+| M0 — Foundation & tooling | ☑ merged | `milestone/M0-foundation` | [#1](https://github.com/aakash-tir/sign-app/pull/1) |
 | M1 — Camera + hand tracking | ☐ not started | `milestone/M1-camera-landmarks` | — |
 | M2 — Recognition (fingerspelling MVP) | ☐ not started | `milestone/M2-recognition-static` | — |
 | M3 — Word bank & domain logic | ☐ not started | `milestone/M3-domain` | — |
@@ -53,3 +55,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 - **2026-05-20** — Added FR-13 / ADR-010: non-destructive level reassignment
   (change level up/down any time, progress preserved, sentence enablement
   recomputes; beginner unlock latched). Lands in M5.
+- **2026-05-20** — **M0 merged (PR #1).** Created private repo
+  `aakash-tir/sign-app`; monorepo scaffold: frontend (Vite + React 19 + TS
+  strict PWA via vite-plugin-pwa, gates = Prettier/ESLint/tsc/Vitest/Playwright)
+  and ml (uv project, gates = ruff/mypy/pytest). CI runs both lanes; all green.
