@@ -1,8 +1,4 @@
-import {
-  FilesetResolver,
-  HandLandmarker,
-  type HandLandmarkerResult,
-} from '@mediapipe/tasks-vision'
+import type { HandLandmarkerResult } from '@mediapipe/tasks-vision'
 import type { Handedness, HandObservation, LandmarkDetector } from './types'
 
 // NOTE: WASM + model are loaded from CDN at runtime for now. Bundling and
@@ -34,6 +30,10 @@ function toObservations(result: HandLandmarkerResult): HandObservation[] {
 
 /** Create a hand-landmark detector backed by MediaPipe Tasks Vision. */
 export async function createMediaPipeHandDetector(): Promise<LandmarkDetector> {
+  // Dynamic import: code-splits MediaPipe out of the main bundle (lazy-loaded
+  // only when the camera turns on).
+  const { FilesetResolver, HandLandmarker } =
+    await import('@mediapipe/tasks-vision')
   const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
   const landmarker = await HandLandmarker.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },

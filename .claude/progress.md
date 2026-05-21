@@ -10,10 +10,13 @@ is in [`docs/milestones.md`](docs/milestones.md).
   onnxruntime-web runtime (ADR-015), 5-fold-CV accuracy gate (16/20 signs ship),
   and dynamic signs **merged into Practice & Learn** via a unified single-camera
   recognizer. The app now teaches/verifies fingerspelling **and** word-level signs.
-- **Next milestone:** **M7 — Offline, polish & deploy.** Credential-free parts
-  (offline caching of MediaPipe + ONNX assets, code-split the >500 kB chunk, PWA
-  install polish) proceed now; the **Cloudflare Pages deploy needs the owner's
-  account/login** (ADR-006, stop-and-ask per workflow rules).
+- **Current milestone:** **M7 — Offline, polish & deploy** (in progress, branch
+  `milestone/M7-deploy`). **Done:** offline precache (app shell + ONNX model) +
+  runtime-cache CDN assets (MediaPipe/ONNX WASM + `.task` models); code-split
+  MediaPipe + onnxruntime-web into lazy chunks (main bundle 416 kB, no >500 kB
+  warning); dropped the unused 26 MB ORT WASM from `dist` (Cloudflare 25 MB/file
+  limit); offline Playwright test (FR-12). **Blocked on owner:** the **Cloudflare
+  Pages deploy needs the owner's account/login** (ADR-006).
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
 - **Dynamic model (20-sign starter, 193 clips, GRU + augmentation):** 5-fold CV
   **top-1 ≈62% / top-5 ≈95%**. **Accuracy gate (≥0.50 per-gloss top-1): 16/20 signs
@@ -109,6 +112,15 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   loop with deferred-commit (I forgot / that's-what-I-did override / Next),
   bank = 24 letters (ADR-012), App mode toggle. Vitest component (mocked
   recognition) + Playwright button branches. Routing deferred to M5.
+- **2026-05-21** — **M7 started: offline + code-split.** vite-plugin-pwa now
+  precaches the app shell + bundled ONNX model and runtime-caches the CDN
+  recognition assets (MediaPipe/ONNX WASM + `.task` models, CacheFirst) →
+  recognition works offline after first load. Code-split MediaPipe + onnxruntime-web
+  via dynamic `import()` (main bundle 416 kB, chunk warning gone); a Vite plugin
+  drops onnxruntime-web's unused 26 MB WASM from `dist` (it loads from CDN; would
+  break Cloudflare's 25 MB/file limit). Added an offline Playwright test (FR-12).
+  Gates green (118 vitest / 13 playwright). **Remaining: Cloudflare Pages deploy
+  (needs owner account/login, ADR-006).**
 - **2026-05-21** — **M6 merged.** Squash-merged to `main`: **#8** (M6.1) and **#11**
   (M6.2–M6.4 consolidated — the stacked squash-merge tangled overlapping doc edits,
   so M6.2/6.3/6.4 landed together; #9/#10 closed as superseded). CI green both lanes

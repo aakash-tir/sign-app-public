@@ -1,4 +1,3 @@
-import { FilesetResolver, HolisticLandmarker } from '@mediapipe/tasks-vision'
 import type { Landmark } from './types'
 import type { HolisticDetector, HolisticObservation } from './dynamicTypes'
 
@@ -36,6 +35,10 @@ export function toHolisticObservation(
 
 /** Create a holistic (pose + both hands) detector backed by MediaPipe Tasks Vision. */
 export async function createMediaPipeHolisticDetector(): Promise<HolisticDetector> {
+  // Dynamic import: code-splits MediaPipe out of the main bundle (lazy-loaded
+  // only when the camera turns on).
+  const { FilesetResolver, HolisticLandmarker } =
+    await import('@mediapipe/tasks-vision')
   const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
   const landmarker = await HolisticLandmarker.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },

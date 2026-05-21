@@ -38,20 +38,44 @@ serverless, local-first design (see [`architecture.md`](architecture.md)). If we
 ever add optional cloud sync, Workers + D1 would be a natural fit, but that's out
 of current scope.
 
-## How deployment will work (M7, step by step)
+## How to deploy (M7) — click-by-click
 
-1. Push the repo to a **private GitHub repository** (done in M0).
-2. In the Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to
-   Git**, authorize, and pick the repo.
-3. Configure the build:
-   - **Build command:** `npm run build` (run in the `frontend/` directory; set the
-     project root/`frontend` as the build root).
-   - **Build output directory:** `frontend/dist` (Vite's default output).
-4. Cloudflare builds and gives a live `https://<project>.pages.dev` URL.
-5. From then on, **every push auto-deploys**, and **every PR gets a preview URL**.
-6. (Optional, later) attach a custom domain.
+The repo is already deploy-ready: the trained model is committed (no secrets or
+datasets needed to build), heavy WASM loads from a CDN, and a `frontend/public/_redirects`
+file makes client-side routes (`/practice`, `/signs`, …) work. You just connect
+the repo once.
 
-> A short walkthrough will be provided in the chat when we reach M7.
+1. **Make a free Cloudflare account** at <https://dash.cloudflare.com/sign-up> (no
+   card needed for the free tier).
+2. In the dashboard, go to **Workers & Pages → Create → Pages → Connect to Git**.
+3. **Authorize Cloudflare to access GitHub**, then pick the **`aakash-tir/sign-app`**
+   repo (private repos are fine on the free tier).
+4. On the **Set up builds and deployments** screen, enter exactly:
+
+   | Field | Value |
+   | --- | --- |
+   | Production branch | `main` |
+   | Framework preset | `Vite` (or `None`) |
+   | **Root directory** (under *Build settings → Advanced*) | `frontend` |
+   | Build command | `npm run build` |
+   | Build output directory | `dist` |
+
+5. Add one **Environment variable** (Settings → Environment variables, Production):
+   `NODE_VERSION` = `20`. *(Vite 8 needs Node 20+; Cloudflare's default is older.)*
+6. Click **Save and Deploy**. The first build runs (~1–2 min) and publishes to
+   `https://<project>.pages.dev`.
+7. From then on **every push to `main` auto-deploys**, and **every PR gets its own
+   preview URL** (great for testing a milestone on a real phone before merging).
+8. (Optional, later) attach a custom domain under the project's **Custom domains**.
+
+### After the first deploy — verify
+- Open the `*.pages.dev` URL on a phone; **Add to Home Screen** (PWA install).
+- Allow the camera; try **Practice / Learn / Signs**.
+- **Offline check:** load once, enable airplane mode, reopen — the app shell +
+  recognition should still work (first online load primes the caches).
+
+> If the build fails on Node version, double-check the `NODE_VERSION=20` env var.
+> If routes 404 on refresh, confirm `frontend/public/_redirects` shipped in the build.
 
 ## Alternatives (equivalent, if ever needed)
 

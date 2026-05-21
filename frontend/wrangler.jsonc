@@ -1,0 +1,11 @@
+{
+  "name": "sign-app",
+  "compatibility_date": "2025-05-21",
+  // Static-assets-only Worker (no server code): serve the Vite build output and
+  // fall back to index.html for client-side routes (/practice, /signs, …) so the
+  // PWA's React Router works on refresh/deep links.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+  },
+}

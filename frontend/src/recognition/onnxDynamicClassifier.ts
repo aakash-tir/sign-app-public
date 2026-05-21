@@ -1,4 +1,3 @@
-import * as ort from 'onnxruntime-web'
 import {
   assertMetadataCompatible,
   softmax,
@@ -11,14 +10,17 @@ import type {
 import { FRAME_FEATURE_DIM } from './dynamicNormalization'
 import { WINDOW_SIZE } from './frameWindow'
 
+type Ort = typeof import('onnxruntime-web')
+
 const DEFAULT_BASE = '/models/dynamic'
-// CDN-hosted WASM for now; bundling + service-worker caching for offline is M7.
+// onnxruntime-web's WASM is fetched from this CDN and runtime-cached by the
+// service worker for offline use (see vite.config workbox runtimeCaching).
 const ORT_VERSION = '1.26.0'
 const INPUT_NAME = 'sequence'
 const OUTPUT_NAME = 'logits'
 
 let runtimeConfigured = false
-function configureRuntime(): void {
+function configureRuntime(ort: Ort): void {
   if (runtimeConfigured) return
   ort.env.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/`
   ort.env.wasm.numThreads = 1 // no SharedArrayBuffer / cross-origin isolation needed
@@ -29,7 +31,9 @@ function configureRuntime(): void {
 export async function createOnnxDynamicClassifier(
   base: string = DEFAULT_BASE,
 ): Promise<DynamicClassifier> {
-  configureRuntime()
+  // Dynamic import: code-splits onnxruntime-web out of the main bundle.
+  const ort = await import('onnxruntime-web')
+  configureRuntime(ort)
   const metadata = (await (
     await fetch(`${base}/metadata.json`)
   ).json()) as DynamicModelMetadata
