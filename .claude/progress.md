@@ -5,19 +5,19 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Now: Phase 2 (depth & polish) — P2M1 implemented (local), all gates green.**
-  Phase 1 (M0–M7) is complete and deployed; Phase 2 plan is in
-  [`docs/phase2.md`](docs/phase2.md). **P2M1** (per-finger overlay colors, plan item
-  #5, FR-14) is built on `milestone/P2M1-finger-colors`: pure `fingerColors.ts`
-  (landmark/connection → finger, colorblind-safe Okabe–Ito palette, in-frame guard),
-  `drawHands`/`drawHolistic` refactored to per-finger colors + off-frame stray-line
-  cleanup. **The finger coloring is a Settings toggle** (`classic` default vs
-  `per-finger`), persisted in the profile and read live by the draw loops. No
-  model/recognition change. Gates: **143 vitest** / **13 playwright** / format /
-  lint / tsc all green. **Open as
-  [PR #13](https://github.com/aakash-tir/sign-app/pull/13)**. Phase-2 decisions
-  locked: ADR-016 (MS-ASL cleared for training under C-UDA) and ADR-017 (in-app sign
-  reference rendered from landmarks, superseding the M6.4 external links).
+- **Now: Phase 2 (depth & polish) — P2M1 ✅ merged. Next up: P2M2.** Phase 1
+  (M0–M7) is complete and deployed; Phase 2 plan is in
+  [`docs/phase2.md`](docs/phase2.md). **P2M1** (overlay color toggle, plan item #5,
+  FR-14) **merged via [PR #13](https://github.com/aakash-tir/sign-app/pull/13)**
+  (squash `91f6e31`): pure `fingerColors.ts` (landmark/connection → finger,
+  colorblind-safe Okabe–Ito palette, in-frame guard); `drawHands`/`drawHolistic`
+  take a `colorMode` param + off-frame stray-line cleanup; **Settings toggle**
+  (`classic` default vs `per-finger`) persisted in the profile and read live by the
+  draw loops. No model/recognition change. Gates: **143 vitest** / **13 playwright**;
+  both CI lanes green. Phase-2 decisions locked: ADR-016 (MS-ASL cleared for training
+  under C-UDA) and ADR-017 (in-app sign reference rendered from landmarks, superseding
+  the M6.4 external links). **Next: P2M2** (camera permission persists / shared
+  stream).
 - **Phase 1:** **🎉 M7 ✅ merged + DEPLOYED — the M0–M7 plan is COMPLETE.** The PWA
   is live worldwide at **https://sign-app.aakashtirathdas.workers.dev** (Cloudflare
   Workers Static Assets, auto-deploys on push to `main`). Verified: app shell + SPA
@@ -65,7 +65,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 | Milestone | Plan item | Status | Branch |
 | --- | --- | --- | --- |
-| P2M1 — Per-finger overlay colors | #5 | ◐ [PR #13](https://github.com/aakash-tir/sign-app/pull/13) | `milestone/P2M1-finger-colors` |
+| P2M1 — Overlay color toggle | #5 | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) | `milestone/P2M1-finger-colors` |
 | P2M2 — Camera permission persists (shared stream) | #3 | ☐ planned | — |
 | P2M3 — Full UI redesign | #2 | ☐ planned | — |
 | P2M4 — In-app sign reference (rendered from landmarks) | #4 | ☐ planned | — |
