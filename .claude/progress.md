@@ -5,16 +5,18 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Now: Phase 2 — P2M2 implemented (local), all gates green; awaiting commit + PR.**
-  **P2M2** (camera persists across views, plan item #3, FR-15, **ADR-018**): hoisted
-  the camera to an app-level **`CameraProvider`** above the router (single shared
-  `MediaStream`); `useCamera` is now a thin adapter (`cameraContext.ts`) that
-  attaches the shared stream to the current view and never stops it on unmount —
-  switching tabs no longer re-prompts "Enable camera". Added a **one-time privacy
-  explainer** (`profile.cameraExplainerSeen`). Supersedes the "release on unmount"
-  rule (react.md updated). Gates: **147 vitest** / **14 playwright** (incl. an FR-15
-  tab-switch e2e); format/lint/tsc green. **Deferred:** `visibilitychange`
-  release/resume (ADR-018).
+- **Now: Phase 2 — P2M2 ✅ merged. Next up: P2M3 (UI redesign).** **P2M2** (camera
+  persists across views, plan item #3, FR-15, **ADR-018**) **merged via
+  [PR #14](https://github.com/aakash-tir/sign-app/pull/14)** (squash `3d66680`):
+  app-level **`CameraProvider`** above the router owns one shared `MediaStream`;
+  `useCamera` is a thin adapter (callback ref) that attaches it to the current view
+  and never stops it on unmount — switching tabs no longer re-prompts "Enable
+  camera". One-time privacy explainer (`profile.cameraExplainerSeen`). Review/perf
+  fixes: detectors + ONNX cached as app-lifetime singletons, detection throttled to
+  ~30 FPS, "Preparing recognition…" first-load indicator. Owner verified "works
+  really well." Supersedes the "release on unmount" rule (react.md updated).
+  **Deferred:** `visibilitychange` release/resume (ADR-018). **149 vitest / 15
+  playwright**, both CI lanes green.
 - **Phase 2 — P2M1 ✅ merged** ([PR #13](https://github.com/aakash-tir/sign-app/pull/13),
   squash `91f6e31`): overlay color toggle (plan item #5, FR-14) — `fingerColors.ts`
   (colorblind-safe Okabe–Ito palette, in-frame guard); `drawHands`/`drawHolistic`
@@ -70,8 +72,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | Milestone | Plan item | Status | Branch |
 | --- | --- | --- | --- |
 | P2M1 — Overlay color toggle | #5 | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) | `milestone/P2M1-finger-colors` |
-| P2M2 — Camera persists across views + explainer | #3 | ◐ implemented (local), gates green | `milestone/P2M2-camera-permission` |
-| P2M3 — Full UI redesign | #2 | ☐ planned | — |
+| P2M2 — Camera persists across views + explainer | #3 | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) | `milestone/P2M2-camera-permission` |
+| P2M3 — Full UI redesign | #2 | ◐ in progress | `milestone/P2M3-ui-redesign` |
 | P2M4 — In-app sign reference (rendered from landmarks) | #4 | ☐ planned | — |
 | P2M5 — Dataset expansion + ingest normalization | #1 | ☐ planned | — |
 

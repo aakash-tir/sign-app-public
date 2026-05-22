@@ -19,8 +19,8 @@ Phase 2 originates from five owner-raised improvements (numbered #1–#5 in
 | Milestone | Plan item | Theme | Status |
 | --- | --- | --- | --- |
 | **P2M1** | #5 | Hand-overlay color toggle (classic / per-finger) | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) |
-| **P2M2** | #3 | Camera persists across views (shared stream) + one-time explainer | ◐ implemented (local, gates green) |
-| **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ☐ planned |
+| **P2M2** | #3 | Camera persists across views (shared stream) + one-time explainer | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) |
+| **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ◐ in progress |
 | **P2M4** | #4 | In-app sign reference, rendered from landmarks (no external sites) | ☐ planned |
 | **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ☐ planned |
 
