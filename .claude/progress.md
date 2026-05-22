@@ -5,7 +5,20 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **🎉 M7 ✅ merged + DEPLOYED — the M0–M7 plan is COMPLETE.** The PWA
+- **Now: Phase 2 (depth & polish) — P2M1 implemented (local), all gates green.**
+  Phase 1 (M0–M7) is complete and deployed; Phase 2 plan is in
+  [`docs/phase2.md`](docs/phase2.md). **P2M1** (per-finger overlay colors, plan item
+  #5, FR-14) is built on `milestone/P2M1-finger-colors`: pure `fingerColors.ts`
+  (landmark/connection → finger, colorblind-safe Okabe–Ito palette, in-frame guard),
+  `drawHands`/`drawHolistic` refactored to per-finger colors + off-frame stray-line
+  cleanup. **The finger coloring is a Settings toggle** (`classic` default vs
+  `per-finger`), persisted in the profile and read live by the draw loops. No
+  model/recognition change. Gates: **143 vitest** / **13 playwright** / format /
+  lint / tsc all green. **Open as
+  [PR #13](https://github.com/aakash-tir/sign-app/pull/13)**. Phase-2 decisions
+  locked: ADR-016 (MS-ASL cleared for training under C-UDA) and ADR-017 (in-app sign
+  reference rendered from landmarks, superseding the M6.4 external links).
+- **Phase 1:** **🎉 M7 ✅ merged + DEPLOYED — the M0–M7 plan is COMPLETE.** The PWA
   is live worldwide at **https://sign-app.aakashtirathdas.workers.dev** (Cloudflare
   Workers Static Assets, auto-deploys on push to `main`). Verified: app shell + SPA
   routing 200, model assets served from the edge.
@@ -48,6 +61,16 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 Legend: ☐ not started · ◐ in progress · ☑ merged
 
+## Phase 2 checklist (see [`docs/phase2.md`](docs/phase2.md))
+
+| Milestone | Plan item | Status | Branch |
+| --- | --- | --- | --- |
+| P2M1 — Per-finger overlay colors | #5 | ◐ [PR #13](https://github.com/aakash-tir/sign-app/pull/13) | `milestone/P2M1-finger-colors` |
+| P2M2 — Camera permission persists (shared stream) | #3 | ☐ planned | — |
+| P2M3 — Full UI redesign | #2 | ☐ planned | — |
+| P2M4 — In-app sign reference (rendered from landmarks) | #4 | ☐ planned | — |
+| P2M5 — Dataset expansion + ingest normalization | #1 | ☐ planned | — |
+
 ## Decisions made during planning
 
 - ASL · PWA-first React/TS · on-device MediaPipe + TF.js · Python build-time only.
@@ -63,6 +86,38 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Log
 
+- **2026-05-22** — **P2M1: made the finger coloring a Settings toggle** (owner
+  preferred the classic look as default). Added `overlayColorMode` (`classic` |
+  `per-finger`) to the profile (default `classic`; legacy profiles default in
+  `getProfile`) + `WordBankRepo.setOverlayColorMode`; a module store
+  `recognition/overlayColorMode.ts` (read live by the draw loops via
+  `getOverlayColorMode`, reactive for UI via `useOverlayColorMode`,
+  hydrated once in `App`); draw functions take a `colorMode` param (default
+  `classic`); Settings gained an "Overlay colors" Default/Per-finger control. Both
+  modes keep the off-frame stray-line guard. +7 tests (**143 vitest** / 13
+  playwright); all gates green. Pushed to PR #13.
+- **2026-05-22** — **P2M1 implemented** (branch `milestone/P2M1-finger-colors`).
+  New pure `frontend/src/recognition/fingerColors.ts`: `fingerOfLandmark` /
+  `fingerOfConnection` (a bone is a finger's only when both endpoints share it; wrist
+  spokes + knuckle bridges = palm), colorblind-safe Okabe–Ito `FINGER_COLORS`, and an
+  `isInFrame` guard. Refactored `drawLandmarks.ts` (`drawHands`) and `drawHolistic.ts`
+  to color each finger distinctly (palm/wrist neutral) and to skip off-frame
+  points/bones — fixing the stray skeleton lines shooting to the corner (the `fi.png`
+  issue). Pose stays single-color. Added a recording mock-canvas test util
+  (`src/test/mockCanvas.ts`) + 3 new test files (fingerColors + both draw fns):
+  **136 vitest (+18) / 13 playwright**, all gates green; **no model/recognition
+  change**. Also gitignored a stray root `MS-ASL/` dataset folder (ADR-014). Awaiting
+  commit + PR.
+- **2026-05-21** — **Phase 2 kicked off.** Authored [`docs/phase2.md`](docs/phase2.md)
+  (P2M1–P2M5 from the owner's 5 plan items, sequenced cheap/isolated-first).
+  Registered FR-14…FR-18 in `project-context.md`. Added ADR-016 (MS-ASL cleared for
+  **training only** under C-UDA — model is an unrestricted "Result"; source videos
+  not shipped) and ADR-017 (in-app sign reference **rendered from landmarks**,
+  superseding M6.4's external signasl.org links / restoring offline). **P2M1**
+  (per-finger overlay colors, FR-14) fully scoped: pure color-mapping module +
+  refactor of `drawLandmarks.ts`/`drawHolistic.ts` + off-frame stray-line cleanup;
+  Vitest for the pure mapping and the draw fns (mock canvas); **no model change**.
+  Updated `CLAUDE.md` doc map + status. Awaiting go-ahead to implement P2M1.
 - **2026-05-20** — Plan formatted; `.claude/` documentation set authored
   (product spec, architecture, recognition/ML research, milestones, decisions,
   rules). Tech stack confirmed with owner. Awaiting go-ahead for M0.

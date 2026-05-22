@@ -3,6 +3,7 @@ import { useCamera, type CameraStatus } from './useCamera'
 import { createMediaPipeHolisticDetector } from './holisticDetector'
 import { createOnnxDynamicClassifier } from './onnxDynamicClassifier'
 import { drawHolistic } from './drawHolistic'
+import { getOverlayColorMode } from './overlayColorMode'
 import { normalizeFrame } from './dynamicNormalization'
 import { FrameWindow, shouldSampleFrame } from './frameWindow'
 import { LabelStabilizer } from './debounce'
@@ -114,7 +115,13 @@ export function useDynamicSignRecognition(): UseDynamicSignRecognition {
           try {
             const now = performance.now()
             const obs = detector.detect(video, now)
-            drawHolistic(ctx, obs, canvas.width, canvas.height)
+            drawHolistic(
+              ctx,
+              obs,
+              canvas.width,
+              canvas.height,
+              getOverlayColorMode(),
+            )
 
             if (shouldSampleFrame(lastSampleRef.current, now)) {
               lastSampleRef.current = now

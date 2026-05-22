@@ -8,6 +8,10 @@ import {
   type UserProfile,
 } from '../../domain/types'
 import { fingerspellingModel } from '../../recognition/signClassifier'
+import {
+  setOverlayColorMode,
+  useOverlayColorMode,
+} from '../../recognition/overlayColorMode'
 import './SettingsView.css'
 
 const defaultRepo = new WordBankRepo(db)
@@ -16,6 +20,7 @@ const LEVELS: Level[] = ['beginner', 'intermediate', 'expert']
 export function SettingsView({ repo = defaultRepo }: { repo?: WordBankRepo }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [confident, setConfident] = useState<Set<string>>(new Set())
+  const overlayColorMode = useOverlayColorMode()
 
   const reload = useCallback(async () => {
     await repo.ensureSeeded(fingerspellingModel.labels)
@@ -87,6 +92,29 @@ export function SettingsView({ repo = defaultRepo }: { repo?: WordBankRepo }) {
           : `Sentences unlock at ${SENTENCE_UNLOCK_THRESHOLD} confident letters ` +
             `(you have ${confident.size}).`}
       </p>
+
+      <h2>Overlay colors</h2>
+      <p className="settings-note">
+        How the hand-tracking overlay is drawn over the camera.
+      </p>
+      <div className="level-options" role="group" aria-label="Overlay colors">
+        <button
+          type="button"
+          aria-pressed={overlayColorMode === 'classic'}
+          data-testid="overlay-classic"
+          onClick={() => setOverlayColorMode('classic', repo)}
+        >
+          Default (pink &amp; blue)
+        </button>
+        <button
+          type="button"
+          aria-pressed={overlayColorMode === 'per-finger'}
+          data-testid="overlay-per-finger"
+          onClick={() => setOverlayColorMode('per-finger', repo)}
+        >
+          A color per finger
+        </button>
+      </div>
 
       <h2>Letters you already know</h2>
       <p className="settings-note">

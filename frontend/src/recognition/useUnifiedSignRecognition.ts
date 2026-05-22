@@ -3,6 +3,7 @@ import { useCamera, type CameraStatus } from './useCamera'
 import { createMediaPipeHolisticDetector } from './holisticDetector'
 import { createOnnxDynamicClassifier } from './onnxDynamicClassifier'
 import { drawHolistic } from './drawHolistic'
+import { getOverlayColorMode } from './overlayColorMode'
 import { recognizeSign } from './signClassifier'
 import { normalizeFrame } from './dynamicNormalization'
 import { FrameWindow, shouldSampleFrame } from './frameWindow'
@@ -128,7 +129,13 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
           try {
             const now = performance.now()
             const obs = detector.detect(video, now)
-            drawHolistic(ctx, obs, canvas.width, canvas.height)
+            drawHolistic(
+              ctx,
+              obs,
+              canvas.width,
+              canvas.height,
+              getOverlayColorMode(),
+            )
 
             if (modeRef.current === 'letter') {
               const hand = handFromHolistic(obs)

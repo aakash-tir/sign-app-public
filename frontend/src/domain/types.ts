@@ -15,6 +15,12 @@ export const NEED_PRACTICE_PROBABILITY = 2 / 3
 
 export type Level = 'beginner' | 'intermediate' | 'expert'
 
+/**
+ * Hand-overlay coloring (FR-14, P2M1). `classic` = the original uniform look
+ * (pink dots, blue/cyan bones); `per-finger` = each finger its own color.
+ */
+export type OverlayColorMode = 'classic' | 'per-finger'
+
 /** Confident words required to unlock beginner sentences (ADR-009). */
 export const SENTENCE_UNLOCK_THRESHOLD = 20
 
@@ -28,10 +34,16 @@ export interface UserProfile {
   level: Level
   /** Latch: true once confident-word count first reaches the threshold. */
   sentencesUnlocked: boolean
+  /** How the hand-tracking overlay is colored (FR-14). */
+  overlayColorMode: OverlayColorMode
 }
 
 export function defaultProfile(): UserProfile {
-  return { level: 'beginner', sentencesUnlocked: false }
+  return {
+    level: 'beginner',
+    sentencesUnlocked: false,
+    overlayColorMode: 'classic',
+  }
 }
 
 export interface WordProgress {

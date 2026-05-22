@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import {
   BrowserRouter,
   NavLink,
@@ -11,8 +12,14 @@ import { PracticeMode } from './modes/practice/PracticeMode'
 import { LearnMode } from './modes/learn/LearnMode'
 import { SettingsView } from './modes/settings/SettingsView'
 import { DynamicSignView } from './modes/dynamic/DynamicSignView'
+import { loadOverlayColorMode } from './recognition/overlayColorMode'
 
 function App() {
+  // Hydrate the overlay color preference from the persisted profile once.
+  useEffect(() => {
+    void loadOverlayColorMode()
+  }, [])
+
   return (
     <BrowserRouter>
       <div className="app-shell">

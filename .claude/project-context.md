@@ -165,9 +165,16 @@ Precise algorithm and edge cases are specified in
 | FR-11 | Word-bank state persists locally across sessions. |
 | FR-12 | Works offline after first load. |
 | FR-13 | User can reassign their level (up or down) any time; progress is preserved and sentence behavior recomputes. |
+| | **Phase 2 (depth & polish — see [`docs/phase2.md`](docs/phase2.md)):** |
+| FR-14 | Hand-tracking overlay color is **user-selectable in Settings**: *Default* (classic pink dots / blue bones) or *Per-finger* (each finger a distinct, colorblind-safe color; palm/wrist neutral). Persisted; visualization only, no recognition change. *(P2M1)* |
+| FR-15 | Camera permission persists across views via one shared stream; one-time privacy explainer; user can disable/enable manually. *(P2M2)* |
+| FR-16 | Redesigned, accessible UI: WCAG-AA contrast, clear hierarchy, responsive, no broken-looking empty states. *(P2M3)* |
+| FR-17 | In-app sign reference rendered from landmark data — no external sites; works offline. *(P2M4)* |
+| FR-18 | New datasets ingest through a canonical normalization layer (canonical labels, fixed window, signer-disjoint splits) before training. *(P2M5)* |
 
 These IDs are referenced from the milestone acceptance criteria in
-[`docs/milestones.md`](docs/milestones.md).
+[`docs/milestones.md`](docs/milestones.md) (phase 1) and
+[`docs/phase2.md`](docs/phase2.md) (phase 2).
 
 ## 7. Non-goals (initial scope)
 

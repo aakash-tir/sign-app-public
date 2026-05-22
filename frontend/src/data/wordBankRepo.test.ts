@@ -61,11 +61,20 @@ describe('WordBankRepo', () => {
     expect(ids).toEqual(['A', 'B', 'C'])
   })
 
-  it('defaults the profile to beginner with sentences locked', async () => {
+  it('defaults the profile to beginner with sentences locked + classic overlay', async () => {
     expect(await repo.getProfile()).toEqual({
       level: 'beginner',
       sentencesUnlocked: false,
+      overlayColorMode: 'classic',
     })
+  })
+
+  it('persists the overlay color mode without touching other profile fields', async () => {
+    await repo.setLevel('intermediate')
+    await repo.setOverlayColorMode('per-finger')
+    const profile = await repo.getProfile()
+    expect(profile.overlayColorMode).toBe('per-finger')
+    expect(profile.level).toBe('intermediate') // unchanged
   })
 
   it('reassigns the level without touching progress', async () => {

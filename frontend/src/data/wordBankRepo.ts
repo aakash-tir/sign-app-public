@@ -4,6 +4,7 @@ import {
   defaultProfile,
   type AttemptOutcome,
   type Level,
+  type OverlayColorMode,
   type UserProfile,
   type Word,
   type WordProgress,
@@ -93,7 +94,12 @@ export class WordBankRepo {
   async getProfile(): Promise<UserProfile> {
     const record = await this.db.profile.get(PROFILE_ID)
     return record
-      ? { level: record.level, sentencesUnlocked: record.sentencesUnlocked }
+      ? {
+          level: record.level,
+          sentencesUnlocked: record.sentencesUnlocked,
+          // Legacy profiles predate this field — default to the classic look.
+          overlayColorMode: record.overlayColorMode ?? 'classic',
+        }
       : defaultProfile()
   }
 
@@ -104,6 +110,13 @@ export class WordBankRepo {
   /** Reassign the level (non-destructive — word progress is untouched). */
   async setLevel(level: Level): Promise<UserProfile> {
     const updated = { ...(await this.getProfile()), level }
+    await this.saveProfile(updated)
+    return updated
+  }
+
+  /** Persist the hand-overlay color mode (FR-14). */
+  async setOverlayColorMode(mode: OverlayColorMode): Promise<UserProfile> {
+    const updated = { ...(await this.getProfile()), overlayColorMode: mode }
     await this.saveProfile(updated)
     return updated
   }

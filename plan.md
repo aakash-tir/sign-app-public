@@ -1,72 +1,64 @@
-# Sign App — Original Plan
+# Phase 2 of the Project
 
-> **Note:** This is the original, lightly-edited plan as written by the project owner.
-> The canonical, structured documentation derived from this plan lives in
-> [`.claude/`](.claude/CLAUDE.md). Start there:
-> - Product spec → [`.claude/project-context.md`](.claude/project-context.md)
-> - Architecture → [`.claude/docs/architecture.md`](.claude/docs/architecture.md)
-> - Recognition / ML → [`.claude/docs/recognition.md`](.claude/docs/recognition.md)
-> - Milestones → [`.claude/docs/milestones.md`](.claude/docs/milestones.md)
-> - Decisions → [`.claude/docs/decisions.md`](.claude/docs/decisions.md)
+Phase 1 (M0–M7) shipped a working PWA, but it has real limitations. Right now we
+have a very small dataset with limited data and limited signs, and the app sends
+users to external sites to learn the signs for words and dynamic signs — that
+should not be the case. There are several things to fix and improve; the items
+below go through them one at a time.
 
----
+## 1. Expand the dataset (with a normalization layer first)
 
-## Idea
+The datasets we have are not enough: currently one dataset for the letters and two
+Kaggle datasets. That isn't enough data, so I want to expand what we use.
 
-The idea behind this project is to create a React app that can be used on
-**Windows, Android, iOS, and Linux** to teach a user **sign language**.
+Before expanding, we need a solid **data normalization layer**. New data will be
+messy and come in different sizes. The pipeline should accept **one canonical
+size / a fixed set of restrictions** for incoming data, with a normalization layer
+that adjusts everything into that format.
 
-There are levels: **beginner, intermediate, and expert**.
+**Order of work:** prove the normalization layer works for the *current* setup
+before introducing any new data.
 
-There are two modes: **Practice** and **Learn**.
+## 2. Redesign the UI
 
-## Learn mode
+The current UI is a dark screen with low-contrast buttons that are hard to see.
 
-The flow is:
+![Settings screen](images/app1.png)
+![Learn screen](images/app2.png)
 
-1. Show a sign with its meaning.
-2. Make the user copy the sign.
-3. Check with the phone camera whether it was done correctly.
-4. If yes → "Good job".
-5. If the user's proficiency is good enough, use the word in a sentence and
-   track that the user copies it correctly.
+In its current state I would not want to use the app — it needs a design redo that
+makes it look better.
 
-## Practice mode
+## 3. Fix camera re-permission on tab switch
 
-- There is a **word bank** with all the words that you know.
-- The word is displayed on the screen.
-- The user must show the sign for that word.
-- If correct → display "Correct" and go on to the next word.
-- There are two buckets of words: **confident** and **need-practice**.
-  - If the user gets a word wrong, it goes into **need-practice**.
-  - Initially, all new words go into **need-practice**.
-  - If you get a word in **need-practice** correct **3 times**, it is moved into **confident**.
-  - If a word in **confident** is got wrong, move it back to **need-practice**.
-- There is **no "incorrect" screen**. If the user cannot get the sign correctly,
-  they can click an **"I forgot"** button, which shows the sign.
-  - On this screen there is a button that says **"That's what I did"**.
-  - Sometimes the user signs correctly but the camera does not capture it
-    correctly; if they click this button, assume the user got it right.
-- In practice mode, pick words from the whole word bank regardless of confident
-  or need-practice, at a **1:2 ratio** (more from need-practice). Unless there
-  are no more words in the word bank, the same word cannot reappear within
-  **10 words** displayed.
+Every time I switch tabs I have to re-enable the camera. The camera does not store
+data on the local device, so:
 
-## Process requirements
+- Ask for camera access **once**, with an explanation that no data is stored — so
+  the user doesn't have to re-enable it on every tab switch.
+- Still allow the user to **disable and re-enable** the camera themselves whenever
+  they want.
 
-- Fill in the rest of the gaps. The implementer has full authority to decide the
-  tech stack and any other assumptions; only ask if it is a major,
-  application-breaking question.
-- Create a **private GitHub repository** for this project.
-- Break the whole process into **milestones**.
-- Document the code that is written in the `.claude` directory.
-- For each milestone, use a **separate branch** and create a **PR** to
-  squash-merge into `main`.
-- At the end of each milestone, make sure all tests pass and run a format/lint
-  check plus type checks. (Per the confirmed stack: **ruff format** + **mypy**
-  for the Python ML pipeline; **ESLint/Prettier** + **tsc** for the
-  TypeScript frontend.)
-- For each milestone there should be tests to make sure all the features work.
-- Only after all tests and format checks pass, merge the milestone and move on
-  to the next.
-- The implementer has permission to make code edits and merge the PRs.
+## 4. Teach signs in-app (no external sites)
+
+We do not want users going to other sites to learn sign language — that defeats the
+whole point of the app. We need a set of **images** that show each sign, displayed
+alongside the description.
+
+- The images **must be copyright-free** so we don't get sued.
+- **Videos** would also work, but they will be a lot harder to find.
+
+## 5. Per-finger colors in the hand tracker
+
+During finger/joint tracking, each finger should be identified specifically rather
+than the whole hand being drawn uniformly.
+
+![Hand tracking overlay](images/fi.png)
+
+Currently pink dots and blue lines are used for the hand and everything else is
+green. Could we use **different colors per finger** — e.g. the thumb has different
+lines and dots from the index, and so on — with the palm staying the default
+colors? If we draw it this way, similar hand signs should be easier to tell apart
+and identify.
+
+What do you think of this?

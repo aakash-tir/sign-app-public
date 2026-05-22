@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCamera, type CameraStatus } from './useCamera'
 import { drawHands } from './drawLandmarks'
+import { getOverlayColorMode } from './overlayColorMode'
 import { createMediaPipeHandDetector } from './mediapipeDetector'
 import { recognizeSign } from './signClassifier'
 import { LabelStabilizer } from './debounce'
@@ -78,7 +79,13 @@ export function useSignRecognition(): UseSignRecognition {
           try {
             const hands = detector.detect(video, performance.now())
             setHandCount(hands.length)
-            drawHands(ctx, hands, canvas.width, canvas.height)
+            drawHands(
+              ctx,
+              hands,
+              canvas.width,
+              canvas.height,
+              getOverlayColorMode(),
+            )
 
             const hand = hands[0]
             if (hand) {

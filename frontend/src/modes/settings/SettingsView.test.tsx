@@ -9,6 +9,7 @@ import {
 import { SettingsView } from './SettingsView'
 import { SignAppDB } from '../../data/db'
 import { WordBankRepo } from '../../data/wordBankRepo'
+import { loadOverlayColorMode } from '../../recognition/overlayColorMode'
 
 let counter = 0
 let database: SignAppDB
@@ -18,6 +19,8 @@ beforeEach(async () => {
   database = new SignAppDB(`test-settings-${++counter}`)
   await database.open()
   repo = new WordBankRepo(database)
+  // Reset the module-level overlay store to classic from this fresh profile.
+  await loadOverlayColorMode(repo)
 })
 
 afterEach(async () => {
@@ -57,5 +60,22 @@ describe('SettingsView', () => {
     fireEvent.click(screen.getByTestId('known-A'))
     await waitFor(() => expect(screen.getByTestId('known-A')).toBeDisabled())
     expect((await repo.getProgress('A'))?.bucket).toBe('confident')
+  })
+
+  it('toggles the overlay color mode and persists it', async () => {
+    render(<SettingsView repo={repo} />)
+    await screen.findByTestId('level-current')
+    const classicBtn = screen.getByTestId('overlay-classic')
+    const perFingerBtn = screen.getByTestId('overlay-per-finger')
+    expect(classicBtn).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(perFingerBtn)
+    await waitFor(() =>
+      expect(perFingerBtn).toHaveAttribute('aria-pressed', 'true'),
+    )
+    expect(classicBtn).toHaveAttribute('aria-pressed', 'false')
+    await waitFor(async () =>
+      expect((await repo.getProfile()).overlayColorMode).toBe('per-finger'),
+    )
   })
 })

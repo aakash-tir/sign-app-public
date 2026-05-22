@@ -41,6 +41,9 @@ ml/models/
 *.npz
 /WLASL_parsed_data.json
 /filtered_labels.txt
+# MS-ASL (dynamic-sign dataset, Phase 2 / P2M5) — belongs under ml/data/ per ADR-014;
+# root entry is a safety net in case it's extracted to the repo root.
+/MS-ASL/
 
 # ---- Secrets / env (NEVER commit — see .claude/rules/workflow.md) ----
 .env

@@ -14,12 +14,13 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 | [`project-context.md`](project-context.md) | **Product spec** — modes, levels, bucket rules, UX. The "what". |
 | [`docs/architecture.md`](docs/architecture.md) | **Architecture** — tech stack, repo layout, data model, data flow, hosting. |
 | [`docs/recognition.md`](docs/recognition.md) | **ASL recognition & ML pipeline** — MediaPipe + classifier, datasets, risks, research sources. |
-| [`docs/milestones.md`](docs/milestones.md) | **Milestone plan** — M0–M7, branches, acceptance criteria, tests. |
+| [`docs/milestones.md`](docs/milestones.md) | **Phase 1 milestone plan** — M0–M7 (complete), branches, acceptance criteria, tests. |
+| [`docs/phase2.md`](docs/phase2.md) | **Phase 2 plan** — depth & polish milestones (P2M1–P2M5) after M0–M7. |
 | [`docs/decisions.md`](docs/decisions.md) | **Decision log (ADRs)** + open questions. |
 | [`docs/hosting.md`](docs/hosting.md) | **Hosting** — what Cloudflare Pages is and how we deploy. |
 | [`progress.md`](progress.md) | **Live status** — which milestone we're on, what's done. |
 | [`rules/`](rules/) | **Coding standards** — frontend, Python, and git/CI workflow. |
-| [`../plan.md`](../plan.md) | The owner's original plan (source of truth for intent). |
+| [`../plan.md`](../plan.md) | The owner's plan. **Now holds the Phase 2 plan**; per-item analysis is in [`../output.md`](../output.md). (M0–M7 intent lives in these `.claude` docs.) |
 
 ## The 60-second summary
 
@@ -51,5 +52,7 @@ and the secrets/credentials policy.
 
 ## Status
 
-Currently: **planning complete, no code written yet.** Next up is **M0** (see
-[`progress.md`](progress.md)). Do not start implementation until the owner says go.
+**Phase 1 (M0–M7) is complete and deployed** — the PWA is live on Cloudflare
+(see [`progress.md`](progress.md)). Now in **Phase 2 (depth & polish)**: scoping
+**P2M1** (per-finger overlay colors). The Phase 2 plan is in
+[`docs/phase2.md`](docs/phase2.md).

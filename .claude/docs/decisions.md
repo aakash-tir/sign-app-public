@@ -243,6 +243,48 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   (labels + normalization id + window/feature shape). Training deps live in an
   optional `train` extra (`torch`, `onnx`); they never gate CI.
 
+## ADR-016 — MS-ASL usable for training under C-UDA (Phase 2 data)
+
+- **Status:** accepted (owner + license check, 2026-05-21). Phase 2 / P2M5.
+- **Context:** Phase 2 expands the dataset (plan item #1). MS-ASL (Microsoft,
+  ~1000 signs / ~25k clips) is a candidate. The owner intends to use it **only to
+  train the model** — no outside-source videos shipped in the app. We needed to
+  confirm the license permits this.
+- **Decision:** **Use MS-ASL for training only.** MS-ASL is released under the
+  **Computational Use of Data Agreement (C-UDA v1.0)**, which is purpose-built for
+  ML training: training is "Computational Use" (permitted), and a trained model is a
+  **"Result"** that C-UDA places **no restriction** on using/distributing — so we
+  can ship the model freely. C-UDA does **not** grant the right to redistribute the
+  **source videos** (separate third-party/YouTube copyright); we never do that.
+- **Consequences:** Train ✅, ship the model ✅, ship MS-ASL videos/frames ❌.
+  MS-ASL ships as YouTube URLs + time segments → expect **link rot** (realized set
+  smaller than headline). This is an informed reading, not legal advice; revisit
+  with counsel before any commercial launch. The discovery lists the owner provided
+  (`yayayru/sign-language-datasets`, the GitHub topic) are indexes — each dataset
+  they point to is vetted individually before use. Sources:
+  [C-UDA](https://github.com/microsoft/Computational-Use-of-Data-Agreement) ·
+  [MS-ASL](https://www.microsoft.com/en-us/research/project/ms-asl/).
+
+## ADR-017 — In-app sign reference rendered from landmarks (no external sites)
+
+- **Status:** accepted (owner, 2026-05-21). Phase 2 / P2M4. **Supersedes** the
+  M6.4 external-link approach.
+- **Context:** M6.4 shipped sign reference as **external links** to signasl.org
+  (`content/signReference.ts`). This sends users off the app and — worse —
+  **breaks the offline guarantee** M7 delivered (external links fail with no
+  network). Copyright-free ASL imagery is scarce, and dataset videos (WLASL, MS-ASL)
+  carry their own redistribution terms.
+- **Decision:** **Render teaching visuals from landmark data** — animated landmark
+  playback for dynamic signs, stills/arrows for static — instead of sourcing or
+  linking external media. Prefer landmarks **we fully control** (authored reference
+  poses / our own captures) over dataset-derived landmarks, to keep the content
+  unambiguously ours.
+- **Consequences:** Teaching content becomes **owned, offline-capable, and visually
+  consistent** with the live tracker (target and attempt look alike). Removes the
+  external dependency and restores offline correctness. Replaces `signReference.ts`
+  external links. Avoids the licensing question entirely for in-app media (related:
+  ADR-016 keeps MS-ASL to training only).
+
 ---
 
 ## Open questions (non-blocking, revisit at the noted milestone)
