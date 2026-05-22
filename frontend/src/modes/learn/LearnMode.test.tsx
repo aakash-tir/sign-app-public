@@ -14,6 +14,7 @@ vi.mock('../../recognition/useUnifiedSignRecognition', () => ({
     status: 'on',
     error: null,
     trackerError: null,
+    ready: true,
     recognized: mocks.recognized,
     start: vi.fn(),
     stop: vi.fn(),

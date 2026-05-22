@@ -61,11 +61,12 @@ describe('WordBankRepo', () => {
     expect(ids).toEqual(['A', 'B', 'C'])
   })
 
-  it('defaults the profile to beginner with sentences locked + classic overlay', async () => {
+  it('defaults the profile to beginner, sentences locked, classic overlay, explainer unseen', async () => {
     expect(await repo.getProfile()).toEqual({
       level: 'beginner',
       sentencesUnlocked: false,
       overlayColorMode: 'classic',
+      cameraExplainerSeen: false,
     })
   })
 
@@ -75,6 +76,14 @@ describe('WordBankRepo', () => {
     const profile = await repo.getProfile()
     expect(profile.overlayColorMode).toBe('per-finger')
     expect(profile.level).toBe('intermediate') // unchanged
+  })
+
+  it('persists the camera-explainer-seen flag without touching other fields', async () => {
+    await repo.setOverlayColorMode('per-finger')
+    await repo.setCameraExplainerSeen(true)
+    const profile = await repo.getProfile()
+    expect(profile.cameraExplainerSeen).toBe(true)
+    expect(profile.overlayColorMode).toBe('per-finger') // unchanged
   })
 
   it('reassigns the level without touching progress', async () => {

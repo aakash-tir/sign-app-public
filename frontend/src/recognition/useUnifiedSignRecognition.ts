@@ -25,11 +25,13 @@ export interface SignMatch {
 }
 
 export interface UseUnifiedSignRecognition {
-  videoRef: React.RefObject<HTMLVideoElement | null>
+  videoRef: React.RefCallback<HTMLVideoElement>
   canvasRef: React.RefObject<HTMLCanvasElement | null>
   status: CameraStatus
   error: string | null
   trackerError: string | null
+  /** True once both the holistic tracker and the sign model have loaded. */
+  ready: boolean
   /** Debounced recognition for the active mode (null until one stabilizes). */
   recognized: SignMatch | null
   start: () => void
@@ -58,7 +60,7 @@ function handFromHolistic(obs: HolisticObservation): HandObservation | null {
  * detector on unmount.
  */
 export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
-  const { videoRef, status, error, start, stop } = useCamera()
+  const { videoRef, videoEl, status, error, start, stop } = useCamera()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const detectorRef = useRef<HolisticDetector | null>(null)
   const classifierRef = useRef<DynamicClassifier | null>(null)
@@ -71,7 +73,13 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
   const modeRef = useRef<SignKind>('letter')
 
   const [trackerError, setTrackerError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
   const [recognized, setRecognized] = useState<SignMatch | null>(null)
+
+  // Ready once both the detector and the classifier are loaded.
+  const markReadyIfLoaded = useCallback(() => {
+    if (detectorRef.current && classifierRef.current) setReady(true)
+  }, [])
 
   const setMode = useCallback((kind: SignKind) => {
     modeRef.current = kind
@@ -90,7 +98,13 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
     let cancelled = false
     if (!detectorRef.current) {
       createMediaPipeHolisticDetector()
-        .then((d) => (cancelled ? d.close() : (detectorRef.current = d)))
+        .then((d) => {
+          if (cancelled) d.close()
+          else {
+            detectorRef.current = d
+            markReadyIfLoaded()
+          }
+        })
         .catch((err: unknown) =>
           setTrackerError(
             err instanceof Error ? err.message : 'Failed to load tracker.',
@@ -100,7 +114,10 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
     if (!classifierRef.current) {
       createOnnxDynamicClassifier()
         .then((c) => {
-          if (!cancelled) classifierRef.current = c
+          if (!cancelled) {
+            classifierRef.current = c
+            markReadyIfLoaded()
+          }
         })
         .catch((err: unknown) =>
           setTrackerError(
@@ -111,14 +128,23 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
     return () => {
       cancelled = true
     }
-  }, [status])
+  }, [status, markReadyIfLoaded])
 
   // Capture loop: detect + draw + recognize via the active mode.
   useEffect(() => {
     if (status !== 'on') return
 
     const loop = () => {
-      const video = videoRef.current
+      // Throttle the heavy detect to ~30 FPS (matches the trained window cadence
+      // and keeps the main thread responsive now the camera stays on — ADR-018).
+      const now = performance.now()
+      if (!shouldSampleFrame(lastSampleRef.current, now)) {
+        rafRef.current = requestAnimationFrame(loop)
+        return
+      }
+      lastSampleRef.current = now
+
+      const video = videoEl.current
       const canvas = canvasRef.current
       const detector = detectorRef.current
       if (video && canvas && detector && video.readyState >= 2) {
@@ -127,7 +153,6 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
         const ctx = canvas.getContext('2d')
         if (ctx) {
           try {
-            const now = performance.now()
             const obs = detector.detect(video, now)
             drawHolistic(
               ctx,
@@ -149,10 +174,8 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
                   : null,
               )
             } else {
-              if (shouldSampleFrame(lastSampleRef.current, now)) {
-                lastSampleRef.current = now
-                windowRef.current.push(normalizeFrame(obs))
-              }
+              // Detect runs at the sampling cadence, so push every (gated) frame.
+              windowRef.current.push(normalizeFrame(obs))
               const classifier = classifierRef.current
               if (
                 classifier &&
@@ -192,7 +215,7 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [status, videoRef])
+  }, [status, videoEl])
 
   // Close the detector on unmount.
   useEffect(() => {
@@ -214,6 +237,7 @@ export function useUnifiedSignRecognition(): UseUnifiedSignRecognition {
     status,
     error,
     trackerError,
+    ready,
     recognized,
     start: handleStart,
     stop: handleStop,

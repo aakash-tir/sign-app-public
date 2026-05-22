@@ -97,8 +97,9 @@ export class WordBankRepo {
       ? {
           level: record.level,
           sentencesUnlocked: record.sentencesUnlocked,
-          // Legacy profiles predate this field — default to the classic look.
+          // Legacy profiles predate these fields — fall back to safe defaults.
           overlayColorMode: record.overlayColorMode ?? 'classic',
+          cameraExplainerSeen: record.cameraExplainerSeen ?? false,
         }
       : defaultProfile()
   }
@@ -117,6 +118,13 @@ export class WordBankRepo {
   /** Persist the hand-overlay color mode (FR-14). */
   async setOverlayColorMode(mode: OverlayColorMode): Promise<UserProfile> {
     const updated = { ...(await this.getProfile()), overlayColorMode: mode }
+    await this.saveProfile(updated)
+    return updated
+  }
+
+  /** Remember that the one-time camera privacy explainer was acknowledged (FR-15). */
+  async setCameraExplainerSeen(seen: boolean): Promise<UserProfile> {
+    const updated = { ...(await this.getProfile()), cameraExplainerSeen: seen }
     await this.saveProfile(updated)
     return updated
   }

@@ -20,6 +20,7 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
     canvasRef,
     status: cameraStatus,
     trackerError,
+    ready: cameraReady,
     recognized,
     start: startCamera,
     setMode,
@@ -126,6 +127,11 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
         </button>
       )}
       {cameraStatus === 'starting' && <p role="status">Starting camera…</p>}
+      {cameraStatus === 'on' && !cameraReady && (
+        <p role="status" data-testid="model-loading">
+          Preparing recognition…
+        </p>
+      )}
       {trackerError && <p className="tracker-error">{trackerError}</p>}
 
       {phase === 'signing' && (

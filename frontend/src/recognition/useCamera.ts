@@ -1,62 +1,65 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+import { useCameraContext, type CameraStatus } from './cameraContext'
 
-export type CameraStatus = 'idle' | 'starting' | 'on' | 'error'
+export type { CameraStatus }
 
 export interface UseCamera {
-  videoRef: React.RefObject<HTMLVideoElement | null>
+  /** Callback ref to attach to the `<video>` element. */
+  videoRef: React.RefCallback<HTMLVideoElement>
+  /** The current `<video>` node, for the render loop to read. */
+  videoEl: React.RefObject<HTMLVideoElement | null>
   status: CameraStatus
   error: string | null
-  start: () => Promise<void>
+  start: () => void
   stop: () => void
 }
 
+function attachStream(
+  node: HTMLVideoElement,
+  stream: MediaStream | null,
+): void {
+  if (stream) {
+    if (node.srcObject !== stream) {
+      node.srcObject = stream
+      try {
+        const played = node.play?.()
+        if (played) void played.catch(() => {})
+      } catch {
+        /* play() can reject/throw transiently (e.g. jsdom); the loop tolerates it */
+      }
+    }
+  } else {
+    node.srcObject = null
+  }
+}
+
 /**
- * Manages the device camera via getUserMedia, with permission/error handling.
- * Always releases the MediaStream tracks on stop and on unmount.
+ * Adapter over the app-level {@link CameraProvider} (ADR-018): wires the single
+ * shared `MediaStream` to this view's `<video>` and re-exposes the shared
+ * status/controls. Because the provider owns the stream (mounted above the
+ * router), it **survives view switches** — so this hook never calls
+ * `getUserMedia` and never stops the camera on unmount.
+ *
+ * Uses a **callback ref** so a `<video>` that mounts *after* the stream is
+ * already on (e.g. behind a "Loading…" gate in Practice/Learn) still gets the
+ * stream attached the moment it appears. The loop reads {@link videoEl}.
  */
 export function useCamera(): UseCamera {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const [status, setStatus] = useState<CameraStatus>('idle')
-  const [error, setError] = useState<string | null>(null)
+  const { stream, status, error, start, stop } = useCameraContext()
+  const videoEl = useRef<HTMLVideoElement | null>(null)
 
-  const stop = useCallback(() => {
-    streamRef.current?.getTracks().forEach((track) => track.stop())
-    streamRef.current = null
-    if (videoRef.current) {
-      videoRef.current.srcObject = null
-    }
-    setStatus('idle')
-  }, [])
+  const videoRef = useCallback<React.RefCallback<HTMLVideoElement>>(
+    (node) => {
+      videoEl.current = node
+      if (node) attachStream(node, stream)
+    },
+    [stream],
+  )
 
-  const start = useCallback(async () => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError('Camera access is not available in this browser.')
-      setStatus('error')
-      return
-    }
-    setStatus('starting')
-    setError(null)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: false,
-      })
-      streamRef.current = stream
-      const video = videoRef.current
-      if (video) {
-        video.srcObject = stream
-        await video.play()
-      }
-      setStatus('on')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to access camera.')
-      setStatus('error')
-    }
-  }, [])
+  // Re-attach to an already-mounted node when the stream changes (enable/disable).
+  useEffect(() => {
+    if (videoEl.current) attachStream(videoEl.current, stream)
+  }, [stream])
 
-  // Release the camera when the component using this hook unmounts.
-  useEffect(() => stop, [stop])
-
-  return { videoRef, status, error, start, stop }
+  return { videoRef, videoEl, status, error, start, stop }
 }

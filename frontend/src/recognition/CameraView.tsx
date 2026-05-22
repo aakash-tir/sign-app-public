@@ -12,6 +12,7 @@ export function CameraView() {
     status,
     error,
     trackerError,
+    ready,
     handCount,
     prediction,
     start,
@@ -38,6 +39,11 @@ export function CameraView() {
           </button>
         )}
         {status === 'starting' && <p role="status">Starting camera…</p>}
+        {status === 'on' && !ready && (
+          <p role="status" data-testid="model-loading">
+            Preparing recognition…
+          </p>
+        )}
         {status === 'on' && (
           <>
             <p role="status" data-testid="camera-status">

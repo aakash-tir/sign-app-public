@@ -27,9 +27,29 @@ function configureRuntime(ort: Ort): void {
   runtimeConfigured = true
 }
 
-/** Load the exported ONNX dynamic-sign model and wrap it as a DynamicClassifier. */
-export async function createOnnxDynamicClassifier(
+// Cached app-wide singleton for the default model: building the ONNX session
+// (metadata + WASM + InferenceSession) is heavy, and ADR-018 keeps the camera on,
+// so views would otherwise reload it on every tab switch. The session is stateless
+// (classify only), so reuse is safe.
+let cached: Promise<DynamicClassifier> | null = null
+
+/** Load (or reuse) the exported ONNX dynamic-sign model as a DynamicClassifier. */
+export function createOnnxDynamicClassifier(
   base: string = DEFAULT_BASE,
+): Promise<DynamicClassifier> {
+  if (base === DEFAULT_BASE && cached) return cached
+  const pending = loadOnnxDynamicClassifier(base)
+  if (base === DEFAULT_BASE) {
+    cached = pending
+    pending.catch(() => {
+      if (cached === pending) cached = null
+    })
+  }
+  return pending
+}
+
+async function loadOnnxDynamicClassifier(
+  base: string,
 ): Promise<DynamicClassifier> {
   // Dynamic import: code-splits onnxruntime-web out of the main bundle.
   const ort = await import('onnxruntime-web')

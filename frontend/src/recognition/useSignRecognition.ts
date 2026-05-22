@@ -5,6 +5,7 @@ import { getOverlayColorMode } from './overlayColorMode'
 import { createMediaPipeHandDetector } from './mediapipeDetector'
 import { recognizeSign } from './signClassifier'
 import { LabelStabilizer } from './debounce'
+import { shouldSampleFrame } from './frameWindow'
 import type { LandmarkDetector } from './types'
 
 // Consecutive agreeing frames required before a predicted sign is reported.
@@ -16,11 +17,13 @@ export interface SignPrediction {
 }
 
 export interface UseSignRecognition {
-  videoRef: React.RefObject<HTMLVideoElement | null>
+  videoRef: React.RefCallback<HTMLVideoElement>
   canvasRef: React.RefObject<HTMLCanvasElement | null>
   status: CameraStatus
   error: string | null
   trackerError: string | null
+  /** True once the hand-tracking model has finished loading. */
+  ready: boolean
   handCount: number
   /** Debounced, threshold-cleared prediction (null until one stabilizes). */
   prediction: SignPrediction | null
@@ -35,13 +38,15 @@ export interface UseSignRecognition {
  * tracker loading, so a tracker failure still leaves a working camera.
  */
 export function useSignRecognition(): UseSignRecognition {
-  const { videoRef, status, error, start, stop } = useCamera()
+  const { videoRef, videoEl, status, error, start, stop } = useCamera()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const detectorRef = useRef<LandmarkDetector | null>(null)
   const rafRef = useRef<number | null>(null)
+  const lastFrameRef = useRef<number | null>(null)
   const stabilizerRef = useRef(new LabelStabilizer(STABILIZER_FRAMES))
   const [handCount, setHandCount] = useState(0)
   const [trackerError, setTrackerError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
   const [prediction, setPrediction] = useState<SignPrediction | null>(null)
 
   // Lazily load the MediaPipe detector once the camera is on.
@@ -51,7 +56,10 @@ export function useSignRecognition(): UseSignRecognition {
     createMediaPipeHandDetector()
       .then((detector) => {
         if (cancelled) detector.close()
-        else detectorRef.current = detector
+        else {
+          detectorRef.current = detector
+          setReady(true)
+        }
       })
       .catch((err: unknown) => {
         setTrackerError(
@@ -68,7 +76,16 @@ export function useSignRecognition(): UseSignRecognition {
     if (status !== 'on') return
 
     const loop = () => {
-      const video = videoRef.current
+      // Throttle the heavy detect+draw to ~30 FPS so it doesn't monopolize the
+      // main thread (the camera now stays on across views — ADR-018).
+      const now = performance.now()
+      if (!shouldSampleFrame(lastFrameRef.current, now)) {
+        rafRef.current = requestAnimationFrame(loop)
+        return
+      }
+      lastFrameRef.current = now
+
+      const video = videoEl.current
       const canvas = canvasRef.current
       const detector = detectorRef.current
       if (video && canvas && detector && video.readyState >= 2) {
@@ -77,7 +94,7 @@ export function useSignRecognition(): UseSignRecognition {
         const ctx = canvas.getContext('2d')
         if (ctx) {
           try {
-            const hands = detector.detect(video, performance.now())
+            const hands = detector.detect(video, now)
             setHandCount(hands.length)
             drawHands(
               ctx,
@@ -113,7 +130,7 @@ export function useSignRecognition(): UseSignRecognition {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [status, videoRef])
+  }, [status, videoEl])
 
   // Close the detector on unmount.
   useEffect(() => {
@@ -141,6 +158,7 @@ export function useSignRecognition(): UseSignRecognition {
     status,
     error,
     trackerError,
+    ready,
     handCount,
     prediction,
     start: handleStart,

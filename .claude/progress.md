@@ -5,19 +5,23 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Now: Phase 2 (depth & polish) — P2M1 ✅ merged. Next up: P2M2.** Phase 1
-  (M0–M7) is complete and deployed; Phase 2 plan is in
-  [`docs/phase2.md`](docs/phase2.md). **P2M1** (overlay color toggle, plan item #5,
-  FR-14) **merged via [PR #13](https://github.com/aakash-tir/sign-app/pull/13)**
-  (squash `91f6e31`): pure `fingerColors.ts` (landmark/connection → finger,
-  colorblind-safe Okabe–Ito palette, in-frame guard); `drawHands`/`drawHolistic`
+- **Now: Phase 2 — P2M2 implemented (local), all gates green; awaiting commit + PR.**
+  **P2M2** (camera persists across views, plan item #3, FR-15, **ADR-018**): hoisted
+  the camera to an app-level **`CameraProvider`** above the router (single shared
+  `MediaStream`); `useCamera` is now a thin adapter (`cameraContext.ts`) that
+  attaches the shared stream to the current view and never stops it on unmount —
+  switching tabs no longer re-prompts "Enable camera". Added a **one-time privacy
+  explainer** (`profile.cameraExplainerSeen`). Supersedes the "release on unmount"
+  rule (react.md updated). Gates: **147 vitest** / **14 playwright** (incl. an FR-15
+  tab-switch e2e); format/lint/tsc green. **Deferred:** `visibilitychange`
+  release/resume (ADR-018).
+- **Phase 2 — P2M1 ✅ merged** ([PR #13](https://github.com/aakash-tir/sign-app/pull/13),
+  squash `91f6e31`): overlay color toggle (plan item #5, FR-14) — `fingerColors.ts`
+  (colorblind-safe Okabe–Ito palette, in-frame guard); `drawHands`/`drawHolistic`
   take a `colorMode` param + off-frame stray-line cleanup; **Settings toggle**
-  (`classic` default vs `per-finger`) persisted in the profile and read live by the
-  draw loops. No model/recognition change. Gates: **143 vitest** / **13 playwright**;
-  both CI lanes green. Phase-2 decisions locked: ADR-016 (MS-ASL cleared for training
-  under C-UDA) and ADR-017 (in-app sign reference rendered from landmarks, superseding
-  the M6.4 external links). **Next: P2M2** (camera permission persists / shared
-  stream).
+  (`classic` default vs `per-finger`) persisted and read live by the draw loops.
+  Phase-2 decisions locked: ADR-016 (MS-ASL cleared for training under C-UDA),
+  ADR-017 (in-app sign reference rendered from landmarks).
 - **Phase 1:** **🎉 M7 ✅ merged + DEPLOYED — the M0–M7 plan is COMPLETE.** The PWA
   is live worldwide at **https://sign-app.aakashtirathdas.workers.dev** (Cloudflare
   Workers Static Assets, auto-deploys on push to `main`). Verified: app shell + SPA
@@ -66,7 +70,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | Milestone | Plan item | Status | Branch |
 | --- | --- | --- | --- |
 | P2M1 — Overlay color toggle | #5 | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) | `milestone/P2M1-finger-colors` |
-| P2M2 — Camera permission persists (shared stream) | #3 | ☐ planned | — |
+| P2M2 — Camera persists across views + explainer | #3 | ◐ implemented (local), gates green | `milestone/P2M2-camera-permission` |
 | P2M3 — Full UI redesign | #2 | ☐ planned | — |
 | P2M4 — In-app sign reference (rendered from landmarks) | #4 | ☐ planned | — |
 | P2M5 — Dataset expansion + ingest normalization | #1 | ☐ planned | — |
@@ -86,6 +90,35 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Log
 
+- **2026-05-22** — **P2M2 perf pass.** Owner clarified the remaining slowness was
+  the **one-time model warm-up** on the default Practice tab (not a stream
+  restart — the stream genuinely persists). Two improvements: (1) **throttled
+  detection to ~30 FPS** in all three recognition loops (was per-animation-frame) —
+  matches the trained window cadence, halves CPU on 60 Hz devices, keeps navigation
+  responsive while the camera stays on; (2) hooks expose **`ready`** and each camera
+  view shows a brief **"Preparing recognition…"** note during first load. 149 vitest
+  / 15 playwright, all gates green.
+- **2026-05-22** — **P2M2 review fixes.** Owner found two regressions from the
+  camera staying on: (1) Learn's camera was black — its `<video>` mounts after a
+  "Loading…" gate, and the attach effect didn't re-run; fixed by making `useCamera`
+  use a **callback ref** (loops read a separate `videoEl`). (2) Tab switches were
+  laggy — every mount re-initialized MediaPipe/ONNX; fixed by **caching the Hand +
+  Holistic detectors and the ONNX session as app-lifetime singletons** (close() is a
+  no-op; cache resets on init failure for retry). +3 tests (`useCamera.test.tsx` +
+  an FR-15 Learn-tab e2e); hardened a flaky PracticeMode `setMode` assertion with
+  `waitFor`. **149 vitest / 15 playwright**, all gates green.
+- **2026-05-22** — **P2M2 implemented** (branch `milestone/P2M2-camera-permission`,
+  FR-15, ADR-018). Hoisted the camera to an app-level **`CameraProvider`** above the
+  router that owns a single shared `MediaStream`; split context/hook into
+  `cameraContext.ts` and the component into `cameraProvider.tsx`. `useCamera` is now
+  a thin adapter that wires the shared stream to the current view's `<video>` and
+  **never calls `getUserMedia` or stops the camera on unmount** — so switching tabs
+  no longer forces "Enable camera" again. Added a **one-time privacy explainer**
+  (`profile.cameraExplainerSeen` + `WordBankRepo.setCameraExplainerSeen`). The 3
+  recognition hooks were untouched (same `useCamera` shape). Updated react.md
+  (camera-ownership rule) per ADR-018. +4 tests (**147 vitest**, **14 playwright**
+  incl. an FR-15 tab-switch e2e); all gates green. **Deferred:** tab-hidden
+  release/resume via `visibilitychange`. Awaiting commit + PR.
 - **2026-05-22** — **P2M1: made the finger coloring a Settings toggle** (owner
   preferred the classic look as default). Added `overlayColorMode` (`classic` |
   `per-finger`) to the profile (default `classic`; legacy profiles default in

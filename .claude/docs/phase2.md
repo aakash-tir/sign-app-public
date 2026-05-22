@@ -19,7 +19,7 @@ Phase 2 originates from five owner-raised improvements (numbered #1–#5 in
 | Milestone | Plan item | Theme | Status |
 | --- | --- | --- | --- |
 | **P2M1** | #5 | Hand-overlay color toggle (classic / per-finger) | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) |
-| **P2M2** | #3 | Camera permission persists across views (shared stream) | ☐ planned |
+| **P2M2** | #3 | Camera persists across views (shared stream) + one-time explainer | ◐ implemented (local, gates green) |
 | **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ☐ planned |
 | **P2M4** | #4 | In-app sign reference, rendered from landmarks (no external sites) | ☐ planned |
 | **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ☐ planned |
@@ -137,21 +137,56 @@ holistic overlays. This is the cheapest, most isolated phase-2 win: **pure rende
 
 ---
 
-## P2M2 — Camera permission persists across views *(planned)*
+## P2M2 — Camera persists across views (shared stream) + one-time explainer
 
-**Plan item #3 · FR-15.** Today each view tears down its own `MediaStream` (per the
-"release on unmount" rule) and re-prompts an "Enable camera" click on every tab
-switch — the browser permission itself already persists. Plan: **hoist the camera to
-one app-level provider** owning a single shared stream + global on/off toggle; views
-subscribe; persist the user's preference and **auto-start when permission is already
-granted** (`navigator.permissions.query`); keep a **one-time privacy explainer**
-("video never leaves your device"); still allow manual disable/enable.
+**Plan item #3 · FR-15 · ADR-018.** Each view used to tear down its own
+`MediaStream` (per the old "release on unmount" rule), forcing an "Enable camera"
+click on every tab switch — even though the browser permission already persists.
 
-**Pending decision (ADR when scoped):** this **supersedes the current
-"release camera on unmount" rule** ([`../rules/frontend/react.md`](../rules/frontend/react.md)).
-Proposed compromise: release on tab-hidden / `visibilitychange` + app unload
-(battery + privacy LED) and re-acquire silently on return. Needs owner sign-off →
-write an ADR before implementation.
+**Built:**
+
+- **`CameraProvider`** (`recognition/cameraProvider.tsx`) mounted **above the
+  router** in `App` owns the **single shared `MediaStream`** + status; the stream
+  survives view switches.
+- **`useCamera` is now a thin adapter** (`recognition/cameraContext.ts` holds the
+  context + `useCameraContext`): it attaches the shared stream to the current
+  view's `<video>` and re-exposes `status`/`start`/`stop`. It **never calls
+  `getUserMedia` and never stops the camera on unmount** — only `stop()` (user) or
+  app teardown releases the device. The 3 recognition hooks were unchanged (same
+  `useCamera` shape).
+- **One-time privacy explainer** before the first acquire, remembered via
+  `profile.cameraExplainerSeen` ("video never leaves your device"). Manual
+  enable/disable stays in each camera view.
+- **ADR-018** records this and **supersedes** the "release on unmount" rule in
+  [`../rules/frontend/react.md`](../rules/frontend/react.md).
+
+**Two fixes from owner review** (the camera now staying on exposed these):
+
+- **Late-mounted video:** `useCamera` uses a **callback ref** so a `<video>` that
+  mounts *after* the stream is on (behind the "Loading…" gate in Learn/Practice)
+  still attaches the shared stream. (Previously the attach effect only ran on
+  mount/stream-change, so Learn's video stayed black.)
+- **Tab-switch lag:** the MediaPipe detectors and the ONNX session are now
+  **app-lifetime singletons** (cached in `holisticDetector.ts` / `mediapipeDetector.ts`
+  / `onnxDynamicClassifier.ts`), so navigating between camera views reuses them
+  instead of re-initializing WASM + models on every mount.
+- **Main-thread saturation:** detection is **throttled to ~30 FPS** in all three
+  recognition loops (was every animation frame) — it matches the dynamic model's
+  trained window cadence, roughly halves CPU on 60 Hz devices, and keeps navigation
+  responsive while the camera stays on. (The fake-stream e2e didn't catch this; real
+  Holistic inference is far heavier.)
+- **First-load feedback:** the hooks expose `ready`, and each camera view shows a
+  brief **"Preparing recognition…"** note while the model loads, so the one-time
+  warm-up (first enable on the default Practice tab) reads as loading, not frozen.
+
+**Tests:** `cameraContext.test.tsx` (explainer gating, enable→on, stop releases
+the track), repo `setCameraExplainerSeen`, and an e2e proving the camera **stays on
+across a Camera→Signs tab switch with no re-enable** (FR-15). 147 vitest / 14
+playwright.
+
+**Deferred follow-up:** release tracks on `visibilitychange`→hidden + re-acquire on
+return (battery/privacy LED), and optional auto-resume across reloads — see ADR-018.
+Until then the camera stays on across all routes until the user stops it.
 
 ## P2M3 — Full UI redesign *(planned)*
 

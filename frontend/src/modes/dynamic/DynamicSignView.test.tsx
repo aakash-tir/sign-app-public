@@ -5,11 +5,12 @@ import type { UseDynamicSignRecognition } from '../../recognition/useDynamicSign
 // Controllable stub for the dynamic recognition hook.
 const mocks = vi.hoisted(() => {
   const state: UseDynamicSignRecognition = {
-    videoRef: { current: null },
+    videoRef: () => {},
     canvasRef: { current: null },
     status: 'idle',
     error: null,
     trackerError: null,
+    ready: true,
     labels: [],
     prediction: null,
     target: null,

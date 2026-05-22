@@ -31,7 +31,12 @@ Applies to `frontend/`. Architecture context: [`../../docs/architecture.md`](../
 ## Recognition layer
 
 - All camera + MediaPipe + TF.js code lives in `src/recognition/`.
-- Always release the camera (`MediaStream` tracks `.stop()`) on unmount.
+- The **camera is owned by the app-level `CameraProvider`** (one shared
+  `MediaStream`, mounted above the router) — see **ADR-018**. Views attach/detach
+  the shared stream via `useCamera`/`useCameraContext` but **never call
+  `getUserMedia` or stop the stream on unmount**; only `stop()` (user action) or app
+  teardown releases the device. *(This supersedes the original "always release the
+  camera on unmount" rule.)* MediaPipe **detectors** are still closed on unmount.
 - Recognition emits `{ label, confidence }`; the **threshold + debounce** decision
   lives in domain/recognition glue, not in UI components.
 - Mirror the normalization spec exactly (see [`../../docs/recognition.md`](../../docs/recognition.md) §5); changes require updating the golden-vector fixtures on both TS and Python sides.

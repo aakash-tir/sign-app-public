@@ -28,25 +28,35 @@ function toObservations(result: HandLandmarkerResult): HandObservation[] {
   return out
 }
 
-/** Create a hand-landmark detector backed by MediaPipe Tasks Vision. */
-export async function createMediaPipeHandDetector(): Promise<LandmarkDetector> {
-  // Dynamic import: code-splits MediaPipe out of the main bundle (lazy-loaded
-  // only when the camera turns on).
-  const { FilesetResolver, HandLandmarker } =
-    await import('@mediapipe/tasks-vision')
-  const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
-  const landmarker = await HandLandmarker.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
-    runningMode: 'VIDEO',
-    numHands: 2,
-  })
+// Cached app-wide singleton — see the note in holisticDetector.ts. Built once and
+// reused across view switches so the camera staying on (ADR-018) doesn't re-init
+// MediaPipe on every tab change.
+let cached: Promise<LandmarkDetector> | null = null
 
-  return {
-    detect(video, timestampMs) {
-      return toObservations(landmarker.detectForVideo(video, timestampMs))
-    },
-    close() {
-      landmarker.close()
-    },
-  }
+/** Create (or reuse) a hand-landmark detector backed by MediaPipe Tasks Vision. */
+export function createMediaPipeHandDetector(): Promise<LandmarkDetector> {
+  if (cached) return cached
+  const pending = (async (): Promise<LandmarkDetector> => {
+    // Dynamic import: code-splits MediaPipe out of the main bundle.
+    const { FilesetResolver, HandLandmarker } =
+      await import('@mediapipe/tasks-vision')
+    const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
+    const landmarker = await HandLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+      runningMode: 'VIDEO',
+      numHands: 2,
+    })
+    return {
+      detect(video, timestampMs) {
+        return toObservations(landmarker.detectForVideo(video, timestampMs))
+      },
+      // No-op: reused for the app's lifetime (see holisticDetector.ts).
+      close() {},
+    }
+  })()
+  cached = pending
+  pending.catch(() => {
+    if (cached === pending) cached = null
+  })
+  return pending
 }

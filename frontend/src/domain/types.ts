@@ -36,6 +36,8 @@ export interface UserProfile {
   sentencesUnlocked: boolean
   /** How the hand-tracking overlay is colored (FR-14). */
   overlayColorMode: OverlayColorMode
+  /** True once the one-time camera privacy explainer has been acknowledged (FR-15). */
+  cameraExplainerSeen: boolean
 }
 
 export function defaultProfile(): UserProfile {
@@ -43,6 +45,7 @@ export function defaultProfile(): UserProfile {
     level: 'beginner',
     sentencesUnlocked: false,
     overlayColorMode: 'classic',
+    cameraExplainerSeen: false,
   }
 }
 

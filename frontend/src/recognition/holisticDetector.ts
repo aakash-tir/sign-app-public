@@ -33,26 +33,39 @@ export function toHolisticObservation(
   }
 }
 
-/** Create a holistic (pose + both hands) detector backed by MediaPipe Tasks Vision. */
-export async function createMediaPipeHolisticDetector(): Promise<HolisticDetector> {
-  // Dynamic import: code-splits MediaPipe out of the main bundle (lazy-loaded
-  // only when the camera turns on).
-  const { FilesetResolver, HolisticLandmarker } =
-    await import('@mediapipe/tasks-vision')
-  const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
-  const landmarker = await HolisticLandmarker.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
-    runningMode: 'VIDEO',
-  })
+// Cached app-wide singleton: initializing MediaPipe (WASM + .task model) is heavy,
+// and only one view uses the detector at a time, so we build it once and reuse it
+// across view switches (ADR-018 keeps the camera on, so this would otherwise
+// re-initialize on every tab change). Timestamps stay monotonic via performance.now.
+let cached: Promise<HolisticDetector> | null = null
 
-  return {
-    detect(video, timestampMs) {
-      return toHolisticObservation(
-        landmarker.detectForVideo(video, timestampMs),
-      )
-    },
-    close() {
-      landmarker.close()
-    },
-  }
+/** Create (or reuse) a holistic (pose + both hands) detector backed by MediaPipe. */
+export function createMediaPipeHolisticDetector(): Promise<HolisticDetector> {
+  if (cached) return cached
+  const pending = (async (): Promise<HolisticDetector> => {
+    // Dynamic import: code-splits MediaPipe out of the main bundle.
+    const { FilesetResolver, HolisticLandmarker } =
+      await import('@mediapipe/tasks-vision')
+    const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
+    const landmarker = await HolisticLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+      runningMode: 'VIDEO',
+    })
+    return {
+      detect(video, timestampMs) {
+        return toHolisticObservation(
+          landmarker.detectForVideo(video, timestampMs),
+        )
+      },
+      // No-op: the singleton lives for the app's lifetime and is reused; closing
+      // it would break the next view that reuses it.
+      close() {},
+    }
+  })()
+  cached = pending
+  // Allow a retry if initialization failed (e.g. transient network on the CDN).
+  pending.catch(() => {
+    if (cached === pending) cached = null
+  })
+  return pending
 }

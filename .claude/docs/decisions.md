@@ -285,6 +285,33 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   external links. Avoids the licensing question entirely for in-app media (related:
   ADR-016 keeps MS-ASL to training only).
 
+## ADR-018 — Shared app-level camera (supersedes "release on unmount") for Phase 2
+
+- **Status:** accepted (Phase 2 / P2M2, 2026-05-22). **Supersedes** the
+  frontend rule "always release the camera on unmount"
+  ([`../rules/frontend/react.md`](../rules/frontend/react.md)).
+- **Context:** Each view owned its own `MediaStream` via `useCamera`, which
+  released it on unmount (per the original rule). Because the camera views are
+  separate routes, **switching tabs tore down and re-acquired the camera**, forcing
+  the user to click "Enable camera" again on every view (owner's plan item #3). The
+  browser already persists the camera *permission*; the friction was our per-view
+  acquire/teardown, not the OS prompt.
+- **Decision:** Hoist the camera to a single **`CameraProvider`** mounted **above
+  the router**, owning one shared `MediaStream` + status. `useCamera` becomes a thin
+  **adapter** that attaches the shared stream to the current view's `<video>` and
+  exposes the shared status/controls — it **no longer calls `getUserMedia` and no
+  longer stops the camera on unmount**. The stream therefore survives view switches.
+  A **one-time privacy explainer** ("video never leaves your device") is shown before
+  the first acquire and remembered (`profile.cameraExplainerSeen`). Manual
+  enable/disable stays available in each camera view.
+- **Consequences:** No re-enable on tab switch (FR-15). The camera stays on across
+  routes until the user stops it (or closes the tab) — a deliberate trade for fewer
+  prompts. The "release on unmount" rule is replaced by "**the provider owns the
+  camera lifecycle; views attach/detach but never stop it**." **Follow-up (not in
+  P2M2):** release tracks on `visibilitychange`→hidden and re-acquire on return
+  (battery/privacy), and optionally auto-resume across reloads — deferred to keep
+  this refactor focused.
+
 ---
 
 ## Open questions (non-blocking, revisit at the noted milestone)

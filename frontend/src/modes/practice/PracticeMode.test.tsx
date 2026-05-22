@@ -1,6 +1,12 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 
 // Controllable stub for the unified recognition hook (simulates a camera match).
 const mocks = vi.hoisted(() => ({
@@ -16,6 +22,7 @@ vi.mock('../../recognition/useUnifiedSignRecognition', () => ({
     status: 'on',
     error: null,
     trackerError: null,
+    ready: true,
     recognized: mocks.recognized,
     start: vi.fn(),
     stop: vi.fn(),
@@ -64,8 +71,10 @@ describe('PracticeMode', () => {
 
   it('points the recognizer at the right model for the prompt', async () => {
     await renderAndGetTarget()
-    expect(mocks.setMode).toHaveBeenCalledWith(
-      expect.stringMatching(/letter|sign/),
+    await waitFor(() =>
+      expect(mocks.setMode).toHaveBeenCalledWith(
+        expect.stringMatching(/letter|sign/),
+      ),
     )
   })
 

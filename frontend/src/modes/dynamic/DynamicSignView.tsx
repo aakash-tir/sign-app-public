@@ -16,6 +16,7 @@ export function DynamicSignView() {
     status,
     error,
     trackerError,
+    ready,
     labels,
     prediction,
     target,
@@ -48,6 +49,11 @@ export function DynamicSignView() {
           </button>
         )}
         {status === 'starting' && <p role="status">Starting camera…</p>}
+        {status === 'on' && !ready && (
+          <p role="status" data-testid="model-loading">
+            Preparing recognition…
+          </p>
+        )}
         {status === 'on' && (
           <>
             <p role="status" data-testid="camera-status">
