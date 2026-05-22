@@ -5,18 +5,20 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Phase:** **M6 ✅ merged** (PR #8 + #11) — dynamic word-level signs end to end:
-  Holistic capture + frozen 161-d normalization (ADR-013), PyTorch→ONNX→
-  onnxruntime-web runtime (ADR-015), 5-fold-CV accuracy gate (16/20 signs ship),
-  and dynamic signs **merged into Practice & Learn** via a unified single-camera
-  recognizer. The app now teaches/verifies fingerspelling **and** word-level signs.
-- **Current milestone:** **M7 — Offline, polish & deploy** (in progress, branch
-  `milestone/M7-deploy`). **Done:** offline precache (app shell + ONNX model) +
-  runtime-cache CDN assets (MediaPipe/ONNX WASM + `.task` models); code-split
-  MediaPipe + onnxruntime-web into lazy chunks (main bundle 416 kB, no >500 kB
-  warning); dropped the unused 26 MB ORT WASM from `dist` (Cloudflare 25 MB/file
-  limit); offline Playwright test (FR-12). **Blocked on owner:** the **Cloudflare
-  Pages deploy needs the owner's account/login** (ADR-006).
+- **Phase:** **🎉 M7 ✅ merged + DEPLOYED — the M0–M7 plan is COMPLETE.** The PWA
+  is live worldwide at **https://sign-app.aakashtirathdas.workers.dev** (Cloudflare
+  Workers Static Assets, auto-deploys on push to `main`). Verified: app shell + SPA
+  routing 200, model assets served from the edge.
+- **M7 (PR #12):** offline precache (app shell + ONNX model) + runtime-cache CDN
+  assets (MediaPipe/ONNX WASM + `.task` models); code-split MediaPipe +
+  onnxruntime-web (main bundle 416 kB); dropped the unused 26 MB ORT WASM from the
+  build; SPA via `wrangler.jsonc` `not_found_handling`; offline Playwright test
+  (FR-12). Deploy = Cloudflare Workers Builds (Pages funnels there now); guide in
+  `docs/hosting.md`.
+- **M6 (PR #8 + #11):** dynamic word-level signs end to end — Holistic capture +
+  frozen 161-d normalization (ADR-013), PyTorch→ONNX→onnxruntime-web (ADR-015),
+  5-fold-CV accuracy gate (16/20 signs ship), merged into Practice & Learn via a
+  unified single-camera recognizer.
 - **Repo:** https://github.com/aakash-tir/sign-app (private).
 - **Dynamic model (20-sign starter, 193 clips, GRU + augmentation):** 5-fold CV
   **top-1 ≈62% / top-5 ≈95%**. **Accuracy gate (≥0.50 per-gloss top-1): 16/20 signs
@@ -42,7 +44,7 @@ is in [`docs/milestones.md`](docs/milestones.md).
 | ↳ M6.2 — Dataset + training pipeline | ☑ merged | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
 | ↳ M6.3 — Runtime inference + Signs view | ☑ merged | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
 | ↳ M6.4 — Accuracy gate + Practice/Learn merge | ☑ merged | `milestone/M6.4-vocab-gate` | [#11](https://github.com/aakash-tir/sign-app/pull/11) |
-| M7 — Offline, polish & deploy | ◐ in progress | `milestone/M7-deploy` | — |
+| M7 — Offline, polish & deploy | ☑ merged + **deployed** | `milestone/M7-deploy` | [#12](https://github.com/aakash-tir/sign-app/pull/12) |
 
 Legend: ☐ not started · ◐ in progress · ☑ merged
 
@@ -112,6 +114,15 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   loop with deferred-commit (I forgot / that's-what-I-did override / Next),
   bank = 24 letters (ADR-012), App mode toggle. Vitest component (mocked
   recognition) + Playwright button branches. Routing deferred to M5.
+- **2026-05-21** — **🎉 M7 merged (#12) + DEPLOYED — project complete (M0–M7).**
+  Live at https://sign-app.aakashtirathdas.workers.dev via **Cloudflare Workers
+  Static Assets** (the dashboard now funnels Git deploys to Workers, not classic
+  Pages). Setup: build `npm install && npm run build`, deploy `npx wrangler deploy`,
+  Path `frontend`, `NODE_VERSION=20`; `frontend/wrangler.jsonc` serves `dist` with
+  SPA fallback. First deploy failed on a Pages-style `_redirects` rule (infinite
+  loop on Workers) — removed it (SPA handled by wrangler config). Verified shell +
+  SPA routing 200 and model assets served from the edge. Auto-deploys on push to
+  `main`. (Also untracked stray local files: `/images/`, `/input.md`.)
 - **2026-05-21** — **M7 started: offline + code-split.** vite-plugin-pwa now
   precaches the app shell + bundled ONNX model and runtime-caches the CDN
   recognition assets (MediaPipe/ONNX WASM + `.task` models, CacheFirst) →
