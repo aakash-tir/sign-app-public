@@ -5,7 +5,14 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Now: Phase 2 — P2M2 ✅ merged. Next up: P2M3 (UI redesign).** **P2M2** (camera
+- **Now: Phase 2 — P2M3 ✅ merged. Next up: P2M4 (in-app sign reference).** **P2M3**
+  (full UI redesign, plan item #2, FR-16) **merged via
+  [PR #15](https://github.com/aakash-tir/sign-app/pull/15)** (squash `1297a6e`):
+  CSS-only — light/dark design tokens + a real button system (the app had none — the
+  "buttons not visible" cause), pill nav, surface cards across all views, and a
+  camera-off placeholder. Owner: "looks a lot cleaner and better." 149 vitest / 15
+  playwright.
+- **Phase 2 — P2M2 ✅ merged. (Camera persists across views.)** **P2M2** (camera
   persists across views, plan item #3, FR-15, **ADR-018**) **merged via
   [PR #14](https://github.com/aakash-tir/sign-app/pull/14)** (squash `3d66680`):
   app-level **`CameraProvider`** above the router owns one shared `MediaStream`;
@@ -73,8 +80,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | --- | --- | --- | --- |
 | P2M1 — Overlay color toggle | #5 | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) | `milestone/P2M1-finger-colors` |
 | P2M2 — Camera persists across views + explainer | #3 | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) | `milestone/P2M2-camera-permission` |
-| P2M3 — Full UI redesign | #2 | ◐ in progress | `milestone/P2M3-ui-redesign` |
-| P2M4 — In-app sign reference (rendered from landmarks) | #4 | ☐ planned | — |
+| P2M3 — Full UI redesign | #2 | ☑ merged [#15](https://github.com/aakash-tir/sign-app/pull/15) | `milestone/P2M3-ui-redesign` |
+| P2M4 — In-app sign reference (rendered from landmarks) | #4 | ◐ in progress | `milestone/P2M4-sign-reference` |
 | P2M5 — Dataset expansion + ingest normalization | #1 | ☐ planned | — |
 
 ## Decisions made during planning
