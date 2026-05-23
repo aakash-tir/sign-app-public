@@ -210,6 +210,24 @@ augmentation). The shipped set lives in `frontend/src/content/dynamicVocab.ts` a
 the app only prompts shipped glosses. Reproduce with
 `uv run --project ml python -m sign_ml.dynamic_pipeline crossval`.
 
+### 6.2 Vocabulary expansion — +4 everyday signs (P2M5b)
+
+Using the canonical ingest layer (P2M5a) and the WLASL clips already on disk, we
+screened 12 high-coverage everyday glosses and **added the four that cleared the
+0.50 gate with margin**: **walk 0.91 · tall 0.69 · cold 0.67 · before 0.62** (24-gloss
+5-fold CV, top-1 ≈ 0.58 / top-5 ≈ 0.92, n=245). The other eight
+(who/what/mother/man/dog/computer/bed/apple) scored < 0.45 and were dropped — local
+coverage is only ~10–16 clips/gloss, which caps accuracy.
+
+- **Shipped now: 20 signs** = the curated 16 + `before`, `cold`, `tall`, `walk`.
+- The existing 16 are **retained** (not demoted on a single noisy CV run — n≈10/gloss
+  makes per-gloss CV jumpy); recognition misses are absorbed by "That's what I did"
+  (ADR-007). The model is trained on 24 glosses (the 4 still-held-back
+  `like`/`bad`/`happy`/`thank you` remain unshipped).
+- Reproduce: `python -m sign_ml.dynamic_pipeline extract --vocab expanded` →
+  `… crossval` / `… train`. Meaningfully more clips per sign needs a new dataset
+  (MS-ASL, owner download — P2M5b-data, ADR-016).
+
 > These are starting numbers on a small, signer-limited set; real-camera accuracy
 > will be lower (domain shift). The "That's what I did" valve absorbs misses.
 

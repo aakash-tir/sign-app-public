@@ -22,11 +22,14 @@ import numpy as np
 from .dynamic_extract import extract_dataset
 from .wlasl import (
     CURATED_STARTER_GLOSSES,
+    EXPANDED_GLOSSES,
     available_video_ids,
     coverage_for,
     load_wlasl_index,
     select_clips,
 )
+
+VOCABS = {"starter": CURATED_STARTER_GLOSSES, "expanded": EXPANDED_GLOSSES}
 
 DATA_DIR = Path("data/wlasl")
 MODEL_ASSET = Path("models/holistic_landmarker.task")
@@ -34,11 +37,15 @@ CACHE_DIR = Path("models/starter")
 
 
 def run_extract(
-    data_dir: Path, model_asset: Path, cache_dir: Path, max_frames: int
+    data_dir: Path,
+    model_asset: Path,
+    cache_dir: Path,
+    max_frames: int,
+    glosses: list[str] | None = None,
 ) -> None:  # pragma: no cover - real-data path
     clips = load_wlasl_index(data_dir / "WLASL_v0.3.json")
     available = available_video_ids(data_dir / "videos")
-    glosses = list(CURATED_STARTER_GLOSSES)
+    glosses = glosses if glosses is not None else list(CURATED_STARTER_GLOSSES)
 
     print("Per-gloss local coverage:")
     for cov in coverage_for(glosses, clips, available):
@@ -112,6 +119,7 @@ def main() -> None:  # pragma: no cover - CLI
     ex.add_argument("--model", type=Path, default=MODEL_ASSET)
     ex.add_argument("--out", type=Path, default=CACHE_DIR)
     ex.add_argument("--max-frames", type=int, default=64)
+    ex.add_argument("--vocab", choices=sorted(VOCABS), default="starter")
 
     tr = sub.add_parser("train", help="train + eval + export ONNX from cache")
     tr.add_argument("--cache", type=Path, default=CACHE_DIR)
@@ -124,7 +132,13 @@ def main() -> None:  # pragma: no cover - CLI
 
     args = parser.parse_args()
     if args.stage == "extract":
-        run_extract(args.data, args.model, args.out, args.max_frames)
+        run_extract(
+            args.data,
+            args.model,
+            args.out,
+            args.max_frames,
+            glosses=list(VOCABS[args.vocab]),
+        )
     elif args.stage == "crossval":
         run_crossval(args.cache, args.seed, args.folds)
     else:

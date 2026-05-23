@@ -50,6 +50,21 @@ CURATED_STARTER_GLOSSES: tuple[str, ...] = (
     "love",
 )
 
+# P2M5b vocabulary expansion. We screened 12 everyday high-coverage glosses; only
+# these four cleared the per-gloss accuracy gate with margin in 5-fold CV (walk
+# 0.91, tall 0.69, cold 0.67, before 0.62 in the 24-gloss model). The other eight
+# (who/what/mother/man/dog/computer/bed/apple) scored < 0.45 and were dropped so
+# they don't drag down the existing signs — local WLASL coverage is ~10–16 clips
+# per gloss, which caps accuracy (recognition.md §6.1).
+EXPANSION_GLOSSES: tuple[str, ...] = (
+    "before",
+    "cold",
+    "tall",
+    "walk",
+)
+
+EXPANDED_GLOSSES: tuple[str, ...] = CURATED_STARTER_GLOSSES + EXPANSION_GLOSSES
+
 
 @dataclass(frozen=True)
 class Clip:

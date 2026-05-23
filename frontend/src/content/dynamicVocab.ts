@@ -1,10 +1,12 @@
 /**
- * Dynamic-sign glosses that passed the M6.4 accuracy gate (≥ 0.50 per-gloss top-1
- * in 5-fold cross-validation — see `.claude/docs/recognition.md` §6.1).
+ * Dynamic-sign glosses the app **prompts** (see `.claude/docs/recognition.md` §6.1).
  *
- * The model is trained on all 20 curated glosses, but the app only **prompts**
- * these shipped ones. Held back (too low to ship): `like`, `bad`, `happy`,
- * `thank you` — revisit with more clips/augmentation.
+ * The model is trained on 24 glosses (the curated 20 + the P2M5b additions
+ * `before`/`cold`/`tall`/`walk`, which cleared the ≥ 0.50 per-gloss top-1 gate in
+ * 5-fold CV with margin). The original 16 shipped signs are retained; the four
+ * curated glosses still held back (too low to ship) are `like`, `bad`, `happy`,
+ * `thank you`. Recognition misses are absorbed by the "That's what I did" valve
+ * (ADR-007).
  */
 export const SHIPPED_GLOSSES: readonly string[] = [
   'drink',
@@ -23,6 +25,11 @@ export const SHIPPED_GLOSSES: readonly string[] = [
   'please',
   'sorry',
   'love',
+  // P2M5b additions (WLASL, gate-cleared with margin)
+  'before',
+  'cold',
+  'tall',
+  'walk',
 ]
 
 /** Filter a model's labels to the shipped set, preserving the model's order. */

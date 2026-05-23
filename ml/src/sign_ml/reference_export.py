@@ -49,6 +49,11 @@ SHIPPED_GLOSSES: tuple[str, ...] = (
     "please",
     "sorry",
     "love",
+    # P2M5b additions
+    "before",
+    "cold",
+    "tall",
+    "walk",
 )
 
 

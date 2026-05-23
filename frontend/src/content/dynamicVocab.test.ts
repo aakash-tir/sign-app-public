@@ -15,9 +15,11 @@ describe('shippedLabels', () => {
     ])
   })
 
-  it('ships 16 of the 20 curated glosses', () => {
-    expect(SHIPPED_GLOSSES).toHaveLength(16)
-    expect(SHIPPED_GLOSSES).not.toContain('like')
+  it('ships the curated 16 plus the P2M5b additions, minus held-back glosses', () => {
+    expect(SHIPPED_GLOSSES).toHaveLength(20)
+    expect(SHIPPED_GLOSSES).toContain('walk') // P2M5b addition
+    expect(SHIPPED_GLOSSES).toContain('cold')
+    expect(SHIPPED_GLOSSES).not.toContain('like') // still held back
     expect(SHIPPED_GLOSSES).not.toContain('thank you')
   })
 })

@@ -22,7 +22,7 @@ Phase 2 originates from five owner-raised improvements (numbered #1–#5 in
 | **P2M2** | #3 | Camera persists across views (shared stream) + one-time explainer | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) |
 | **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ☑ merged [#15](https://github.com/aakash-tir/sign-app/pull/15) |
 | **P2M4** | #4 | In-app sign reference, rendered from landmarks (no external sites) | ☑ merged [#16](https://github.com/aakash-tir/sign-app/pull/16) |
-| **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ◐ foundation built; data download = owner action |
+| **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ◐ P2M5a ✅ + P2M5b (+4 signs) in PR; MS-ASL = future owner action |
 
 Legend: ☐ planned · ◐ in progress / scoping · ☑ merged. Order after P2M1 is
 tentative and may be re-prioritized; items are independent enough to reorder.
@@ -262,15 +262,23 @@ and is proven on the current data before any new dataset is added.**
 - A **new dataset plugs in by implementing one `DatasetAdapter`** — the heavy
   landmark extraction stays in `dynamic_extract.py`.
 
-**Remaining (P2M5b — needs the owner + a retrain):**
+**Done (P2M5b — expand from WLASL clips already on disk, owner-chosen):**
 
-- **Download a dataset** to actually expand. **MS-ASL** is cleared for training
-  (C-UDA, ADR-016) but is **YouTube-URL-based → significant link rot** and a large
-  download — this is an **owner action** (per [`../rules/workflow.md`](../rules/workflow.md)),
-  not something to assume. Then write an `MsaslAdapter`, extract, **retrain** with
-  signer-disjoint splits, and re-gate the shipped vocab.
-- The current shipped model still uses WLASL's *provided* splits; retraining with
-  signer-disjoint splits will give a more honest (likely lower) accuracy number.
+- Screened 12 high-coverage everyday glosses; **shipped the 4 that cleared the
+  0.50 gate with margin** — `walk`/`tall`/`cold`/`before` (24-gloss CV ≈ 0.58 top-1;
+  see [`recognition.md`](recognition.md) §6.2). The other 8 scored < 0.45 and were
+  dropped (local coverage ~10–16 clips/gloss caps accuracy).
+- Retrained the 24-gloss GRU → bundled ONNX; `SHIPPED_GLOSSES` now **20 signs**
+  (curated 16 retained + 4 new); reference clips generated for the 4. `--vocab`
+  flag on the extract CLI makes it reproducible.
+
+**Future (P2M5c — needs the owner + a big retrain):**
+
+- For meaningfully **more clips per sign** (accuracy, not just breadth), download a
+  new dataset. **MS-ASL** is cleared for training (C-UDA, ADR-016) but
+  **YouTube-URL-based → link rot** and large — an **owner action** (per
+  [`../rules/workflow.md`](../rules/workflow.md)). Then add an `MsaslAdapter` (the
+  ingest layer is ready), extract, retrain with signer-disjoint splits, re-gate.
 
 ---
 

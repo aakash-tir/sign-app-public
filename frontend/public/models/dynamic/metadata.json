@@ -7,6 +7,8 @@
   "output": "logits",
   "labels": [
     "bad",
+    "before",
+    "cold",
     "drink",
     "eat",
     "family",
@@ -23,7 +25,9 @@
     "please",
     "sad",
     "sorry",
+    "tall",
     "thank you",
+    "walk",
     "want",
     "yes"
   ]
