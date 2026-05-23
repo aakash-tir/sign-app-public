@@ -5,7 +5,13 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Now: Phase 2 — P2M3 ✅ merged. Next up: P2M4 (in-app sign reference).** **P2M3**
+- **Now: Phase 2 — P2M4 ✅ merged. Next up: P2M5 (dataset expansion), the last
+  Phase 2 item.** **P2M4** (in-app sign reference, plan item #4, FR-17, ADR-017)
+  **merged via [PR #16](https://github.com/aakash-tir/sign-app/pull/16)** (squash
+  `a6d476f`): external signasl.org links replaced with an in-app, offline landmark
+  animation per dynamic sign (`reference_export.py` → bundled `<gloss>.json`;
+  `SignReferencePlayer` loops via `drawHolistic`). Owner: "looks good i like it."
+- **Phase 2 — P2M3 ✅ merged. (Full UI redesign.)** **P2M3**
   (full UI redesign, plan item #2, FR-16) **merged via
   [PR #15](https://github.com/aakash-tir/sign-app/pull/15)** (squash `1297a6e`):
   CSS-only — light/dark design tokens + a real button system (the app had none — the
@@ -81,8 +87,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | P2M1 — Overlay color toggle | #5 | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) | `milestone/P2M1-finger-colors` |
 | P2M2 — Camera persists across views + explainer | #3 | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) | `milestone/P2M2-camera-permission` |
 | P2M3 — Full UI redesign | #2 | ☑ merged [#15](https://github.com/aakash-tir/sign-app/pull/15) | `milestone/P2M3-ui-redesign` |
-| P2M4 — In-app sign reference (rendered from landmarks) | #4 | ◐ in progress | `milestone/P2M4-sign-reference` |
-| P2M5 — Dataset expansion + ingest normalization | #1 | ☐ planned | — |
+| P2M4 — In-app sign reference (rendered from landmarks) | #4 | ☑ merged [#16](https://github.com/aakash-tir/sign-app/pull/16) | `milestone/P2M4-sign-reference` |
+| P2M5 — Dataset expansion + ingest normalization | #1 | ◐ in progress | `milestone/P2M5-dataset-ingest` |
 
 ## Decisions made during planning
 
