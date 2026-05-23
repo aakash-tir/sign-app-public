@@ -5,12 +5,17 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Now: Phase 2 — P2M4 ✅ merged. Next up: P2M5 (dataset expansion), the last
-  Phase 2 item.** **P2M4** (in-app sign reference, plan item #4, FR-17, ADR-017)
-  **merged via [PR #16](https://github.com/aakash-tir/sign-app/pull/16)** (squash
-  `a6d476f`): external signasl.org links replaced with an in-app, offline landmark
-  animation per dynamic sign (`reference_export.py` → bundled `<gloss>.json`;
-  `SignReferencePlayer` loops via `drawHolistic`). Owner: "looks good i like it."
+- **Now: Phase 2 — P2M1–P2M4 ✅ merged; P2M5a (ingest foundation) ✅ merged.
+  Awaiting owner direction on P2M5b (actual data expansion).** **P2M5a** (canonical
+  ingest layer + signer-disjoint splits, FR-18) **merged via
+  [PR #17](https://github.com/aakash-tir/sign-app/pull/17)** (squash `4aa79a5`):
+  `ingest.py` (`CanonicalSample`/`DatasetAdapter`/`canonical_label`/
+  `assign_signer_disjoint_splits`) + `WlaslAdapter`; proven on current data (193
+  samples / 20 labels / 36 signers). **P2M5b (expansion) needs an owner decision:**
+  (A) broaden vocab using the already-downloaded WLASL clips + retrain — autonomous;
+  (B) download MS-ASL for more clips-per-sign — owner download (link rot, large);
+  (C) defer. **P2M4** (in-app sign reference, FR-17/ADR-017) merged via
+  [PR #16](https://github.com/aakash-tir/sign-app/pull/16); owner: "looks good."
 - **Phase 2 — P2M3 ✅ merged. (Full UI redesign.)** **P2M3**
   (full UI redesign, plan item #2, FR-16) **merged via
   [PR #15](https://github.com/aakash-tir/sign-app/pull/15)** (squash `1297a6e`):
