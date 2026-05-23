@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useUnifiedSignRecognition } from '../../recognition/useUnifiedSignRecognition'
+import { CameraPlaceholder } from '../../recognition/CameraPlaceholder'
 import { fingerspellingModel } from '../../recognition/signClassifier'
 import { db } from '../../data/db'
 import { WordBankRepo } from '../../data/wordBankRepo'
@@ -181,6 +182,7 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
       <div className="camera-stage">
         <video ref={videoRef} className="camera-video" playsInline muted />
         <canvas ref={canvasRef} className="camera-overlay" />
+        {cameraStatus === 'idle' && <CameraPlaceholder />}
       </div>
       {cameraStatus === 'idle' && (
         <button type="button" onClick={startCamera}>

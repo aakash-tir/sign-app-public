@@ -1,4 +1,5 @@
 import { useSignRecognition } from './useSignRecognition'
+import { CameraPlaceholder } from './CameraPlaceholder'
 import './CameraView.css'
 
 /**
@@ -30,6 +31,7 @@ export function CameraView() {
           data-testid="camera-video"
         />
         <canvas ref={canvasRef} className="camera-overlay" />
+        {status === 'idle' && <CameraPlaceholder />}
       </div>
 
       <div className="camera-controls">

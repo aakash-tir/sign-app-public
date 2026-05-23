@@ -1,19 +1,64 @@
 .app-shell {
-  min-height: 100dvh;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 1.5rem;
-  padding: 2rem 1rem;
+  padding: 1.5rem 1rem 3rem;
 }
 
 .app-header {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
 .app-header h1 {
-  margin: 0;
-  font-size: 2.25rem;
+  font-size: 1.6rem;
+}
+
+/* Pill navigation: a single rounded bar with an accent pill for the active tab. */
+.mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+.mode-switch a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 550;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.mode-switch a:hover {
+  color: var(--text-h);
+  background: var(--surface-2);
+  text-decoration: none;
+}
+
+.mode-switch a.active {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.mode-switch a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
 .app-main {
@@ -22,20 +67,12 @@
   width: 100%;
 }
 
-.mode-switch {
-  display: inline-flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.mode-switch a {
-  color: #cbd5e1;
-  text-decoration: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-}
-
-.mode-switch a.active {
-  color: #fff;
-  background: #1e3a8a;
+@media (max-width: 480px) {
+  .mode-switch {
+    border-radius: var(--radius);
+  }
+  .mode-switch a {
+    flex: 1 1 auto;
+    text-align: center;
+  }
 }

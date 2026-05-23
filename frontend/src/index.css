@@ -1,22 +1,33 @@
+/* ============================================================================
+   Design tokens (P2M3). Light by default; dark via prefers-color-scheme.
+   ========================================================================== */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --text: #41424f;
+  --text-h: #15161d;
+  --muted: #6b7280;
+  --border: #e2e4ea;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(79, 70, 229, 0.1);
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --danger: #dc2626;
+  --ring: rgba(79, 70, 229, 0.45);
+  --shadow: 0 1px 2px rgba(16, 17, 33, 0.04), 0 8px 24px rgba(16, 17, 33, 0.06);
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  font: 16px/1.5 var(--sans);
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
@@ -24,88 +35,179 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
+    --bg: #0f1117;
+    --surface: #181b23;
+    --surface-2: #232733;
+    --text: #c5c9d4;
     --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --muted: #8b91a1;
+    --border: #2b2f3a;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --on-accent: #ffffff;
+    --accent-soft: rgba(129, 140, 248, 0.16);
+    --success: #34d399;
+    --success-soft: rgba(52, 211, 153, 0.16);
+    --danger: #f87171;
+    --ring: rgba(129, 140, 248, 0.5);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+* {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1,
-h2 {
+h2,
+h3 {
   font-family: var(--heading);
-  font-weight: 500;
   color: var(--text-h);
+  font-weight: 650;
+  line-height: 1.2;
+  margin: 0;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+  font-size: 1.9rem;
+  letter-spacing: -0.5px;
 }
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+  font-size: 1.15rem;
+  letter-spacing: -0.2px;
 }
+
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* ----------------------------------------------------------------------------
+   Controls: a single button system so every view reads consistently.
+   - default button          → primary (solid accent)
+   - .btn-secondary / *-secondary → quiet (surface + border)
+   - button[aria-pressed]    → segmented toggle (selected = accent)
+   -------------------------------------------------------------------------- */
+button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.6rem 1.15rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.04s ease;
+}
+button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-secondary,
+.practice-secondary,
+.learn-secondary,
+.camera-explainer-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-secondary:hover:not(:disabled),
+.practice-secondary:hover:not(:disabled),
+.learn-secondary:hover:not(:disabled),
+.camera-explainer-secondary:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
+
+button[aria-pressed] {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+  font-weight: 550;
+}
+button[aria-pressed]:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
+button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+  min-height: 2.5rem;
+}
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* Friendly empty state shown inside a camera stage while the camera is off. */
+.camera-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 1rem;
+  color: #aeb4c2;
+}
+
+.camera-placeholder svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  opacity: 0.7;
+}
+
+.camera-placeholder span {
+  font-size: 0.95rem;
 }

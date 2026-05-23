@@ -1,4 +1,5 @@
 import { useDynamicSignRecognition } from '../../recognition/useDynamicSignRecognition'
+import { CameraPlaceholder } from '../../recognition/CameraPlaceholder'
 import { signDictionaryUrl } from '../../content/signReference'
 import { shippedLabels } from '../../content/dynamicVocab'
 import '../../recognition/CameraView.css'
@@ -40,6 +41,7 @@ export function DynamicSignView() {
           data-testid="dynamic-video"
         />
         <canvas ref={canvasRef} className="camera-overlay" />
+        {status === 'idle' && <CameraPlaceholder />}
       </div>
 
       <div className="camera-controls">

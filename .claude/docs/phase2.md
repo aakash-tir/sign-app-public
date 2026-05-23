@@ -20,7 +20,7 @@ Phase 2 originates from five owner-raised improvements (numbered #1–#5 in
 | --- | --- | --- | --- |
 | **P2M1** | #5 | Hand-overlay color toggle (classic / per-finger) | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) |
 | **P2M2** | #3 | Camera persists across views (shared stream) + one-time explainer | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) |
-| **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ◐ in progress |
+| **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ◐ implemented (local, gates green) |
 | **P2M4** | #4 | In-app sign reference, rendered from landmarks (no external sites) | ☐ planned |
 | **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ☐ planned |
 
@@ -188,16 +188,31 @@ playwright.
 return (battery/privacy LED), and optional auto-resume across reloads — see ADR-018.
 Until then the camera stays on across all routes until the user stops it.
 
-## P2M3 — Full UI redesign *(planned)*
+## P2M3 — Full UI redesign
 
 **Plan item #2 · FR-16.** Owner: "not user-friendly, buttons not always visible."
-From the screenshots the dark theme is fine; the problems are **low-contrast
-buttons**, **no visual hierarchy / dead space**, and the **empty camera box reading
-as broken**. Plan: a small **design-token layer** (CSS variables) + consistent
-button system (primary/secondary/ghost, visible focus), camera **placeholder
-state**, WCAG-AA contrast, mobile-first responsive. **Constraint:** do not regress
-bundle size / offline — prefer hand-rolled CSS over a heavy component library. Keep
-Playwright green throughout; define visual "done" criteria up front.
+Root cause: the app had **no button styling at all** (browser defaults — pale and
+low-contrast on dark), hardcoded slate colors per view, a fixed 1126px column, and
+leftover Vite-template CSS.
+
+**Built (CSS-only — no new deps, bundle unaffected):**
+
+- **Design-token foundation** (`index.css`): light/dark token system (bg, surface,
+  text, muted, border, accent, success, danger, radii, shadow, focus ring) + a
+  single **button system** — default = primary (solid accent), `*-secondary` = quiet
+  surface, `button[aria-pressed]` = segmented toggle (selected = accent). Consistent
+  focus-visible rings and ≥44px touch targets. Removed the vestigial template CSS.
+- **Header + pill nav** (`App.css`): centered 760px column; rounded nav bar with an
+  accent pill for the active tab; wraps on mobile.
+- **View styling to tokens + cards** (Camera/Practice/Learn/Settings): prompt and
+  settings **cards** (surface + border + shadow), readable hierarchy, letter-grid
+  tiles, result chips; all hardcoded colors replaced with tokens; the explainer
+  modal aligned too.
+- **Camera-off placeholder** (`CameraPlaceholder.tsx`): a camera icon + "Camera is
+  off" inside the stage so it no longer reads as a broken black box.
+
+**Verified:** screenshots in **light + dark** (Settings + Practice) look clean and
+high-contrast; **149 vitest / 15 playwright**, format/lint/tsc green.
 
 ## P2M4 — In-app sign reference, rendered from landmarks *(planned)*
 

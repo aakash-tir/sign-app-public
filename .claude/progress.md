@@ -92,6 +92,15 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Log
 
+- **2026-05-22** — **P2M3 implemented** (branch `milestone/P2M3-ui-redesign`, FR-16).
+  Full UI redesign, CSS-only (no new deps). Root cause of "buttons not visible" was
+  **no button styling** (browser defaults). Rebuilt `index.css` as a light/dark
+  **design-token system** + one **button system** (primary / `*-secondary` /
+  `button[aria-pressed]` toggle, focus rings, 44px targets); removed vestigial
+  template CSS. New **pill nav** + header (`App.css`); **cards** + token colors
+  across Camera/Practice/Learn/Settings; new `CameraPlaceholder` ("Camera is off")
+  fills the empty stage. Verified via light+dark screenshots; **149 vitest / 15
+  playwright**, format/lint/tsc green. Awaiting commit + PR.
 - **2026-05-22** — **P2M2 perf pass.** Owner clarified the remaining slowness was
   the **one-time model warm-up** on the default Practice tab (not a stream
   restart — the stream genuinely persists). Two improvements: (1) **throttled
