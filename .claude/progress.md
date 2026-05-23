@@ -99,6 +99,18 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Log
 
+- **2026-05-22** — **P2M4 implemented** (branch `milestone/P2M4-sign-reference`,
+  FR-17, ADR-017). Replaced the external signasl.org links (which broke offline)
+  with an **in-app sign reference rendered from landmarks**. New ml
+  `reference_export.py` extracts one representative WLASL clip per shipped gloss →
+  `frontend/public/reference/<gloss>.json` (16 files, ~304 KB, committed like the
+  ONNX model). New `SignReferencePlayer` + `signReferenceData` loader loop the clip
+  on a canvas via `drawHolistic`; wired into DynamicSignView / Practice reveal /
+  Learn signs; deleted `content/signReference.ts`. Reference precached offline (PWA
+  globs json). Letters keep `LETTER_HINTS` (never used the link). Source = WLASL-
+  derived skeletons (no self-capture available; abstract derived data per ADR-016).
+  Verified "drink" renders a recognizable hand-to-face animation. **150 vitest / 15
+  playwright**; ml gates (ruff/mypy/pytest 50) green. Awaiting commit + PR.
 - **2026-05-22** — **P2M3 implemented** (branch `milestone/P2M3-ui-redesign`, FR-16).
   Full UI redesign, CSS-only (no new deps). Root cause of "buttons not visible" was
   **no button styling** (browser defaults). Rebuilt `index.css` as a light/dark

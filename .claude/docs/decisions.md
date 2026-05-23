@@ -284,6 +284,14 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   external dependency and restores offline correctness. Replaces `signReference.ts`
   external links. Avoids the licensing question entirely for in-app media (related:
   ADR-016 keeps MS-ASL to training only).
+- **Implemented (P2M4):** `ml/.../reference_export.py` extracts **one representative
+  WLASL clip per shipped gloss** → raw pose+hand x,y frames →
+  `frontend/public/reference/<gloss>.json` (precached for offline). `SignReferencePlayer`
+  loops them via the same `drawHolistic` overlay. **Source note:** lacking a way to
+  self-capture, the reference uses **WLASL-derived landmark skeletons** (not the
+  source video) — abstract derived data consistent with the computational-use
+  framing of ADR-016. Letters keep their existing in-app `LETTER_HINTS` text (they
+  never used the external link).
 
 ## ADR-018 — Shared app-level camera (supersedes "release on unmount") for Phase 2
 

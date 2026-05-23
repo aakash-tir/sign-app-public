@@ -1,0 +1,22 @@
+.sign-reference {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.sign-reference-canvas {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 4 / 3;
+  background: #0c0f1a;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.sign-reference-caption {
+  font-size: 0.9rem;
+  color: var(--muted);
+}

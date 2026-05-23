@@ -21,7 +21,7 @@ Phase 2 originates from five owner-raised improvements (numbered #1–#5 in
 | **P2M1** | #5 | Hand-overlay color toggle (classic / per-finger) | ☑ merged [#13](https://github.com/aakash-tir/sign-app/pull/13) |
 | **P2M2** | #3 | Camera persists across views (shared stream) + one-time explainer | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) |
 | **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ☑ merged [#15](https://github.com/aakash-tir/sign-app/pull/15) |
-| **P2M4** | #4 | In-app sign reference, rendered from landmarks (no external sites) | ◐ in progress |
+| **P2M4** | #4 | In-app sign reference, rendered from landmarks (no external sites) | ◐ implemented (local, gates green) |
 | **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ☐ planned |
 
 Legend: ☐ planned · ◐ in progress / scoping · ☑ merged. Order after P2M1 is
@@ -214,15 +214,30 @@ leftover Vite-template CSS.
 **Verified:** screenshots in **light + dark** (Settings + Practice) look clean and
 high-contrast; **149 vitest / 15 playwright**, format/lint/tsc green.
 
-## P2M4 — In-app sign reference, rendered from landmarks *(planned)*
+## P2M4 — In-app sign reference, rendered from landmarks
 
-**Plan item #4 · FR-17 · ADR-017.** Today `content/signReference.ts` links out to
-signasl.org, which **breaks the offline guarantee** M7 delivered. Plan
-(owner-confirmed): **render teaching visuals from landmark data** — animated for
-dynamic signs, stills/arrows for static — so the content is **owned, offline, and
-visually consistent with the live tracker**. Prefer landmarks **we fully control**
-(authored reference poses / our own captures) over MS-ASL-derived landmarks to keep
-the content unambiguously clean (see ADR-017).
+**Plan item #4 · FR-17 · ADR-017.** `content/signReference.ts` linked out to
+signasl.org, which **broke the offline guarantee** M7 delivered (and only dynamic
+signs used it — letters already show in-app `LETTER_HINTS` text).
+
+**Built:**
+
+- **ML exporter** (`ml/.../reference_export.py`): one representative WLASL clip per
+  shipped gloss → holistic re-extraction → raw pose+hand **x,y** frames
+  (downsampled to 24, rounded) → `frontend/public/reference/<gloss>.json` (~18 KB
+  each, 16 files). Deterministic clip pick; committed artifacts like the ONNX model.
+- **`SignReferencePlayer`** + `signReferenceData` loader: fetches a gloss's clip and
+  **loops it on a canvas via the same `drawHolistic`** overlay the learner sees live.
+  Precached for offline (PWA `globPatterns` already includes `json`).
+- Replaced the external `<a>` links in DynamicSignView / PracticeMode reveal /
+  LearnMode signs with the player; deleted `content/signReference.ts`.
+
+**Source note (ADR-017):** lacking self-capture, the reference uses **WLASL-derived
+landmark skeletons** (not source video) — abstract derived data, consistent with
+ADR-016's computational-use framing.
+
+**Verified:** the "drink" reference renders a recognizable hand-to-face animation
+(screenshot); **150 vitest / 15 playwright**, all ml + frontend gates green.
 
 ## P2M5 — Dataset expansion behind a canonical ingest layer *(planned)*
 

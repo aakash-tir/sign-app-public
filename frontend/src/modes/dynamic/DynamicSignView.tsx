@@ -1,6 +1,6 @@
 import { useDynamicSignRecognition } from '../../recognition/useDynamicSignRecognition'
 import { CameraPlaceholder } from '../../recognition/CameraPlaceholder'
-import { signDictionaryUrl } from '../../content/signReference'
+import { SignReferencePlayer } from '../../recognition/SignReferencePlayer'
 import { shippedLabels } from '../../content/dynamicVocab'
 import '../../recognition/CameraView.css'
 
@@ -103,15 +103,7 @@ export function DynamicSignView() {
                     ? `Good — that's "${target}"!`
                     : `Show me "${target}"…`}
                 </p>
-                <a
-                  className="sign-reference-link"
-                  href={signDictionaryUrl(target)}
-                  target="_blank"
-                  rel="noreferrer"
-                  data-testid="sign-reference"
-                >
-                  How to sign “{target}” ↗
-                </a>
+                <SignReferencePlayer gloss={target} />
               </>
             )}
 

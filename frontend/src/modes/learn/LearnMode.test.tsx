@@ -83,10 +83,8 @@ describe('LearnMode teaching dynamic signs', () => {
     render(<LearnMode repo={repo} />)
     fireEvent.click(await screen.findByTestId('signs-tab'))
     expect((await screen.findByTestId('sign-target')).textContent).toBe('drink')
-    expect(screen.getByTestId('sign-reference')).toHaveAttribute(
-      'href',
-      'https://www.signasl.org/sign/drink',
-    )
+    // In-app landmark reference (P2M4) replaces the old external link.
+    expect(screen.getByTestId('sign-reference')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('sign-got-it'))
     expect(await screen.findByTestId('sign-good')).toBeInTheDocument()
     expect((await repo.getProgress('drink'))?.needPracticeStreak).toBe(1)

@@ -8,7 +8,7 @@ import { PracticeSession } from '../../domain/selection'
 import type { AttemptOutcome, WordProgress } from '../../domain/types'
 import { LETTER_HINTS } from '../../content/fingerspelling'
 import { SHIPPED_GLOSSES, isDynamicGloss } from '../../content/dynamicVocab'
-import { signDictionaryUrl } from '../../content/signReference'
+import { SignReferencePlayer } from '../../recognition/SignReferencePlayer'
 import './PracticeMode.css'
 
 type Phase = 'loading' | 'signing' | 'revealed' | 'correct'
@@ -150,15 +150,7 @@ export function PracticeMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
       {phase === 'revealed' && (
         <div className="practice-reveal" data-testid="reveal">
           {isSign ? (
-            <a
-              className="sign-reference-link"
-              href={signDictionaryUrl(target)}
-              target="_blank"
-              rel="noreferrer"
-              data-testid="sign-reference"
-            >
-              How to sign “{target}” ↗
-            </a>
+            <SignReferencePlayer gloss={target} />
           ) : (
             <p className="reveal-hint">{hint}</p>
           )}

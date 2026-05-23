@@ -9,7 +9,7 @@ import type { UserProfile, WordProgress } from '../../domain/types'
 import { LETTER_HINTS } from '../../content/fingerspelling'
 import { spellableWords } from '../../content/words'
 import { SHIPPED_GLOSSES } from '../../content/dynamicVocab'
-import { signDictionaryUrl } from '../../content/signReference'
+import { SignReferencePlayer } from '../../recognition/SignReferencePlayer'
 import './LearnMode.css'
 
 const defaultRepo = new WordBankRepo(db)
@@ -293,15 +293,7 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
                 <span className="learn-target" data-testid="sign-target">
                   {signTarget}
                 </span>
-                <a
-                  className="sign-reference-link"
-                  href={signDictionaryUrl(signTarget)}
-                  target="_blank"
-                  rel="noreferrer"
-                  data-testid="sign-reference"
-                >
-                  How to sign “{signTarget}” ↗
-                </a>
+                <SignReferencePlayer gloss={signTarget} />
               </div>
               {cameraBlock}
               {signTaught ? (
