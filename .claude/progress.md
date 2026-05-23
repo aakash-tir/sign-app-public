@@ -88,7 +88,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | P2M2 — Camera persists across views + explainer | #3 | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) | `milestone/P2M2-camera-permission` |
 | P2M3 — Full UI redesign | #2 | ☑ merged [#15](https://github.com/aakash-tir/sign-app/pull/15) | `milestone/P2M3-ui-redesign` |
 | P2M4 — In-app sign reference (rendered from landmarks) | #4 | ☑ merged [#16](https://github.com/aakash-tir/sign-app/pull/16) | `milestone/P2M4-sign-reference` |
-| P2M5 — Dataset expansion + ingest normalization | #1 | ◐ in progress | `milestone/P2M5-dataset-ingest` |
+| P2M5 — Dataset expansion + ingest normalization | #1 | ◐ foundation built (PR open); data download = owner action | `milestone/P2M5-dataset-ingest` |
 
 ## Decisions made during planning
 
@@ -105,6 +105,19 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Log
 
+- **2026-05-22** — **P2M5a: canonical ingest layer** (branch
+  `milestone/P2M5-dataset-ingest`, FR-18). Per the plan, built the
+  ingest-normalization foundation and **proved it on current data before adding
+  new data**. New `ml/.../ingest.py`: `CanonicalSample` + `DatasetAdapter` protocol
+  + `canonical_label` (+ synonyms) + **`assign_signer_disjoint_splits`** (whole
+  signers dealt to one split → no train/test leakage, the documented
+  accuracy-overstatement fix) + vocab/coverage. `wlasl.py` now parses `signer_id`
+  and exposes `WlaslAdapter`. CLI proof on current data: 193 samples / 20 labels /
+  36 signers / 157-train+36-test signer-disjoint split. +8 pytest (58); ruff/mypy
+  green. **P2M5b (owner action):** download a dataset to actually expand — MS-ASL
+  is C-UDA-cleared (ADR-016) but YouTube-URL-based (link rot) + large, so it's an
+  owner download; then add an `MsaslAdapter`, extract, retrain with signer-disjoint
+  splits, re-gate vocab. Awaiting commit + PR.
 - **2026-05-22** — **P2M4 implemented** (branch `milestone/P2M4-sign-reference`,
   FR-17, ADR-017). Replaced the external signasl.org links (which broke offline)
   with an **in-app sign reference rendered from landmarks**. New ml

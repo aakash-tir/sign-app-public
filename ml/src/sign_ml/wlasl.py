@@ -15,8 +15,11 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+
+from .ingest import CanonicalSample, canonical_label
 
 VIDEO_SUFFIX = ".mp4"
 
@@ -58,6 +61,7 @@ class Clip:
     frame_start: int
     frame_end: int  # -1 means "to the last frame"
     fps: int
+    signer_id: str | None = None  # who performed it (for signer-disjoint splits)
 
 
 @dataclass(frozen=True)
@@ -80,6 +84,7 @@ def load_wlasl_index(metadata_path: Path) -> list[Clip]:
     for entry in raw:
         gloss = str(entry["gloss"])
         for inst in entry.get("instances", []):
+            signer = inst.get("signer_id")
             clips.append(
                 Clip(
                     gloss=gloss,
@@ -88,6 +93,7 @@ def load_wlasl_index(metadata_path: Path) -> list[Clip]:
                     frame_start=int(inst.get("frame_start", 1)),
                     frame_end=int(inst.get("frame_end", -1)),
                     fps=int(inst.get("fps", 25)),
+                    signer_id=None if signer is None else str(signer),
                 )
             )
     return clips
@@ -147,3 +153,38 @@ def load_class_list(class_list_path: Path) -> list[str]:
         indexed.append((int(class_id), gloss.strip()))
     indexed.sort()
     return [gloss for _id, gloss in indexed]
+
+
+class WlaslAdapter:
+    """WLASL as a :class:`~sign_ml.ingest.DatasetAdapter` (P2M5): emits locally
+    available clips for the chosen glosses as canonical samples (with signer ids,
+    so signer-disjoint splits work). A new dataset plugs in the same way."""
+
+    name = "wlasl"
+
+    def __init__(
+        self,
+        data_dir: Path,
+        glosses: list[str],
+        synonyms: Mapping[str, str] | None = None,
+    ) -> None:
+        self.data_dir = Path(data_dir)
+        self.glosses = list(glosses)
+        self.synonyms = synonyms
+
+    def samples(self) -> list[CanonicalSample]:
+        clips = load_wlasl_index(self.data_dir / "WLASL_v0.3.json")
+        videos_dir = self.data_dir / "videos"
+        available = available_video_ids(videos_dir)
+        selected = select_clips(self.glosses, clips, available)
+        return [
+            CanonicalSample(
+                label=canonical_label(clip.gloss, self.synonyms),
+                source=self.name,
+                clip_id=clip.video_id,
+                signer_id=clip.signer_id,
+                split=clip.split,
+                video_path=videos_dir / f"{clip.video_id}{VIDEO_SUFFIX}",
+            )
+            for clip in selected
+        ]

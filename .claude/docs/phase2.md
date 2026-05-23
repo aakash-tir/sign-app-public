@@ -22,7 +22,7 @@ Phase 2 originates from five owner-raised improvements (numbered #1–#5 in
 | **P2M2** | #3 | Camera persists across views (shared stream) + one-time explainer | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) |
 | **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ☑ merged [#15](https://github.com/aakash-tir/sign-app/pull/15) |
 | **P2M4** | #4 | In-app sign reference, rendered from landmarks (no external sites) | ☑ merged [#16](https://github.com/aakash-tir/sign-app/pull/16) |
-| **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ◐ in progress |
+| **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ◐ foundation built; data download = owner action |
 
 Legend: ☐ planned · ◐ in progress / scoping · ☑ merged. Order after P2M1 is
 tentative and may be re-prioritized; items are independent enough to reorder.
@@ -239,19 +239,38 @@ ADR-016's computational-use framing.
 **Verified:** the "drink" reference renders a recognizable hand-to-face animation
 (screenshot); **150 vitest / 15 playwright**, all ml + frontend gates green.
 
-## P2M5 — Dataset expansion behind a canonical ingest layer *(planned)*
+## P2M5 — Dataset expansion behind a canonical ingest layer
 
-**Plan item #1 · FR-18 · ADR-016.** Bigger and riskiest; likely splits into
-sub-milestones. **Do the ingest-normalization layer first, then add data.** Key
-correction from [`../../output.md`](../../output.md) §1: because the model trains on
-*landmarks*, **image resolution barely matters** — standardize the **output
-contract** (canonical label vocab, fixed window length, signer-disjoint splits,
-handedness), not pixel size. Formalize a `DatasetAdapter`
-(`raw → (canonical_label, landmark_frames, signer_id, split)`); reuse the
-golden-vector fixtures as the regression guard. **Data target:** **MS-ASL**
-(training only — cleared under **C-UDA**, see ADR-016) plus individually-vetted
-datasets from the discovery lists the owner provided; expect MS-ASL **link rot**
-(YouTube-URL-based). No source videos ship in the app.
+**Plan item #1 · FR-18 · ADR-016.** Per the plan, **the ingest layer comes first
+and is proven on the current data before any new dataset is added.**
+
+**Built (P2M5a — the foundation, autonomous, no new download):**
+
+- **`ml/.../ingest.py`** — the canonical contract: `CanonicalSample`
+  (`label, source, clip_id, signer_id, split, video_path`), a `DatasetAdapter`
+  Protocol, `canonical_label` (lowercase/whitespace + synonym map), `merge`,
+  `vocabulary`, `coverage_by_label`, and **`assign_signer_disjoint_splits`** — the
+  key correction from [`../../output.md`](../../output.md) §1: standardize the
+  **output contract** (canonical labels + **signer-disjoint splits**), not pixel
+  size. Signer-disjoint splits prevent the train/test signer leakage that inflates
+  held-out accuracy.
+- **`wlasl.py`** now parses `signer_id` and exposes a **`WlaslAdapter`** conforming
+  to the contract — proving it on the current data: `python -m sign_ml.ingest`
+  reports 193 samples / 20 labels / **36 signers**, a 157-train / 36-test
+  signer-disjoint split, and per-label coverage. +8 pytest (58 total); ml gates
+  green.
+- A **new dataset plugs in by implementing one `DatasetAdapter`** — the heavy
+  landmark extraction stays in `dynamic_extract.py`.
+
+**Remaining (P2M5b — needs the owner + a retrain):**
+
+- **Download a dataset** to actually expand. **MS-ASL** is cleared for training
+  (C-UDA, ADR-016) but is **YouTube-URL-based → significant link rot** and a large
+  download — this is an **owner action** (per [`../rules/workflow.md`](../rules/workflow.md)),
+  not something to assume. Then write an `MsaslAdapter`, extract, **retrain** with
+  signer-disjoint splits, and re-gate the shipped vocab.
+- The current shipped model still uses WLASL's *provided* splits; retraining with
+  signer-disjoint splits will give a more honest (likely lower) accuracy number.
 
 ---
 
