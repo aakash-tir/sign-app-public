@@ -22,7 +22,7 @@ Phase 2 originates from five owner-raised improvements (numbered #1–#5 in
 | **P2M2** | #3 | Camera persists across views (shared stream) + one-time explainer | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) |
 | **P2M3** | #2 | Full UI redesign (contrast, hierarchy, accessibility) | ☑ merged [#15](https://github.com/aakash-tir/sign-app/pull/15) |
 | **P2M4** | #4 | In-app sign reference, rendered from landmarks (no external sites) | ☑ merged [#16](https://github.com/aakash-tir/sign-app/pull/16) |
-| **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ◐ P2M5a ✅ + P2M5b (+4 signs) in PR; MS-ASL = future owner action |
+| **P2M5** | #1 | Dataset expansion behind a canonical ingest-normalization layer | ☑ merged — P2M5a [#17](https://github.com/aakash-tir/sign-app/pull/17) + P2M5b [#18](https://github.com/aakash-tir/sign-app/pull/18); MS-ASL = future owner action |
 
 Legend: ☐ planned · ◐ in progress / scoping · ☑ merged. Order after P2M1 is
 tentative and may be re-prioritized; items are independent enough to reorder.

@@ -5,17 +5,17 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-- **Now: Phase 2 nearly done — P2M1–P2M4 ✅ merged; P2M5a ✅ merged; P2M5b in PR.**
-  Owner chose **(A) broaden vocab from the WLASL clips already on disk**. **P2M5b:**
-  screened 12 everyday high-coverage glosses, shipped the **4 that cleared the 0.50
-  gate with margin** (`walk`/`tall`/`cold`/`before`); retrained the **24-gloss** GRU
-  (CV ≈ 0.58 top-1) → bundled ONNX; **`SHIPPED_GLOSSES` now 20** (curated 16 retained
-  + 4 new) with reference clips for each. The other 8 candidates scored < 0.45 and
-  were dropped (local coverage ~10–16 clips/gloss caps accuracy). Gates: **150
-  vitest / 15 playwright / ruff/mypy/pytest 58** green. Further accuracy needs more
-  data → **MS-ASL is a future owner download** (P2M5c, ADR-016). **P2M5a**
-  ([PR #17](https://github.com/aakash-tir/sign-app/pull/17), `4aa79a5`): canonical
-  ingest layer + signer-disjoint splits.
+- **🎉 Phase 2 (depth & polish) COMPLETE — all 5 plan items merged + deploying.**
+  P2M1 overlay-color toggle ([#13]) · P2M2 shared camera + explainer ([#14]) · P2M3
+  full UI redesign ([#15]) · P2M4 in-app sign reference from landmarks ([#16]) ·
+  P2M5a canonical ingest layer + signer-disjoint splits ([#17]) · **P2M5b vocab
+  expansion** ([PR #18](https://github.com/aakash-tir/sign-app/pull/18), squash
+  `3321b7b`): **+4 everyday signs** (`walk`/`tall`/`cold`/`before`) → **20 dynamic
+  signs shipped** + 24-letter static. Auto-deploys to Cloudflare on push to `main`.
+- **Only future data work (P2M5c, owner action):** download **MS-ASL** for more
+  clips-per-sign → real accuracy gains; the ingest layer is ready for it via a small
+  `MsaslAdapter` (ADR-016). Other candidates: tab-hidden camera release (ADR-018
+  deferral), real multi-sign Learn sentences (ADR-012).
 - **Phase 2 — P2M3 ✅ merged. (Full UI redesign.)** **P2M3**
   (full UI redesign, plan item #2, FR-16) **merged via
   [PR #15](https://github.com/aakash-tir/sign-app/pull/15)** (squash `1297a6e`):
@@ -93,7 +93,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | P2M2 — Camera persists across views + explainer | #3 | ☑ merged [#14](https://github.com/aakash-tir/sign-app/pull/14) | `milestone/P2M2-camera-permission` |
 | P2M3 — Full UI redesign | #2 | ☑ merged [#15](https://github.com/aakash-tir/sign-app/pull/15) | `milestone/P2M3-ui-redesign` |
 | P2M4 — In-app sign reference (rendered from landmarks) | #4 | ☑ merged [#16](https://github.com/aakash-tir/sign-app/pull/16) | `milestone/P2M4-sign-reference` |
-| P2M5 — Dataset expansion + ingest normalization | #1 | ◐ foundation built (PR open); data download = owner action | `milestone/P2M5-dataset-ingest` |
+| P2M5 — Dataset expansion + ingest normalization | #1 | ☑ merged — P2M5a [#17](https://github.com/aakash-tir/sign-app/pull/17) + P2M5b [#18](https://github.com/aakash-tir/sign-app/pull/18) (MS-ASL = future owner action) | `milestone/P2M5b-vocab-expansion` |
 
 ## Decisions made during planning
 
