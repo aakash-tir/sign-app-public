@@ -132,7 +132,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | --- | --- | --- | --- |
 | P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) | `milestone/P3M1-honest-eval` |
 | P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ part 1 (ingest) ☑ merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (retrain) **owner-gated** on MS-ASL fetch | `milestone/P3M2-msasl-ingest` |
-| P3M3 — Expanded landmark-space augmentation | augmentation | ◐ implemented, awaiting PR | `milestone/P3M3-augmentation` |
+| P3M3 — Expanded landmark-space augmentation | augmentation | ☑ merged [#23](https://github.com/aakash-tir/sign-app/pull/23) | `milestone/P3M3-augmentation` |
 
 ## Log
 
@@ -146,8 +146,9 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   directional, final tuning on P3M2 data. **Mirroring + time-shift deferred**
   (skew-prone under the handedness-collapsing hand normalization + front-padded
   last-timestep design; Q9 flags deferred with them) — recognition.md §6.4. +7 pytest
-  (75); ruff/mypy/pytest green. Plain training unchanged (knobs default off). Awaiting
-  commit + PR.
+  (75); ruff/mypy/pytest green. Plain training unchanged (knobs default off). **Merged**
+  ([PR #23](https://github.com/aakash-tir/sign-app/pull/23), squash `1bec4d2`); both CI
+  lanes green.
 - **2026-05-24** — **P3M2 (part 1): MS-ASL ingest — adapter + download script**
   (branch `milestone/P3M2-msasl-ingest`). After the dataset review (see
   [`docs/phase3.md`](docs/phase3.md) review log): of the owner-provided candidates,

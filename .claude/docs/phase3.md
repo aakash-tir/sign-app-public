@@ -30,7 +30,7 @@ One milestone is **added ahead of both**: before chasing accuracy we must be abl
 | --- | --- | --- |
 | **P3M1** | Honest accuracy measurement — signer-disjoint gate (real-camera holdout optional/deferred) | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) |
 | **P3M2** | MS-ASL ingest + retrain → grow dynamic vocabulary toward ~50 signs | ◐ part 1 (ingest) merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (retrain) **owner-gated** on MS-ASL fetch |
-| **P3M3** | Expanded landmark-space augmentation (the "modifiers") | ◐ in progress (`milestone/P3M3-augmentation`) |
+| **P3M3** | Expanded landmark-space augmentation (the "modifiers") | ☑ merged [#23](https://github.com/aakash-tir/sign-app/pull/23) (toolkit; tuning deferred to P3M2 data) |
 
 > **P3M1 baseline measured (2026-05-24):** starter-20 signer-disjoint **top-1 0.570 /
 > top-5 0.922** vs stratified 0.622 / 0.953 (leakage ≈ +5 pts) — [`recognition.md`](recognition.md)
