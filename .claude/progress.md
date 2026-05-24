@@ -131,8 +131,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | Milestone | Theme | Status | Branch |
 | --- | --- | --- | --- |
 | P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) | `milestone/P3M1-honest-eval` |
-| P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ adapter + downloader landed; awaiting owner MS-ASL fetch | `milestone/P3M2-msasl-ingest` |
-| P3M3 — Expanded landmark-space augmentation | augmentation | ☐ planned | — |
+| P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ part 1 (ingest) ☑ merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (retrain) **owner-gated** on MS-ASL fetch | `milestone/P3M2-msasl-ingest` |
+| P3M3 — Expanded landmark-space augmentation | augmentation | ◐ in progress | `milestone/P3M3-augmentation` |
 
 ## Log
 
@@ -150,7 +150,10 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   the argparse docstring → ASCII). +6 pytest (68); ruff/mypy/pytest green. Continuous
   ASL (How2Sign) noted as a future **sentence-content** track (ADR-012), not
   recognition. **Next (owner):** download MS-ASL annotations → run the fetch → I wire
-  combined extract + retrain + signer-disjoint re-gate. Awaiting commit + PR.
+  combined extract + retrain + signer-disjoint re-gate. **Merged**
+  ([PR #22](https://github.com/aakash-tir/sign-app/pull/22), squash `9972fd7`); both
+  CI lanes green. **P3M2 part 2 (extract+retrain) is owner-gated** on the MS-ASL
+  download — proceeding to **P3M3** (augmentation, unblocked) meanwhile.
 - **2026-05-24** — **P3M1: honest signer-disjoint evaluation** (branch
   `milestone/P3M1-honest-eval`, ADR-019). Made the dynamic ship gate
   **signer-disjoint** instead of stratified-clip: new pure `signer_folds` (whole
