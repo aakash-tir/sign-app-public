@@ -408,6 +408,16 @@ function; no video re-processing.
 > pixel-domain modifiers like blur are explicitly out of scope.* Refines
 > ADR-002/ADR-013 (landmark-based recognition).
 
+> **Landed (2026-05-24):** shipped three primitives in `dynamic_model.py` —
+> `drop_landmarks` (per-joint dropout), `rotate_xy` (in-plane rotation), `time_warp`
+> (end-anchored speed) — **opt-in, default off** (`augment_sequences` knobs +
+> `crossval --aug`), so plain training is unchanged until tuned on P3M2 data. Prototype
+> on the starter-20 signer-disjoint gate: **top-1 0.570 → 0.601** (top-5 ~flat;
+> recognition.md §6.4). **Mirroring + time-shift were deferred** as skew-prone under the
+> handedness-collapsing hand normalization (§5) and the front-padded last-timestep GRU
+> design (so Q9's mirroring flags stay deferred too) — revisit only if the real-camera
+> holdout justifies the risk. +7 pytest (75).
+
 ---
 
 ## Dependency / sequencing notes

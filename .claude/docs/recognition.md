@@ -268,6 +268,27 @@ then signer-disjoint is the gate **by default**. Reproduce:
 `uv run --project ml python -m sign_ml.dynamic_pipeline crossval`
 (add `--stratified` for the old comparison).
 
+### 6.4 Landmark-space augmentation — prototype (P3M3, ADR-020)
+
+P3M3 added three **landmark-space** augmentations to `augment_sequences` (off by
+default; `crossval --aug` enables the preset): **per-landmark dropout** (`drop_landmarks`
+— per-joint detection misses), **in-plane rotation** (`rotate_xy` — viewpoint/roll), and
+**end-anchored time-warp** (`time_warp` — speed; keeps the last, GRU-read frame fixed).
+On the **same** starter-20 signer-disjoint gate (n=193, seed 42):
+
+| Training aug | top-1 | top-5 |
+| --- | --- | --- |
+| baseline (jitter + frame-dropout) | 0.570 | 0.922 |
+| **+ P3M3 preset** | **0.601** | 0.917 |
+
+A **+3-point** top-1 gain on the honest gate — a directional signal on this tiny set;
+**final acceptance + tuning is on the P3M2 (MS-ASL) data**, where more signers make the
+estimate stable (ADR-020). **Mirroring and time-shift were deliberately excluded:** the
+hand normalization already collapses handedness (§5 — Left mirrored to canonical Right),
+so a correct left-right mirror needs paired pose-landmark swaps + per-hand
+re-canonicalization (skew-prone), and front-padded windows + a last-timestep GRU make
+naive time-shift corrupt the final read frame. Reproduce: `… crossval --aug`.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

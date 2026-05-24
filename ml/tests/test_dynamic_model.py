@@ -9,9 +9,12 @@ import pytest
 from sign_ml.dynamic_export import build_metadata
 from sign_ml.dynamic_model import (
     augment_sequences,
+    drop_landmarks,
     resolve_splits,
+    rotate_xy,
     signer_folds,
     stratified_folds,
+    time_warp,
     top_k_accuracy,
 )
 from sign_ml.dynamic_normalization import (
@@ -98,6 +101,92 @@ def test_augment_is_deterministic_with_seed() -> None:
     a = augment_sequences(x, np.random.default_rng(7))
     b = augment_sequences(x, np.random.default_rng(7))
     np.testing.assert_array_equal(a, b)
+
+
+def test_drop_landmarks_zeros_whole_triplets_and_keeps_presence() -> None:
+    rng = np.random.default_rng(0)
+    # spatial = ones, presence = [1, 1]; F = 3*4 + 2 = 14 (4 landmarks)
+    x = np.ones((3, 5, 14), dtype=np.float64)
+    out = drop_landmarks(x, rng, p=0.5)
+    assert out.shape == x.shape
+    # each landmark triplet is all-kept (1,1,1) or all-dropped (0,0,0), never partial
+    triplets = out[:, :, :12].reshape(3, 5, 4, 3)
+    assert np.all((triplets == 1.0).all(axis=-1) | (triplets == 0.0).all(axis=-1))
+    # presence flags untouched, and *something* was dropped at p=0.5
+    np.testing.assert_array_equal(out[:, :, -2:], x[:, :, -2:])
+    assert (out[:, :, :12] == 0.0).any()
+
+
+def test_drop_landmarks_p_extremes() -> None:
+    rng = np.random.default_rng(1)
+    x = np.ones((2, 4, 14), dtype=np.float64)
+    np.testing.assert_array_equal(drop_landmarks(x, rng, p=0.0), x)  # no-op
+    dropped = drop_landmarks(x, rng, p=1.0)
+    assert np.all(dropped[:, :, :12] == 0.0)  # all spatial zeroed
+    np.testing.assert_array_equal(dropped[:, :, -2:], x[:, :, -2:])  # presence kept
+
+
+def test_rotate_xy_is_isometry_and_preserves_zeros_presence() -> None:
+    rng = np.random.default_rng(2)
+    x = rng.standard_normal((4, 6, 14))
+    x[:, :, -2:] = 1.0  # presence flags
+    x[0, 0, :12] = 0.0  # a zero (padding/missing) landmark frame
+    out = rotate_xy(x, np.random.default_rng(3), max_deg=20.0)
+    assert out.shape == x.shape
+    # rotation preserves each landmark's (x, y) magnitude
+    before = x[:, :, :12].reshape(4, 6, 4, 3)
+    after = out[:, :, :12].reshape(4, 6, 4, 3)
+    np.testing.assert_allclose(
+        np.hypot(before[..., 0], before[..., 1]),
+        np.hypot(after[..., 0], after[..., 1]),
+    )
+    np.testing.assert_allclose(after[..., 2], before[..., 2])  # z untouched
+    np.testing.assert_array_equal(out[:, :, -2:], x[:, :, -2:])  # presence untouched
+    assert np.all(out[0, 0, :12] == 0.0)  # zero landmark stays zero
+
+
+def test_rotate_xy_zero_angle_is_noop() -> None:
+    x = np.random.default_rng(4).standard_normal((2, 3, 14))
+    np.testing.assert_array_equal(
+        rotate_xy(x, np.random.default_rng(5), max_deg=0.0), x
+    )
+
+
+def test_time_warp_shape_last_frame_and_presence() -> None:
+    rng = np.random.default_rng(6)
+    x = rng.standard_normal((5, 8, 14))
+    x[:, :, -2:] = rng.integers(0, 2, size=(5, 8, 2)).astype(np.float64)
+    out = time_warp(x, np.random.default_rng(7), max_rate=0.3)
+    assert out.shape == x.shape
+    # anchored at the last frame: the most-recent (real) frame is preserved exactly
+    np.testing.assert_array_equal(out[:, -1, :], x[:, -1, :])
+    # whole-frame selection → presence flags remain valid {0, 1} values from input
+    assert set(np.unique(out[:, :, -2:]).tolist()) <= set(
+        np.unique(x[:, :, -2:]).tolist()
+    )
+
+
+def test_time_warp_zero_rate_is_noop_and_deterministic() -> None:
+    x = np.random.default_rng(8).standard_normal((3, 6, 14))
+    np.testing.assert_array_equal(
+        time_warp(x, np.random.default_rng(9), max_rate=0.0), x
+    )
+    a = time_warp(x, np.random.default_rng(11), max_rate=0.25)
+    b = time_warp(x, np.random.default_rng(11), max_rate=0.25)
+    np.testing.assert_array_equal(a, b)
+
+
+def test_augment_new_params_off_by_default_and_keep_presence() -> None:
+    x = np.ones((3, 30, 161), dtype=np.float64)
+    # with the P3M3 knobs at their defaults (0), only the legacy jitter applies
+    legacy = augment_sequences(x, np.random.default_rng(0), frame_dropout=0.0)
+    np.testing.assert_array_equal(legacy[:, :, -2:], x[:, :, -2:])  # presence intact
+    # enabling an addition changes the output (it is actually wired in)
+    with_rot = augment_sequences(
+        x, np.random.default_rng(0), frame_dropout=0.0, rotation_deg=15.0
+    )
+    assert not np.allclose(with_rot[:, :, :-2], legacy[:, :, :-2])
+    np.testing.assert_array_equal(with_rot[:, :, -2:], x[:, :, -2:])  # presence intact
 
 
 def test_stratified_folds_partition_and_balance() -> None:

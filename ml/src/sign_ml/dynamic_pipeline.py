@@ -35,6 +35,11 @@ DATA_DIR = Path("data/wlasl")
 MODEL_ASSET = Path("models/holistic_landmarker.task")
 CACHE_DIR = Path("models/starter")
 
+# P3M3 landmark-space augmentation preset (off in plain training; opt-in via
+# `crossval --aug`). Tuned/accepted on the honest signer-disjoint gate once more
+# data lands (ADR-020).
+P3M3_AUG = {"landmark_dropout": 0.1, "rotation_deg": 12.0, "time_warp_rate": 0.2}
+
 
 def run_extract(
     data_dir: Path,
@@ -92,7 +97,11 @@ def run_train(cache_dir: Path, seed: int) -> None:  # pragma: no cover - heavy p
 
 
 def run_crossval(
-    cache_dir: Path, seed: int, folds: int, stratified: bool = False
+    cache_dir: Path,
+    seed: int,
+    folds: int,
+    stratified: bool = False,
+    aug: dict[str, float] | None = None,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_model import cross_validate
 
@@ -112,7 +121,7 @@ def run_crossval(
         )
 
     report = cross_validate(
-        x, y, glosses, folds=folds, seed=seed, signer_ids=signer_ids
+        x, y, glosses, folds=folds, seed=seed, signer_ids=signer_ids, aug=aug
     )
     (cache_dir / "cv_metrics.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
@@ -153,6 +162,12 @@ def main() -> None:  # pragma: no cover - CLI
         action="store_true",
         help="force stratified-clip folds (comparison only; overstates accuracy)",
     )
+    cv.add_argument(
+        "--aug",
+        action="store_true",
+        help="enable the P3M3 landmark-space augmentation preset (rotation, "
+        "landmark dropout, time-warp) on top of the baseline jitter",
+    )
 
     args = parser.parse_args()
     if args.stage == "extract":
@@ -164,7 +179,13 @@ def main() -> None:  # pragma: no cover - CLI
             glosses=list(VOCABS[args.vocab]),
         )
     elif args.stage == "crossval":
-        run_crossval(args.cache, args.seed, args.folds, stratified=args.stratified)
+        run_crossval(
+            args.cache,
+            args.seed,
+            args.folds,
+            stratified=args.stratified,
+            aug=P3M3_AUG if args.aug else None,
+        )
     else:
         run_train(args.cache, args.seed)
 

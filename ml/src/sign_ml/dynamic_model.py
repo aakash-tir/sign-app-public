@@ -75,22 +75,109 @@ def _carve(mask: BoolArray, frac: float, seed: int) -> tuple[BoolArray, BoolArra
     return remaining, new
 
 
+def drop_landmarks(
+    x: FloatArray, rng: np.random.Generator, p: float = 0.1
+) -> FloatArray:
+    """Zero individual landmarks (their whole ``x,y,z`` triplet) per frame with
+    probability ``p`` — mimics the per-joint detection misses the runtime hits all
+    the time (occlusion, motion blur, hand leaving frame). Finer-grained than the
+    whole-frame ``frame_dropout``. A zeroed landmark matches how a missing landmark
+    is already encoded; the presence flags (last two features) are left intact.
+
+    Layout assumption: the spatial features (all but the last two) are landmark
+    ``x,y,z`` triplets — true for the frozen 161-d frame (``pose-shoulder-hands-v1``).
+    """
+    out = np.asarray(x, dtype=np.float64).copy()
+    if p <= 0.0:
+        return out
+    b, t, f = out.shape
+    n_lm = (f - 2) // 3
+    mask = rng.random((b, t, n_lm)) < p
+    drop = np.repeat(mask, 3, axis=2)  # one bool per coordinate
+    spatial = out[:, :, : n_lm * 3]
+    spatial[drop] = 0.0
+    out[:, :, : n_lm * 3] = spatial
+    return out
+
+
+def rotate_xy(
+    x: FloatArray, rng: np.random.Generator, max_deg: float = 12.0
+) -> FloatArray:
+    """Rotate every landmark's ``(x, y)`` by a small **per-sample** angle (``z`` and
+    the presence flags untouched) — in-plane viewpoint / camera-roll variance. Safe
+    for our normalization, which centers and scales but is **not** orientation-
+    canonical (it never rotation-aligns), so this doesn't create train/serve skew.
+    Zero (padding / missing) landmarks rotate to zero, so they stay zero."""
+    out = np.asarray(x, dtype=np.float64).copy()
+    if max_deg <= 0.0:
+        return out
+    b, t, f = out.shape
+    n_lm = (f - 2) // 3
+    coords = out[:, :, : n_lm * 3].reshape(b, t, n_lm, 3)
+    angle = np.deg2rad(rng.uniform(-max_deg, max_deg, size=b))
+    cos = np.cos(angle).reshape(b, 1, 1)
+    sin = np.sin(angle).reshape(b, 1, 1)
+    xv = coords[..., 0].copy()
+    yv = coords[..., 1].copy()
+    coords[..., 0] = xv * cos - yv * sin
+    coords[..., 1] = xv * sin + yv * cos
+    out[:, :, : n_lm * 3] = coords.reshape(b, t, n_lm * 3)
+    return out
+
+
+def time_warp(
+    x: FloatArray, rng: np.random.Generator, max_rate: float = 0.2
+) -> FloatArray:
+    """Per-sample speed warp: resample frames on a rate-warped timeline **anchored
+    at the last frame**. Windows are front zero-padded and the GRU reads the last
+    timestep, so the anchor keeps the most-recent (real) frame fixed while
+    stretching/compressing the history. Whole-frame nearest-neighbor selection means
+    presence flags stay valid. ``max_rate`` is the max fractional speed change."""
+    src = np.asarray(x, dtype=np.float64)
+    if max_rate <= 0.0:
+        return src.copy()
+    out = np.empty_like(src)
+    b, t, _f = src.shape
+    base = np.arange(t) - (t - 1)  # 0 at the last frame
+    for i in range(b):
+        rate = rng.uniform(1.0 - max_rate, 1.0 + max_rate)
+        idx = np.clip(np.round(base * rate + (t - 1)).astype(np.int64), 0, t - 1)
+        out[i] = src[i, idx]
+    return out
+
+
 def augment_sequences(
     x: FloatArray,
     rng: np.random.Generator,
     noise_std: float = 0.01,
     scale_range: tuple[float, float] = (0.9, 1.1),
     frame_dropout: float = 0.1,
+    landmark_dropout: float = 0.0,
+    rotation_deg: float = 0.0,
+    time_warp_rate: float = 0.0,
 ) -> FloatArray:
     """Augment a batch of ``(B, T, F)`` windows — the main lever for the tiny
     curated dataset. The **last two** features are hand-presence flags, left
     untouched by spatial jitter; frame dropout zeroes whole frames (simulating
-    missed detections, which the runtime sees often)."""
+    missed detections, which the runtime sees often).
+
+    The P3M3 additions — ``landmark_dropout`` (per-joint misses), ``rotation_deg``
+    (in-plane viewpoint), ``time_warp_rate`` (speed) — **default to off** so existing
+    training behavior is unchanged; they are enabled and tuned on the honest
+    signer-disjoint gate once more data lands (ADR-020). Mirroring and time-shift are
+    intentionally **not** included — both are skew-prone under this normalization /
+    front-padded last-timestep design (see ``.claude/docs/phase3.md`` P3M3)."""
     out = np.asarray(x, dtype=np.float64).copy()
     b, t, f = out.shape
     spatial = f - 2
     out[:, :, :spatial] *= rng.uniform(scale_range[0], scale_range[1], size=(b, 1, 1))
     out[:, :, :spatial] += rng.normal(0.0, noise_std, size=(b, t, spatial))
+    if rotation_deg > 0.0:
+        out = rotate_xy(out, rng, rotation_deg)
+    if time_warp_rate > 0.0:
+        out = time_warp(out, rng, time_warp_rate)
+    if landmark_dropout > 0.0:
+        out = drop_landmarks(out, rng, landmark_dropout)
     if frame_dropout > 0.0:
         out[rng.random((b, t)) < frame_dropout] = 0.0
     return out
@@ -268,6 +355,7 @@ def cross_validate(
     patience: int = 20,
     val_frac: float = 0.15,
     signer_ids: Sequence[str | None] | None = None,
+    aug: dict[str, Any] | None = None,
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
     """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
     test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
@@ -314,7 +402,7 @@ def cross_validate(
             order = rng.permutation(train_idx)
             for start in range(0, len(order), batch_size):
                 batch = order[start : start + batch_size]
-                xb = augment_sequences(x_np[batch], rng)
+                xb = augment_sequences(x_np[batch], rng, **(aug or {}))
                 optimizer.zero_grad()
                 loss = loss_fn(model(torch.tensor(xb.astype(np.float32))), yt[batch])
                 loss.backward()
@@ -353,6 +441,7 @@ def cross_validate(
         "cv_top1": float(correct1.mean()),
         "cv_top5": float(correct5.mean()),
         "fold_kind": fold_kind,
+        "aug": aug or {},
         "folds": folds,
         "n_samples": int(len(y)),
         "per_gloss": per_gloss,

@@ -384,6 +384,17 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   signer-disjoint gate** (and the real-camera holdout if/when it exists), not on
   stratified CV — augmentation that only helps stratified CV is rejected. Lands in
   **P3M3**; results documented in [`recognition.md`](recognition.md) §6.
+- **Implemented (P3M3, 2026-05-24):** shipped three primitives in `dynamic_model.py`
+  — `drop_landmarks` (per-joint dropout), `rotate_xy` (in-plane rotation), `time_warp`
+  (end-anchored speed), all **opt-in, default off** (`augment_sequences` knobs +
+  `crossval --aug`), so plain training is unchanged until tuned on P3M2 data. Prototype
+  on the starter-20 signer-disjoint gate: **top-1 0.570 → 0.601** (top-5 ~flat).
+  **Mirroring and time-shift were deferred**, refining this ADR: the hand normalization
+  already collapses handedness (a correct mirror needs paired pose-landmark swaps +
+  per-hand re-canonicalization → train/serve skew risk), and front-padded windows read
+  at the last GRU timestep make naive time-shift corrupt the final frame. So Q9's
+  per-gloss `handedness_agnostic` flags stay deferred too — revisit both only if a real
+  need + the holdout justify the skew risk.
 
 ---
 

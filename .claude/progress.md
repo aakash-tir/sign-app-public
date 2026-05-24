@@ -132,10 +132,22 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | --- | --- | --- | --- |
 | P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) | `milestone/P3M1-honest-eval` |
 | P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ part 1 (ingest) ☑ merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (retrain) **owner-gated** on MS-ASL fetch | `milestone/P3M2-msasl-ingest` |
-| P3M3 — Expanded landmark-space augmentation | augmentation | ◐ in progress | `milestone/P3M3-augmentation` |
+| P3M3 — Expanded landmark-space augmentation | augmentation | ◐ implemented, awaiting PR | `milestone/P3M3-augmentation` |
 
 ## Log
 
+- **2026-05-24** — **P3M3: landmark-space augmentation** (branch
+  `milestone/P3M3-augmentation`, ADR-020). Extended `augment_sequences` with three
+  **opt-in (default off)** primitives — `drop_landmarks` (per-joint dropout),
+  `rotate_xy` (in-plane rotation; safe — normalization isn't orientation-canonical),
+  `time_warp` (end-anchored speed; keeps the GRU-read last frame). Added an `aug`
+  pass-through to `cross_validate` + `crossval --aug` preset. **Prototype on the
+  starter-20 signer-disjoint gate: top-1 0.570 → 0.601** (+3 pts; top-5 ~flat) —
+  directional, final tuning on P3M2 data. **Mirroring + time-shift deferred**
+  (skew-prone under the handedness-collapsing hand normalization + front-padded
+  last-timestep design; Q9 flags deferred with them) — recognition.md §6.4. +7 pytest
+  (75); ruff/mypy/pytest green. Plain training unchanged (knobs default off). Awaiting
+  commit + PR.
 - **2026-05-24** — **P3M2 (part 1): MS-ASL ingest — adapter + download script**
   (branch `milestone/P3M2-msasl-ingest`). After the dataset review (see
   [`docs/phase3.md`](docs/phase3.md) review log): of the owner-provided candidates,
