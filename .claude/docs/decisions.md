@@ -169,6 +169,13 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   fingerspelling **"sentence" = a short word spelled letter-by-letter** from the
   user's confident letters (gated by ADR-009); real multi-sign sentences come
   with the dynamic recognizer.
+- **Follow-on done (P2M7):** real **multi-sign sentences** shipped as a Learn
+  **"Sign sentences"** drill — short sequences of the user's confident dynamic
+  signs, prompted one at a time and verified by the recognizer (or "That's what I
+  did"), gated by ADR-009 like the spell drill. Framed as a sequencing exercise
+  ("sign these words in order"), **not** a claim of full ASL grammar; the content
+  (`content/signSentences.ts`) is small, conservative, and owner-reviewable. The
+  letter-spelled "Spell words" drill remains alongside it.
 
 ## ADR-013 — Dynamic landmark stack: MediaPipe HolisticLandmarker
 

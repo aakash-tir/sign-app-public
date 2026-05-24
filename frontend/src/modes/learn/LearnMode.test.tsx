@@ -117,3 +117,20 @@ describe('LearnMode spelling (gated)', () => {
     expect(await screen.findByTestId('spell-done')).toBeInTheDocument()
   })
 })
+
+describe('LearnMode sign sentences (gated)', () => {
+  it('drills a multi-sign sequence via the camera', async () => {
+    for (const sign of ['want', 'eat']) await repo.markKnown(sign)
+    await repo.setLevel('intermediate')
+
+    const view = render(<LearnMode repo={repo} />)
+    fireEvent.click(await screen.findByTestId('sentence-tab'))
+    expect(await screen.findByTestId('sentence')).toHaveTextContent('want')
+
+    for (const sign of ['want', 'eat']) {
+      mocks.recognized = { label: sign, confidence: 0.99 }
+      view.rerender(<LearnMode repo={repo} />)
+    }
+    expect(await screen.findByTestId('sentence-done')).toBeInTheDocument()
+  })
+})

@@ -8,6 +8,7 @@ import { sentencesEnabled } from '../../domain/levels'
 import type { UserProfile, WordProgress } from '../../domain/types'
 import { LETTER_HINTS } from '../../content/fingerspelling'
 import { spellableWords } from '../../content/words'
+import { signableSentences } from '../../content/signSentences'
 import { SHIPPED_GLOSSES } from '../../content/dynamicVocab'
 import { SignReferencePlayer } from '../../recognition/SignReferencePlayer'
 import './LearnMode.css'
@@ -15,7 +16,7 @@ import './LearnMode.css'
 const defaultRepo = new WordBankRepo(db)
 const LABELS = fingerspellingModel.labels
 
-type View = 'teach' | 'spell' | 'signs'
+type View = 'teach' | 'spell' | 'signs' | 'sentence'
 
 function confidentIds(bank: WordProgress[]): Set<string> {
   return new Set(
@@ -62,6 +63,11 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
   const [spellIndex, setSpellIndex] = useState(0)
   const [spellDone, setSpellDone] = useState(false)
 
+  // Sign-sentence state (multi-sign sequence drill, P2M7)
+  const [sentence, setSentence] = useState<string[] | null>(null)
+  const [sentenceIndex, setSentenceIndex] = useState(0)
+  const [sentenceDone, setSentenceDone] = useState(false)
+
   // Load profile + bank + first target on mount.
   useEffect(() => {
     let active = true
@@ -90,15 +96,17 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
 
   // Point the recognizer at the right model for the active view.
   useEffect(() => {
-    setMode(view === 'signs' ? 'sign' : 'letter')
+    setMode(view === 'signs' || view === 'sentence' ? 'sign' : 'letter')
   }, [view, setMode])
 
   const confident = confidentIds(bank)
   const spellable = spellableWords(confident)
-  const canSpell =
+  const sentencesOn =
     profile !== null &&
-    sentencesEnabled(profile.level, profile.sentencesUnlocked) &&
-    spellable.length > 0
+    sentencesEnabled(profile.level, profile.sentencesUnlocked)
+  const canSpell = sentencesOn && spellable.length > 0
+  const signableSents = signableSentences(confident)
+  const canSentences = sentencesOn && signableSents.length > 0
   const remainingLetters = LABELS.filter((l) => !confident.has(l))
   const remainingSigns = SHIPPED_GLOSSES.filter((g) => !confident.has(g))
 
@@ -173,6 +181,33 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
     }
   }, [recognized, view, spellDone, word, spellIndex])
 
+  // ----- Sign sentences (multi-sign sequence drill) -----
+  const startSentences = useCallback(() => {
+    const choice =
+      signableSents[Math.floor(Math.random() * signableSents.length)] ?? null
+    setSentence(choice)
+    setSentenceIndex(0)
+    setSentenceDone(false)
+    setView('sentence')
+    resetRecognition()
+  }, [signableSents, resetRecognition])
+
+  const advanceSentence = useCallback(() => {
+    if (!sentence) return
+    const next = sentenceIndex + 1
+    setSentenceIndex(next)
+    if (next >= sentence.length) setSentenceDone(true)
+    resetRecognition()
+  }, [sentence, sentenceIndex, resetRecognition])
+
+  useEffect(() => {
+    if (view !== 'sentence' || sentenceDone || !sentence) return
+    if (recognized && recognized.label === sentence[sentenceIndex]) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      advanceSentence()
+    }
+  }, [recognized, view, sentenceDone, sentence, sentenceIndex, advanceSentence])
+
   if (!profile) {
     return <p className="learn-loading">Loading…</p>
   }
@@ -225,6 +260,16 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
             onClick={startSpell}
           >
             Spell words
+          </button>
+        )}
+        {canSentences && (
+          <button
+            type="button"
+            aria-pressed={view === 'sentence'}
+            data-testid="sentence-tab"
+            onClick={startSentences}
+          >
+            Sign sentences
           </button>
         )}
       </nav>
@@ -367,6 +412,55 @@ export function LearnMode({ repo = defaultRepo }: { repo?: WordBankRepo }) {
             >
               Skip word
             </button>
+          )}
+        </div>
+      )}
+
+      {view === 'sentence' && sentence !== null && (
+        <div className="learn-spell">
+          <p className="learn-cue">Sign these words in order</p>
+          <div className="spell-word" data-testid="sentence">
+            {sentence.map((sign, i) => (
+              <span
+                key={`${sign}-${i}`}
+                className={
+                  i < sentenceIndex ? 'spell-letter done' : 'spell-letter'
+                }
+              >
+                {sign}
+              </span>
+            ))}
+          </div>
+          {cameraBlock}
+          {sentenceDone ? (
+            <div className="learn-feedback" data-testid="sentence-done">
+              <p className="feedback-text">Nice! ✅</p>
+              <button
+                type="button"
+                data-testid="sentence-another"
+                onClick={startSentences}
+              >
+                Another
+              </button>
+            </div>
+          ) : (
+            <div className="learn-actions">
+              <button
+                type="button"
+                data-testid="sentence-got-it"
+                onClick={advanceSentence}
+              >
+                That&apos;s what I did
+              </button>
+              <button
+                type="button"
+                className="learn-secondary"
+                data-testid="sentence-skip"
+                onClick={startSentences}
+              >
+                Skip
+              </button>
+            </div>
           )}
         </div>
       )}

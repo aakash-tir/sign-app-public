@@ -13,11 +13,15 @@ is in [`docs/milestones.md`](docs/milestones.md).
   `3321b7b`): **+4 everyday signs** (`walk`/`tall`/`cold`/`before`) → **20 dynamic
   signs shipped** + 24-letter static. Auto-deploys to Cloudflare on push to `main`.
 - **P2M6 ✅ merged** ([PR #19](https://github.com/aakash-tir/sign-app/pull/19),
-  `7fcf872`): tab-hidden camera release (releases on `visibilitychange`→hidden,
-  silent resume on return; ADR-018 deferral resolved). **Next candidate: P2M7 real
-  multi-sign Learn sentences** (ADR-012) — confirming the ASL-content approach with
-  the owner before generating sign sentences (correctness-sensitive teaching
-  content).
+  `7fcf872`): tab-hidden camera release (ADR-018 deferral resolved).
+- **P2M7 (in PR): real multi-sign Learn sentences** (ADR-012). Owner chose the
+  "sign these in order" **drill framing**, content I draft + they review. Added a
+  Learn **"Sign sentences"** tab: short sequences of confident dynamic signs
+  prompted one at a time, verified by the recognizer or "That's what I did", gated
+  by ADR-009 (alongside the existing letter "Spell words"). Content in
+  `content/signSentences.ts` (8 conservative 2-sign combos, owner-reviewable). +4
+  vitest (155) / 15 playwright; gates green. **Only data work left: MS-ASL (owner
+  download).**
 - **Only future data work (P2M5c, owner action):** download **MS-ASL** for more
   clips-per-sign → real accuracy gains; the ingest layer is ready for it via a small
   `MsaslAdapter` (ADR-016). Other candidate: real multi-sign Learn sentences (ADR-012).
