@@ -14,17 +14,17 @@ is in [`docs/milestones.md`](docs/milestones.md).
   signs shipped** + 24-letter static. Auto-deploys to Cloudflare on push to `main`.
 - **P2M6 ✅ merged** ([PR #19](https://github.com/aakash-tir/sign-app/pull/19),
   `7fcf872`): tab-hidden camera release (ADR-018 deferral resolved).
-- **P2M7 (in PR): real multi-sign Learn sentences** (ADR-012). Owner chose the
-  "sign these in order" **drill framing**, content I draft + they review. Added a
-  Learn **"Sign sentences"** tab: short sequences of confident dynamic signs
-  prompted one at a time, verified by the recognizer or "That's what I did", gated
-  by ADR-009 (alongside the existing letter "Spell words"). Content in
-  `content/signSentences.ts` (8 conservative 2-sign combos, owner-reviewable). +4
-  vitest (155) / 15 playwright; gates green. **Only data work left: MS-ASL (owner
-  download).**
-- **Only future data work (P2M5c, owner action):** download **MS-ASL** for more
-  clips-per-sign → real accuracy gains; the ingest layer is ready for it via a small
-  `MsaslAdapter` (ADR-016). Other candidate: real multi-sign Learn sentences (ADR-012).
+- **P2M7 ✅ merged** ([PR #20](https://github.com/aakash-tir/sign-app/pull/20),
+  `4d04c87`): real multi-sign Learn **"Sign sentences"** drill (ADR-012) — short
+  sequences of confident dynamic signs, one at a time, gated by ADR-009; content in
+  `content/signSentences.ts` (8 owner-reviewable 2-sign combos). 155 vitest / 15
+  playwright. **Phase 2 + all follow-ups now done, merged, and deploying.**
+- **Baseline verified for Phase 3 (2026-05-24):** `main` clean + green (frontend
+  lint/tsc/vitest, ml ruff/mypy/pytest); deployed app shell + SPA routes + 24-label
+  model + reference clips all 200. No open PRs/branches.
+- **Only future work parked (owner action): P2M5c — download MS-ASL** for more
+  clips-per-sign → real dynamic-sign accuracy; the ingest layer is ready via a small
+  `MsaslAdapter` (ADR-016).
 - **Phase 2 — P2M3 ✅ merged. (Full UI redesign.)** **P2M3**
   (full UI redesign, plan item #2, FR-16) **merged via
   [PR #15](https://github.com/aakash-tir/sign-app/pull/15)** (squash `1297a6e`):
