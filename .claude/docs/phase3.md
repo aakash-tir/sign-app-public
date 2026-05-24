@@ -28,7 +28,7 @@ One milestone is **added ahead of both**: before chasing accuracy we must be abl
 
 | Milestone | Theme | Status |
 | --- | --- | --- |
-| **P3M1** | Honest accuracy measurement — signer-disjoint gate (real-camera holdout optional/deferred) | ◐ implemented, awaiting PR (`milestone/P3M1-honest-eval`) |
+| **P3M1** | Honest accuracy measurement — signer-disjoint gate (real-camera holdout optional/deferred) | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) |
 | **P3M2** | MS-ASL ingest + retrain → grow dynamic vocabulary toward ~50 signs | ☐ planned |
 | **P3M3** | Expanded landmark-space augmentation (the "modifiers") | ☐ planned |
 

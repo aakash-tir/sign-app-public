@@ -25,11 +25,12 @@ is in [`docs/milestones.md`](docs/milestones.md).
 - **🚧 Phase 3 (accuracy & vocabulary depth) kicked off** — plan in
   [`docs/phase3.md`](docs/phase3.md) (P3M1 honest eval · P3M2 reviewed-dataset
   expansion toward ~50 signs · P3M3 landmark-space augmentation); ADR-019/020 +
-  Q6–Q9 recorded. **P3M1 ◐ (branch `milestone/P3M1-honest-eval`):** signer-disjoint
-  CV is now the ship gate (`signer_folds`, `cross_validate(signer_ids=…)`, extract
-  caches `signers.npy`); honest baseline on the starter-20 set **top-1 0.570 / top-5
-  0.922** vs stratified 0.622 / 0.953 (leakage ≈ +5 pts) — recognition.md §6.3.
-  Real-camera holdout deferred (no clips yet, ADR-019). +4 pytest (62); ml gates green.
+  Q6–Q9 recorded. **P3M1 ✅ merged** ([PR #21](https://github.com/aakash-tir/sign-app/pull/21),
+  squash `fa823ec`): signer-disjoint CV is now the ship gate (`signer_folds`,
+  `cross_validate(signer_ids=…)`, extract caches `signers.npy`); honest baseline on
+  the starter-20 set **top-1 0.570 / top-5 0.922** vs stratified 0.622 / 0.953
+  (leakage ≈ +5 pts) — recognition.md §6.3. Real-camera holdout deferred (no clips
+  yet, ADR-019). +4 pytest (62); both CI lanes green.
 - **Future data work (P2M5c → folded into P3M2):** download **MS-ASL** + any
   owner-curated, reviewed datasets for more clips-per-sign → real dynamic-sign
   accuracy; the ingest layer is ready via a small `MsaslAdapter` (ADR-016).
@@ -129,7 +130,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 | Milestone | Theme | Status | Branch |
 | --- | --- | --- | --- |
-| P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ◐ implemented, awaiting PR | `milestone/P3M1-honest-eval` |
+| P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) | `milestone/P3M1-honest-eval` |
 | P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ☐ planned | — |
 | P3M3 — Expanded landmark-space augmentation | augmentation | ☐ planned | — |
 
@@ -149,7 +150,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   shipped model is the 24-gloss set — re-gate lands in P3M2 on more data). Real-camera
   holdout deferred (no clips yet). +4 pytest (62 total); ruff/mypy/pytest green. Also
   bundles the Phase-3 plan docs (phase3.md, ADR-019/020, Q6–Q9, output.md analysis).
-  Awaiting commit + PR.
+  **Merged** ([PR #21](https://github.com/aakash-tir/sign-app/pull/21), squash
+  `fa823ec`); both CI lanes + Cloudflare build green.
 - **2026-05-23** — **P2M6: tab-hidden camera release** (branch
   `milestone/P2M6-camera-visibility`). `CameraProvider` now listens for
   `visibilitychange`: when the browser tab is hidden it stops the camera tracks
