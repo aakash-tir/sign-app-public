@@ -52,7 +52,12 @@ and the secrets/credentials policy.
 
 ## Status
 
-**Phase 1 (M0–M7) is complete and deployed** — the PWA is live on Cloudflare
-(see [`progress.md`](progress.md)). Now in **Phase 2 (depth & polish)**: scoping
-**P2M1** (per-finger overlay colors). The Phase 2 plan is in
+**Phase 1 (M0–M7) and Phase 2 (depth & polish) are both complete and deployed** —
+the PWA is live on Cloudflare with 24 fingerspelling letters + 20 dynamic signs,
+per-finger overlay option, a persistent shared camera, a redesigned UI, and offline
+in-app sign references. See [`progress.md`](progress.md); Phase 2 detail in
 [`docs/phase2.md`](docs/phase2.md).
+
+**Parked for the future** (no work in progress): MS-ASL download → retrain for
+dynamic-sign accuracy (P2M5c, owner action, ADR-016); tab-hidden camera release
+(ADR-018 deferral); real multi-sign Learn sentences (ADR-012).

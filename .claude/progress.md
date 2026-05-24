@@ -110,6 +110,11 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Log
 
+- **2026-05-23** — **Phase 2 closed.** All five plan items merged + deployed;
+  verified live on the deployed URL (model metadata + the 4 new reference clips
+  served from the edge). 20 dynamic signs + 24 letters in production. No work in
+  progress. Future backlog (not started): MS-ASL download → retrain (P2M5c, owner),
+  tab-hidden camera release (ADR-018), real multi-sign Learn sentences (ADR-012).
 - **2026-05-22** — **P2M5b: vocabulary expansion from on-disk WLASL** (branch
   `milestone/P2M5b-vocab-expansion`). Owner chose to broaden signs without a new
   download. Added `EXPANSION_GLOSSES` + a `--vocab expanded` extract flag; extracted
