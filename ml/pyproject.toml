@@ -22,6 +22,10 @@ video = ["mediapipe>=0.10", "opencv-python>=4.10"]
 # coexists with numpy 2.x and exports ONNX natively (ADR-015). Optional +
 # import-guarded. Install with: uv sync --extra train
 train = ["torch>=2.4", "onnx>=1.16"]
+# MS-ASL clip download (Phase 3 / P3M2): MS-ASL ships as YouTube URLs, fetched with
+# yt-dlp (also needs ffmpeg on PATH for segment cuts). Optional + lazy-imported.
+# Install with: uv sync --extra msasl
+msasl = ["yt-dlp>=2024.8"]
 
 [dependency-groups]
 dev = ["ruff>=0.6", "mypy>=1.11", "pytest>=8"]
@@ -48,7 +52,7 @@ files = ["src", "tests"]
 
 # Third-party packages without bundled type stubs.
 [[tool.mypy.overrides]]
-module = ["sklearn.*", "mediapipe.*", "cv2", "cv2.*", "onnx", "onnx.*"]
+module = ["sklearn.*", "mediapipe.*", "cv2", "cv2.*", "onnx", "onnx.*", "yt_dlp", "yt_dlp.*"]
 ignore_missing_imports = true
 
 # Torch: treat as untyped whether or not it is installed, so the gate behaves

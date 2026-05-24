@@ -131,11 +131,26 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | Milestone | Theme | Status | Branch |
 | --- | --- | --- | --- |
 | P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) | `milestone/P3M1-honest-eval` |
-| P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ☐ planned | — |
+| P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ adapter + downloader landed; awaiting owner MS-ASL fetch | `milestone/P3M2-msasl-ingest` |
 | P3M3 — Expanded landmark-space augmentation | augmentation | ☐ planned | — |
 
 ## Log
 
+- **2026-05-24** — **P3M2 (part 1): MS-ASL ingest — adapter + download script**
+  (branch `milestone/P3M2-msasl-ingest`). After the dataset review (see
+  [`docs/phase3.md`](docs/phase3.md) review log): of the owner-provided candidates,
+  **only MS-ASL (C-UDA) is license-clear to train-and-ship** — ASL Citizen and
+  ASLLVD are research/non-commercial with no model carve-out (owner declined the
+  permission route); SignAvatars (3D mesh) and How2Sign (continuous) rejected; the
+  How2Sign related-datasets sweep surfaced nothing new+permissive. Built
+  `ml/src/sign_ml/msasl.py` (`MsaslAdapter` + `load_msasl_index` +
+  `youtube_id_from_url`; signer ids namespaced `msasl:<id>`) and
+  `msasl_download.py` (yt-dlp segment fetch, link-rot-tolerant, realized-coverage
+  report; `--extra msasl`, needs ffmpeg). Fixed a Windows `--help` crash (unicode in
+  the argparse docstring → ASCII). +6 pytest (68); ruff/mypy/pytest green. Continuous
+  ASL (How2Sign) noted as a future **sentence-content** track (ADR-012), not
+  recognition. **Next (owner):** download MS-ASL annotations → run the fetch → I wire
+  combined extract + retrain + signer-disjoint re-gate. Awaiting commit + PR.
 - **2026-05-24** — **P3M1: honest signer-disjoint evaluation** (branch
   `milestone/P3M1-honest-eval`, ADR-019). Made the dynamic ship gate
   **signer-disjoint** instead of stratified-clip: new pure `signer_folds` (whole

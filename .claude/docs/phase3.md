@@ -29,7 +29,7 @@ One milestone is **added ahead of both**: before chasing accuracy we must be abl
 | Milestone | Theme | Status |
 | --- | --- | --- |
 | **P3M1** | Honest accuracy measurement — signer-disjoint gate (real-camera holdout optional/deferred) | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) |
-| **P3M2** | MS-ASL ingest + retrain → grow dynamic vocabulary toward ~50 signs | ☐ planned |
+| **P3M2** | MS-ASL ingest + retrain → grow dynamic vocabulary toward ~50 signs | ◐ in progress — `MsaslAdapter` + download script landed; awaiting owner MS-ASL fetch |
 | **P3M3** | Expanded landmark-space augmentation (the "modifiers") | ☐ planned |
 
 > **P3M1 baseline measured (2026-05-24):** starter-20 signer-disjoint **top-1 0.570 /
@@ -88,6 +88,34 @@ quality under control (and satisfies the "stop and verify dataset licenses" rule
 Each **accepted** source is recorded (one short note: name, license, why included,
 coverage) and gets its own `DatasetAdapter`. Each **rejected** source gets a one-line
 reason so the decision is traceable. This review is the gate at the front of **P3M2**.
+
+### Dataset review log (owner-provided candidates, 2026-05-24)
+
+Reviewed ASL-only, from `input.md` + the two papers + the ASLLVD `.xlsx`:
+
+| Source | ASL / isolated? | Data | License | Verdict |
+| --- | --- | --- | --- | --- |
+| **MS-ASL** | ✅ / ✅ | ~25k clips (YouTube URLs → link rot) | **C-UDA** — training is "computational use", trained model is an unrestricted "Result" → **ship the model OK** (ADR-016) | ✅ **Accepted** (primary volume source; owner download) |
+| **WLASL** | ✅ / ✅ | ~21k clips; 36 signers in our subset | research; Kaggle mirror | ✅ **Already integrated** |
+| **ASL Citizen** (Microsoft) | ✅ / ✅ | **~84k actual video files** (no link rot), **~2,700 signs, ~2,700 signers** — *the best data by far* | **Non-commercial, non-revenue, research-purposes only**; *"you may not distribute the data or your modifications to the data"*; **no model carve-out** | ❌ **Declined (owner, 2026-05-24)** — license caps use at "research purposes only"; owner chose not to pursue permission |
+| **ASLLVD / ASLLRP** (BU/Rutgers) | ✅ / ✅ citation form | ~9.8k tokens but only **~6 signers** (~3 tokens/sign) + rich handshape labels | *"research and education purposes"*; *"cannot be redistributed without permission"*; **no model carve-out** ([dai-terms](https://www.bu.edu/asllrp/dai-terms.html)) | ❌ **Declined** — research-license (no model carve-out) + weak data (~6 signers) |
+| **SignAvatars** | ⚠️ (ASL part = How2Sign/WLASL) | 3D **SMPL-X/MANO mesh params**, not video | NC research, form-gated | ❌ **Rejected** — format mismatch with our MediaPipe-video pipeline; its ASL-isolated content is just WLASL we already have |
+| **How2Sign** | ✅ but **continuous** | sentence-level instructional video | (verify per use) | ❌ **Rejected for the recognizer** (continuous ≠ isolated glosses); ✅ **candidate for *sentence content*** — see Future work |
+
+**License bottom line:** **only MS-ASL (C-UDA) is cleared to train-and-ship a model
+in a public app.** ASL Citizen and ASLLVD are research/non-commercial with **no
+model-as-Result carve-out** → both **declined** (owner won't pursue permission).
+Informed reading, **not legal advice**.
+
+**How2Sign related-datasets sweep (2026-05-24):** reviewed the full list. Its only
+ASL *isolated-sign* entries are **ASLLVD / MS-ASL / WLASL** (all covered above) plus
+**ASL-LEX / ASL-LEX 2.0** — which are **lexical/phonological databases (~1 video per
+sign)**, not multi-clip training data (and CC-NC), so useless for clips-per-sign. Its
+fingerspelling sets (ChicagoFSWild, Purdue RVL-SLLL) aren't needed (we already do 24
+static letters). The big newer ASL sets it predates (ASL Citizen, Sem-Lex) are both
+consent/research-NC. **Net: no new license-clear *training* source exists beyond
+MS-ASL — P3M2 trains on MS-ASL (C-UDA) + the WLASL we already have.** The continuous
+ASL sets (How2Sign, NCSLGR) are reserved for the sentence-content track (Future work).
 
 ## Conventions (unchanged from phases 1–2)
 
@@ -295,6 +323,17 @@ and the data floor.
 > coverage across accepted sources leaves the count short of ~50 at the data floor,
 > add more reviewed sources (or self-capture) rather than lowering the gate.
 
+> **Landed (2026-05-24, incremental):** `ml/src/sign_ml/msasl.py` — `MsaslAdapter` +
+> index parser (`load_msasl_index`, `youtube_id_from_url`; signer ids namespaced
+> `msasl:<id>` so they never collide with WLASL's in a signer-disjoint split) — and
+> `ml/src/sign_ml/msasl_download.py` — yt-dlp segment fetch, link-rot-tolerant,
+> writes a realized-coverage report (`--extra msasl`, needs ffmpeg). +6 pytest (68),
+> all ml gates green. The download default targets our current 24 glosses (adds
+> signer diversity to existing signs); broaden via `--glosses` once we pick the ~50.
+> **Next (owner):** `uv sync --extra msasl`, place MS-ASL annotation JSON in
+> `data/msasl/`, run `python -m sign_ml.msasl_download` → then I wire the combined
+> extract + retrain + signer-disjoint re-gate.
+
 ---
 
 ## P3M3 — Expanded landmark-space augmentation (the "modifiers")
@@ -400,6 +439,14 @@ function; no video re-processing.
   expand toward most everyday signs over time, via the same review → adapter → gate
   path, accuracy-gated (ADR-007/ADR-019). A future-phase effort once the 50-sign base
   is solid.
+- **Continuous-sign data for *sentence content* (not recognition)** — continuous ASL
+  corpora (e.g. How2Sign) **cannot train our isolated-sign recognizer** (continuous
+  SLR is out of scope, ADR-007), but they **can supply authentic ASL sentence
+  sequences** to author the Learn "Sign sentences" drill (ADR-012) — filtered to the
+  user's shipped/confident vocab and still **verified one sign at a time** as today.
+  A separate **content track** from P3M2/P3M3 (owner: "we can use the continuous for
+  sentence practice"). License-check each source; references stay rendered from
+  landmarks (ADR-017), so no source clips ship.
 
 ## Open questions — resolved (2026-05-24)
 
