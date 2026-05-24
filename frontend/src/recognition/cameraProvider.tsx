@@ -26,6 +26,12 @@ export function CameraProvider({
   const [explainerOpen, setExplainerOpen] = useState(false)
   const streamRef = useRef<MediaStream | null>(null)
   const explainerSeenRef = useRef(false)
+  const statusRef = useRef(status)
+  const resumeOnVisibleRef = useRef(false)
+
+  useEffect(() => {
+    statusRef.current = status
+  }, [status])
 
   // Load the one-time-explainer flag from the persisted profile (best-effort).
   useEffect(() => {
@@ -76,6 +82,7 @@ export function CameraProvider({
   }, [enableNow])
 
   const stop = useCallback(() => {
+    resumeOnVisibleRef.current = false // a manual stop shouldn't auto-resume
     streamRef.current?.getTracks().forEach((track) => track.stop())
     setActiveStream(null)
     setStatus('idle')
@@ -91,6 +98,28 @@ export function CameraProvider({
   const cancelExplainer = useCallback(() => {
     setExplainerOpen(false)
   }, [])
+
+  // Release the camera while the browser tab is hidden (privacy + battery), and
+  // re-acquire silently on return — the permission persists, so no re-prompt.
+  // The status stays `on` throughout: the camera is logically enabled, just
+  // released in the background (ADR-018).
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        if (statusRef.current === 'on') {
+          streamRef.current?.getTracks().forEach((track) => track.stop())
+          setActiveStream(null)
+          resumeOnVisibleRef.current = true
+        }
+      } else if (resumeOnVisibleRef.current) {
+        resumeOnVisibleRef.current = false
+        void enableNow()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () =>
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [enableNow, setActiveStream])
 
   // Release the device if the whole app tears down.
   useEffect(() => {

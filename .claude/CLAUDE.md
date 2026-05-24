@@ -59,5 +59,5 @@ in-app sign references. See [`progress.md`](progress.md); Phase 2 detail in
 [`docs/phase2.md`](docs/phase2.md).
 
 **Parked for the future** (no work in progress): MS-ASL download → retrain for
-dynamic-sign accuracy (P2M5c, owner action, ADR-016); tab-hidden camera release
-(ADR-018 deferral); real multi-sign Learn sentences (ADR-012).
+dynamic-sign accuracy (P2M5c, owner action, ADR-016); real multi-sign Learn
+sentences (ADR-012). *(P2M6 tab-hidden camera release is done.)*

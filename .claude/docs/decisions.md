@@ -315,10 +315,11 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 - **Consequences:** No re-enable on tab switch (FR-15). The camera stays on across
   routes until the user stops it (or closes the tab) — a deliberate trade for fewer
   prompts. The "release on unmount" rule is replaced by "**the provider owns the
-  camera lifecycle; views attach/detach but never stop it**." **Follow-up (not in
-  P2M2):** release tracks on `visibilitychange`→hidden and re-acquire on return
-  (battery/privacy), and optionally auto-resume across reloads — deferred to keep
-  this refactor focused.
+  camera lifecycle; views attach/detach but never stop it**." **Follow-up done
+  (P2M6):** the provider now releases the tracks on `visibilitychange`→hidden and
+  re-acquires silently on return (battery/privacy; status stays `on`, permission
+  persists so no re-prompt). Auto-resume across full reloads is still intentionally
+  not done (no auto camera-on at app launch).
 
 ---
 

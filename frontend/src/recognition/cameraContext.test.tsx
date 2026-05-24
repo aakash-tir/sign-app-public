@@ -45,6 +45,10 @@ beforeEach(async () => {
 afterEach(async () => {
   cleanup()
   await database.delete()
+  Object.defineProperty(document, 'visibilityState', {
+    value: 'visible',
+    configurable: true,
+  })
 })
 
 // Let the provider's async load of `cameraExplainerSeen` settle.
@@ -109,5 +113,42 @@ describe('CameraProvider', () => {
       expect(screen.getByTestId('status')).toHaveTextContent('idle'),
     )
     expect(track.stop).toHaveBeenCalled()
+  })
+
+  it('releases the camera when the tab is hidden and resumes when visible', async () => {
+    await repo.setCameraExplainerSeen(true)
+    render(
+      <CameraProvider repo={repo}>
+        <TestConsumer />
+      </CameraProvider>,
+    )
+    await flushProfileLoad()
+    fireEvent.click(screen.getByText('start'))
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('on'),
+    )
+    expect(getUserMedia).toHaveBeenCalledTimes(1)
+
+    // Tab hidden → release the device, but stay logically "on".
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'hidden',
+        configurable: true,
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(track.stop).toHaveBeenCalled()
+    expect(screen.getByTestId('status')).toHaveTextContent('on')
+
+    // Tab visible again → re-acquire silently (no second explainer/prompt).
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'visible',
+        configurable: true,
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2))
+    expect(screen.queryByTestId('camera-explainer')).toBeNull()
   })
 })

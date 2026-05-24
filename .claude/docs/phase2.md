@@ -184,9 +184,10 @@ the track), repo `setCameraExplainerSeen`, and an e2e proving the camera **stays
 across a Camera→Signs tab switch with no re-enable** (FR-15). 147 vitest / 14
 playwright.
 
-**Deferred follow-up:** release tracks on `visibilitychange`→hidden + re-acquire on
-return (battery/privacy LED), and optional auto-resume across reloads — see ADR-018.
-Until then the camera stays on across all routes until the user stops it.
+**Follow-up done (P2M6):** the camera is released on `visibilitychange`→hidden and
+re-acquired silently on return (battery/privacy LED; permission persists so no
+re-prompt). Auto-resume across full reloads remains intentionally out (no auto
+camera-on at launch). See ADR-018.
 
 ## P2M3 — Full UI redesign
 

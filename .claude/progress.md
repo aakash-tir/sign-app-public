@@ -12,10 +12,12 @@ is in [`docs/milestones.md`](docs/milestones.md).
   expansion** ([PR #18](https://github.com/aakash-tir/sign-app/pull/18), squash
   `3321b7b`): **+4 everyday signs** (`walk`/`tall`/`cold`/`before`) → **20 dynamic
   signs shipped** + 24-letter static. Auto-deploys to Cloudflare on push to `main`.
+- **P2M6 (post-Phase-2 follow-up): tab-hidden camera release** — the camera now
+  releases on `visibilitychange`→hidden and re-acquires silently on return
+  (battery/privacy; ADR-018 deferral resolved). In PR; 151 vitest / 15 playwright.
 - **Only future data work (P2M5c, owner action):** download **MS-ASL** for more
   clips-per-sign → real accuracy gains; the ingest layer is ready for it via a small
-  `MsaslAdapter` (ADR-016). Other candidates: tab-hidden camera release (ADR-018
-  deferral), real multi-sign Learn sentences (ADR-012).
+  `MsaslAdapter` (ADR-016). Other candidate: real multi-sign Learn sentences (ADR-012).
 - **Phase 2 — P2M3 ✅ merged. (Full UI redesign.)** **P2M3**
   (full UI redesign, plan item #2, FR-16) **merged via
   [PR #15](https://github.com/aakash-tir/sign-app/pull/15)** (squash `1297a6e`):
@@ -110,6 +112,14 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Log
 
+- **2026-05-23** — **P2M6: tab-hidden camera release** (branch
+  `milestone/P2M6-camera-visibility`). `CameraProvider` now listens for
+  `visibilitychange`: when the browser tab is hidden it stops the camera tracks
+  (privacy LED off, battery) while staying logically `on`, and re-acquires silently
+  on return (permission persists → no re-prompt; manual stop cancels resume).
+  Resolves the ADR-018 deferral (auto-resume across full reloads still intentionally
+  out). +1 vitest (151) / 15 playwright; gates green. (Follow-up after the Phase 2
+  close.)
 - **2026-05-23** — **Phase 2 closed.** All five plan items merged + deployed;
   verified live on the deployed URL (model metadata + the 4 new reference clips
   served from the edge). 20 dynamic signs + 24 letters in production. No work in
