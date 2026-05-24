@@ -197,6 +197,10 @@ predicted once in its held-out fold):
 
 - **Aggregate: top-1 ≈ 62%, top-5 ≈ 95%** (5-fold, n=193).
 
+> **Superseded as the gate (P3M1, ADR-019):** this *stratified-clip* split lets a
+> signer sit in both train and test, overstating accuracy. The honest **signer-
+> disjoint** baseline is in §6.3; the per-gloss table below is kept for history.
+
 **Per-gloss top-1 (CV)** drives the ship gate (**bar = 0.50**):
 
 | Shipped (≥ 0.50) | | Excluded (< 0.50) |
@@ -230,6 +234,39 @@ coverage is only ~10–16 clips/gloss, which caps accuracy.
 
 > These are starting numbers on a small, signer-limited set; real-camera accuracy
 > will be lower (domain shift). The "That's what I did" valve absorbs misses.
+
+### 6.3 Honest baseline — signer-disjoint evaluation (P3M1, ADR-019)
+
+The CV in §6.1–6.2 splits **clips**, so a signer can sit in both train and test and
+**overstate** accuracy. P3M1 makes the gate **signer-disjoint**: `signer_folds`
+deals whole signers to folds (greedy-balanced by sample count), so no one's clips
+straddle train/test — wired via `cross_validate(..., signer_ids=…)` and the
+`signers.npy` the extract stage now caches.
+
+Side-by-side on the **same 20-gloss starter set** (n=193, 36 signers, seed 42,
+identical code):
+
+| Evaluation | top-1 | top-5 |
+| --- | --- | --- |
+| Stratified-clip (old; overstates) | 0.622 | 0.953 |
+| **Signer-disjoint (the gate, ADR-019)** | **0.570** | **0.922** |
+
+Leakage was inflating top-1 by ~5 points. **0.570 / 0.922 is the honest Phase-3
+starting line** for the starter set. It is still a *dataset* holdout, so it remains
+an **optimistic ceiling** for real-camera use — the deferred real-camera holdout
+(Q8) would close that gap.
+
+**Per-gloss under the honest gate** (bar 0.50): family 0.91 · learn 0.88 · please
+0.86 · no 0.82 · sorry 0.71 · go/drink/finish 0.67 · help 0.64 · more/sad 0.62 ·
+eat 0.57 · yes 0.50 clear it; **good 0.40 · want 0.33 · love 0.29** slip below,
+joining the already-excluded like 0.20 · bad 0.40 · thank you 0.29 · happy 0.12.
+
+**We do not re-gate the shipped vocabulary on this run.** Per-gloss CV at
+n≈7–15/gloss is noisy, and the shipped model is the 24-gloss set (§6.2), not this
+starter cache. Re-gating happens in **P3M2** once MS-ASL adds clips and we retrain —
+then signer-disjoint is the gate **by default**. Reproduce:
+`uv run --project ml python -m sign_ml.dynamic_pipeline crossval`
+(add `--stratified` for the old comparison).
 
 ## 7. Python training pipeline (build-time only)
 

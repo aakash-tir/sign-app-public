@@ -144,16 +144,22 @@ def extract_dataset(
     window: int = WINDOW_SIZE,
     max_frames: int = 64,
 ) -> tuple[
-    FloatArray, npt.NDArray[np.int64], npt.NDArray[np.str_], list[str]
+    FloatArray,
+    npt.NDArray[np.int64],
+    npt.NDArray[np.str_],
+    npt.NDArray[np.str_],
+    list[str],
 ]:  # pragma: no cover - real-data path
     """Extract all clips → ``(N, window, F)`` features, ``(N,)`` labels, ``(N,)``
-    splits, and the sorted gloss vocabulary."""
+    splits, ``(N,)`` signer ids (``""`` when unknown), and the sorted gloss
+    vocabulary. The signer column enables signer-disjoint evaluation (ADR-019)."""
     glosses = sorted({c.gloss for c in clips})
     gloss_to_index = {g: i for i, g in enumerate(glosses)}
 
     features: list[FloatArray] = []
     targets: list[int] = []
     splits: list[str] = []
+    signers: list[str] = []
     for n, clip in enumerate(clips, start=1):
         video_path = videos_dir / f"{clip.video_id}.mp4"
         if not video_path.exists():
@@ -161,9 +167,11 @@ def extract_dataset(
         features.append(extract_clip(video_path, model_asset_path, window, max_frames))
         targets.append(gloss_to_index[clip.gloss])
         splits.append(clip.split)
+        signers.append(clip.signer_id or "")
         print(f"  [{n}/{len(clips)}] {clip.gloss} ({clip.video_id})", flush=True)
 
     x = np.asarray(features, dtype=np.float64)
     y = np.asarray(targets, dtype=np.int64)
     s = np.asarray(splits, dtype=np.str_)
-    return x, y, s, glosses
+    sig = np.asarray(signers, dtype=np.str_)
+    return x, y, s, sig, glosses

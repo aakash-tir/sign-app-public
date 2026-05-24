@@ -13,6 +13,7 @@ reads the GRU's last-timestep output.
 from __future__ import annotations
 
 import copy
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
@@ -97,13 +98,52 @@ def augment_sequences(
 
 def stratified_folds(y: IntArray, k: int, seed: int = 42) -> list[BoolArray]:
     """Assign each sample to one of ``k`` folds, balanced per class. Returns a
-    per-fold boolean test mask (every sample is in exactly one fold)."""
+    per-fold boolean test mask (every sample is in exactly one fold).
+
+    NB: this splits **clips**, so a signer can land in both train and test —
+    which inflates held-out accuracy. Prefer :func:`signer_folds` for the gate
+    (ADR-019); this is kept for comparison/reporting only.
+    """
     rng = np.random.default_rng(seed)
     fold_id = np.empty(len(y), dtype=np.int64)
     for cls in np.unique(y):
         idx = np.where(y == cls)[0]
         rng.shuffle(idx)
         fold_id[idx] = np.arange(len(idx)) % k
+    return [fold_id == f for f in range(k)]
+
+
+def signer_folds(
+    signer_ids: Sequence[str | None], k: int, seed: int = 42
+) -> list[BoolArray]:
+    """Assign whole **signers** to ``k`` folds; return a per-fold boolean test mask
+    over samples. A sample's fold is its signer's fold, so **no signer's clips ever
+    straddle folds** — the leakage that makes stratified-clip CV overstate real
+    accuracy (ADR-019). This is the honest gate.
+
+    Signers are balanced across folds by **sample count** (greedy, largest group
+    first → emptiest fold), so folds stay comparable in size. A sample with an
+    unknown signer (``None`` or ``""``) forms its **own singleton group**, so it
+    distributes without creating leakage. Deterministic for a given ``seed``.
+    """
+    n = len(signer_ids)
+    groups: dict[str, list[int]] = {}
+    for i, sid in enumerate(signer_ids):
+        key = sid if sid else f"__unknown_{i}"
+        groups.setdefault(key, []).append(i)
+
+    rng = np.random.default_rng(seed)
+    keys = list(groups)
+    keys = [keys[i] for i in rng.permutation(len(keys))]  # seeded tie-break
+    keys.sort(key=lambda key: len(groups[key]), reverse=True)  # largest first
+
+    fold_sizes = [0] * k
+    fold_id = np.full(n, -1, dtype=np.int64)
+    for key in keys:
+        f = int(np.argmin(fold_sizes))
+        for i in groups[key]:
+            fold_id[i] = f
+        fold_sizes[f] += len(groups[key])
     return [fold_id == f for f in range(k)]
 
 
@@ -227,10 +267,15 @@ def cross_validate(
     lr: float = 1e-3,
     patience: int = 20,
     val_frac: float = 0.15,
+    signer_ids: Sequence[str | None] | None = None,
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
-    """Stratified k-fold CV → a trustworthy aggregate + per-gloss top-1, since the
-    native WLASL test split is ~1 clip/gloss. Each sample is predicted exactly once
-    (in its held-out fold); per-gloss top-1 pools those predictions."""
+    """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
+    test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
+    held-out fold); per-gloss top-1 pools those predictions.
+
+    When ``signer_ids`` is given, folds are **signer-disjoint** (the honest gate,
+    ADR-019); otherwise they fall back to stratified-clip folds (reporting only).
+    """
     import torch
     from torch import nn
 
@@ -240,10 +285,17 @@ def cross_validate(
     n_classes = len(glosses)
     top5 = min(5, n_classes)
 
+    if signer_ids is not None:
+        fold_masks = signer_folds(signer_ids, folds, seed)
+        fold_kind = "signer-disjoint"
+    else:
+        fold_masks = stratified_folds(y, folds, seed)
+        fold_kind = "stratified"
+
     correct1 = np.zeros(len(y), dtype=bool)
     correct5 = np.zeros(len(y), dtype=bool)
 
-    for fold, test_mask in enumerate(stratified_folds(y, folds, seed)):
+    for fold, test_mask in enumerate(fold_masks):
         rng = np.random.default_rng(seed + fold)
         pool = np.where(~test_mask)[0]
         rng.shuffle(pool)
@@ -300,6 +352,7 @@ def cross_validate(
     return {
         "cv_top1": float(correct1.mean()),
         "cv_top5": float(correct5.mean()),
+        "fold_kind": fold_kind,
         "folds": folds,
         "n_samples": int(len(y)),
         "per_gloss": per_gloss,

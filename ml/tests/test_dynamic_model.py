@@ -10,6 +10,7 @@ from sign_ml.dynamic_export import build_metadata
 from sign_ml.dynamic_model import (
     augment_sequences,
     resolve_splits,
+    signer_folds,
     stratified_folds,
     top_k_accuracy,
 )
@@ -109,6 +110,47 @@ def test_stratified_folds_partition_and_balance() -> None:
     # each class is split across both folds
     for cls in (0, 1):
         assert masks[0][y == cls].any() and masks[1][y == cls].any()
+
+
+def test_signer_folds_partition_and_no_leakage() -> None:
+    signers = ["a", "a", "a", "b", "b", "c", "c", "d", "d", "e", "f", "g"]
+    masks = signer_folds(signers, 3, seed=0)
+    assert len(masks) == 3
+    stacked = np.stack(masks)
+    assert np.all(stacked.sum(axis=0) == 1)  # each sample in exactly one fold
+    assert int(stacked.sum()) == len(signers)
+    # the leakage guard: every signer's clips land in exactly one fold
+    fold_of = np.argmax(stacked, axis=0)
+    for sid in set(signers):
+        folds_used = {int(fold_of[i]) for i, s in enumerate(signers) if s == sid}
+        assert len(folds_used) == 1
+
+
+def test_signer_folds_handles_unknown_signers() -> None:
+    signers: list[str | None] = ["a", "a", None, "", "b", None]
+    masks = signer_folds(signers, 2, seed=1)
+    stacked = np.stack(masks)
+    assert np.all(stacked.sum(axis=0) == 1)  # unknowns still partition cleanly
+    assert int(stacked.sum()) == len(signers)
+    # the known signer "a" is not split across folds
+    fold_of = np.argmax(stacked, axis=0)
+    assert fold_of[0] == fold_of[1]
+
+
+def test_signer_folds_balances_by_sample_count() -> None:
+    # one big signer + singletons: greedy balancing keeps fold sizes comparable
+    signers = ["big"] * 6 + [f"s{i}" for i in range(6)]
+    masks = signer_folds(signers, 3, seed=0)
+    sizes = sorted(int(m.sum()) for m in masks)
+    assert sizes[-1] - sizes[0] <= 3
+
+
+def test_signer_folds_deterministic_with_seed() -> None:
+    signers = ["a", "b", "c", "a", "b", "c", "d", "e", "f"]
+    a = signer_folds(signers, 3, seed=5)
+    b = signer_folds(signers, 3, seed=5)
+    for ma, mb in zip(a, b, strict=True):
+        np.testing.assert_array_equal(ma, mb)
 
 
 def test_build_metadata_carries_skew_guard() -> None:

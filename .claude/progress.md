@@ -22,9 +22,17 @@ is in [`docs/milestones.md`](docs/milestones.md).
 - **Baseline verified for Phase 3 (2026-05-24):** `main` clean + green (frontend
   lint/tsc/vitest, ml ruff/mypy/pytest); deployed app shell + SPA routes + 24-label
   model + reference clips all 200. No open PRs/branches.
-- **Only future work parked (owner action): P2M5c — download MS-ASL** for more
-  clips-per-sign → real dynamic-sign accuracy; the ingest layer is ready via a small
-  `MsaslAdapter` (ADR-016).
+- **🚧 Phase 3 (accuracy & vocabulary depth) kicked off** — plan in
+  [`docs/phase3.md`](docs/phase3.md) (P3M1 honest eval · P3M2 reviewed-dataset
+  expansion toward ~50 signs · P3M3 landmark-space augmentation); ADR-019/020 +
+  Q6–Q9 recorded. **P3M1 ◐ (branch `milestone/P3M1-honest-eval`):** signer-disjoint
+  CV is now the ship gate (`signer_folds`, `cross_validate(signer_ids=…)`, extract
+  caches `signers.npy`); honest baseline on the starter-20 set **top-1 0.570 / top-5
+  0.922** vs stratified 0.622 / 0.953 (leakage ≈ +5 pts) — recognition.md §6.3.
+  Real-camera holdout deferred (no clips yet, ADR-019). +4 pytest (62); ml gates green.
+- **Future data work (P2M5c → folded into P3M2):** download **MS-ASL** + any
+  owner-curated, reviewed datasets for more clips-per-sign → real dynamic-sign
+  accuracy; the ingest layer is ready via a small `MsaslAdapter` (ADR-016).
 - **Phase 2 — P2M3 ✅ merged. (Full UI redesign.)** **P2M3**
   (full UI redesign, plan item #2, FR-16) **merged via
   [PR #15](https://github.com/aakash-tir/sign-app/pull/15)** (squash `1297a6e`):
@@ -117,8 +125,31 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 - ~~Q4 hosting provider~~ ✅ Resolved: Cloudflare Pages (ADR-006, docs/hosting.md).
 - Q5 dynamic vocabulary expansion extent → M6
 
+## Phase 3 checklist (see [`docs/phase3.md`](docs/phase3.md))
+
+| Milestone | Theme | Status | Branch |
+| --- | --- | --- | --- |
+| P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ◐ implemented, awaiting PR | `milestone/P3M1-honest-eval` |
+| P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ☐ planned | — |
+| P3M3 — Expanded landmark-space augmentation | augmentation | ☐ planned | — |
+
 ## Log
 
+- **2026-05-24** — **P3M1: honest signer-disjoint evaluation** (branch
+  `milestone/P3M1-honest-eval`, ADR-019). Made the dynamic ship gate
+  **signer-disjoint** instead of stratified-clip: new pure `signer_folds` (whole
+  signers per fold, greedy-balanced by sample count, unknown signers → singletons,
+  no leakage) + `cross_validate(signer_ids=…)`; `extract_dataset` now also returns a
+  signer column and the CLI caches `signers.npy` and uses it by default (`--stratified`
+  forces the old comparison). Measured the honest baseline on the starter-20 cache
+  (n=193, 36 signers, reconstructed + verified signers aligned to the existing X):
+  **signer-disjoint top-1 0.570 / top-5 0.922** vs stratified **0.622 / 0.953**
+  (leakage ≈ +5 pts); per-gloss in recognition.md §6.3. Under the honest gate
+  good/want/love slip < 0.50 but **we don't re-gate now** (small-n CV is noisy; the
+  shipped model is the 24-gloss set — re-gate lands in P3M2 on more data). Real-camera
+  holdout deferred (no clips yet). +4 pytest (62 total); ruff/mypy/pytest green. Also
+  bundles the Phase-3 plan docs (phase3.md, ADR-019/020, Q6–Q9, output.md analysis).
+  Awaiting commit + PR.
 - **2026-05-23** — **P2M6: tab-hidden camera release** (branch
   `milestone/P2M6-camera-visibility`). `CameraProvider` now listens for
   `visibilitychange`: when the browser tab is hidden it stops the camera tracks

@@ -53,7 +53,7 @@ def run_extract(
 
     selected = select_clips(glosses, clips, available)
     print(f"\nExtracting {len(selected)} clips for {len(glosses)} glosses...")
-    x, y, splits, vocab = extract_dataset(
+    x, y, splits, signers, vocab = extract_dataset(
         selected, data_dir / "videos", model_asset, max_frames=max_frames
     )
 
@@ -61,8 +61,10 @@ def run_extract(
     np.save(cache_dir / "X.npy", x)
     np.save(cache_dir / "y.npy", y)
     np.save(cache_dir / "splits.npy", splits)
+    np.save(cache_dir / "signers.npy", signers)
     (cache_dir / "glosses.json").write_text(json.dumps(vocab), encoding="utf-8")
-    print(f"\nSaved cache -> {cache_dir}  X={x.shape} y={y.shape}")
+    n_signers = len({s for s in signers.tolist() if s})
+    print(f"\nSaved cache -> {cache_dir}  X={x.shape} y={y.shape} signers={n_signers}")
     for split in ("train", "val", "test"):
         print(f"  {split}: {int((splits == split).sum())} samples")
 
@@ -90,19 +92,34 @@ def run_train(cache_dir: Path, seed: int) -> None:  # pragma: no cover - heavy p
 
 
 def run_crossval(
-    cache_dir: Path, seed: int, folds: int
+    cache_dir: Path, seed: int, folds: int, stratified: bool = False
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_model import cross_validate
 
     x = np.load(cache_dir / "X.npy")
     y = np.load(cache_dir / "y.npy")
     glosses: list[str] = json.loads((cache_dir / "glosses.json").read_text())
-    report = cross_validate(x, y, glosses, folds=folds, seed=seed)
+
+    # Signer-disjoint is the honest gate (ADR-019); use it whenever the cache has
+    # signer ids, unless --stratified is passed for a side-by-side comparison.
+    signers_path = cache_dir / "signers.npy"
+    signer_ids: list[str] | None = None
+    if signers_path.exists() and not stratified:
+        signer_ids = [str(s) for s in np.load(signers_path).tolist()]
+    elif not stratified:
+        print(
+            "WARN: no signers.npy — falling back to stratified CV (re-extract to gate)"
+        )
+
+    report = cross_validate(
+        x, y, glosses, folds=folds, seed=seed, signer_ids=signer_ids
+    )
     (cache_dir / "cv_metrics.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )
     print(
-        f"CV top-1 {report['cv_top1']:.3f} | top-5 {report['cv_top5']:.3f} "
+        f"CV [{report['fold_kind']}] "
+        f"top-1 {report['cv_top1']:.3f} | top-5 {report['cv_top5']:.3f} "
         f"({report['folds']}-fold, n={report['n_samples']})"
     )
     ranked = sorted(report["per_gloss"].items(), key=lambda kv: kv[1]["top1"])
@@ -125,10 +142,17 @@ def main() -> None:  # pragma: no cover - CLI
     tr.add_argument("--cache", type=Path, default=CACHE_DIR)
     tr.add_argument("--seed", type=int, default=42)
 
-    cv = sub.add_parser("crossval", help="k-fold CV for trustworthy accuracy")
+    cv = sub.add_parser(
+        "crossval", help="signer-disjoint k-fold CV (the honest ship gate, ADR-019)"
+    )
     cv.add_argument("--cache", type=Path, default=CACHE_DIR)
     cv.add_argument("--seed", type=int, default=42)
     cv.add_argument("--folds", type=int, default=5)
+    cv.add_argument(
+        "--stratified",
+        action="store_true",
+        help="force stratified-clip folds (comparison only; overstates accuracy)",
+    )
 
     args = parser.parse_args()
     if args.stage == "extract":
@@ -140,7 +164,7 @@ def main() -> None:  # pragma: no cover - CLI
             glosses=list(VOCABS[args.vocab]),
         )
     elif args.stage == "crossval":
-        run_crossval(args.cache, args.seed, args.folds)
+        run_crossval(args.cache, args.seed, args.folds, stratified=args.stratified)
     else:
         run_train(args.cache, args.seed)
 

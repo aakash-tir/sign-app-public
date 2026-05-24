@@ -328,6 +328,63 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   persists so no re-prompt). Auto-resume across full reloads is still intentionally
   not done (no auto camera-on at app launch).
 
+## ADR-019 — Accuracy gated on signer-disjoint splits (real-camera holdout optional)
+
+- **Status:** accepted (owner, 2026-05-24). Phase 3 / P3M1. Refines ADR-007's
+  accuracy-gating posture.
+- **Context:** The dynamic ship gate runs on **stratified k-fold CV**
+  (`stratified_folds` / `cross_validate` in `dynamic_model.py`), which splits
+  **clips** — so the same signer lands in both train and test and **inflates**
+  held-out accuracy (the headline ≈62% top-1 / ≈95% top-5). P2M5a already built the
+  fix, `assign_signer_disjoint_splits` (`ingest.py`), but it is used only for
+  *reporting*, not for *gating*. A separate question is **real-camera domain shift**
+  (dataset conditions → the user's actual webcam), which no held-out dataset clip can
+  fully capture.
+- **Decision:** Make **signer-disjoint splits the default evaluation and the per-gloss
+  ship gate** (not stratified-clip CV) — i.e. hold out **whole signers' clips** for
+  testing, never random clips (random holdout re-introduces the leakage). Once MS-ASL
+  is in, **prefer held-out MS-ASL signers** as the most realistic proxy — YouTube "in
+  the wild" footage is closer to real use than WLASL's studio-ish clips. A
+  **real-camera holdout** (self-recorded clips) is the *ideal* domain-shift check but
+  is **optional and deferred** — the owner can't record clips yet, so it is **not
+  required to ship** Phase 3. If/when clips exist, a harness scores them through the
+  same `dynamic_extract` + frozen `dynamicNormalization` (`pose-shoulder-hands-v1`,
+  161-d) and **skips cleanly when none are present**. Stratified CV is retained for
+  comparison/reporting only.
+- **Consequences:** The honest gate number will read **lower** than the stratified
+  figure — that is the point; it predicts real use better. **Supersedes stratified-clip
+  CV as the gate.** Because the gate is dataset-held-out (not the user's camera) it
+  remains an **optimistic ceiling** for live accuracy; the optional real-camera
+  holdout, added later, is what would close that uncertainty. Lands in **P3M1**; the
+  new (lower) baseline is documented in [`recognition.md`](recognition.md) §6 and
+  becomes the Phase-3 starting line.
+
+## ADR-020 — Data augmentation in landmark space, not pixel/video space
+
+- **Status:** accepted (owner, 2026-05-24). Phase 3 / P3M3. Refines ADR-002/ADR-013
+  (landmark-based recognition).
+- **Context:** The Phase-3 plan proposed *"apply modifiers like blur"* to the data.
+  But recognition is **landmark-based**: MediaPipe extracts landmarks and
+  `dynamicNormalization` removes scale/position, so **pixel-space augmentation
+  (blur/brightness/color) is nearly invisible to the model** — and heavy blur actually
+  *degrades* MediaPipe detection (uncontrolled landmark noise) while costing a full
+  re-extraction per augmented video. The model **already** augments in landmark space:
+  `augment_sequences` (`dynamic_model.py`) applies spatial noise (σ=0.01), random scale
+  (0.9–1.1), and whole-frame dropout (0.1), preserving the trailing presence flags.
+- **Decision:** Apply **all augmentation in landmark space** by extending
+  `augment_sequences` — **temporal warp/resample, window/time-shift jitter, per-landmark
+  dropout & jitter, small planar rotation, and handedness-aware horizontal mirroring**
+  (mirroring must **swap the left/right hand feature blocks**, not merely negate x, and
+  is gated behind a **per-gloss `handedness_agnostic` flag**, default off). **Pixel/video
+  modifiers such as blur are explicitly out of scope.** Augmentation stays **train-time
+  only**; the frozen normalization spec and golden vectors are untouched, and the
+  presence flags (last two features) are preserved.
+- **Consequences:** Cheaper (no video re-processing), controlled, and applied where the
+  model can actually see it. Each modifier is **accepted/rejected on the ADR-019
+  signer-disjoint gate** (and the real-camera holdout if/when it exists), not on
+  stratified CV — augmentation that only helps stratified CV is rejected. Lands in
+  **P3M3**; results documented in [`recognition.md`](recognition.md) §6.
+
 ---
 
 ## Open questions (non-blocking, revisit at the noted milestone)
@@ -338,4 +395,8 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 | ~~Q2~~ | ~~"good enough" proficiency threshold to unlock sentence usage~~ | ✅ **Resolved:** sentence-eligible once `confident`; beginner sentences need ≥20 confident words (ADR-009). | done |
 | ~~Q3~~ | ~~Mapping of signs → levels~~ | ✅ **Resolved:** level *behavior* fixed (ADR-009); concrete vocab lists are M5 content work. | done |
 | ~~Q4~~ | ~~Final **hosting** provider (ADR-006).~~ | ✅ **Resolved:** Cloudflare Pages (ADR-006, [`hosting.md`](hosting.md)). | done |
-| ~~Q5~~ | ~~Should dynamic-sign vocabulary expand past the curated starter, and how far?~~ | ✅ **Resolved (2026-05-21):** stay at the **curated 20-sign starter** for now — accuracy is data-limited for these signs (≈193 local clips; the rest are WLASL link-rot) and expanding to WLASL100 would lower per-class accuracy. Expansion deferred until more data is available; M6.4 documents accuracy via cross-validation and gates the ship list. | done |
+| ~~Q5~~ | ~~Should dynamic-sign vocabulary expand past the curated starter, and how far?~~ | ✅ **Resolved (2026-05-21):** stay at the **curated 20-sign starter** for now — accuracy is data-limited for these signs (≈193 local clips; the rest are WLASL link-rot) and expanding to WLASL100 would lower per-class accuracy. Expansion deferred until more data is available; M6.4 documents accuracy via cross-validation and gates the ship list. *(Phase 3 now does the expansion — Q6.)* | done |
+| ~~Q6~~ | ~~Phase-3 vocabulary policy + size~~ | ✅ **Resolved (2026-05-24):** let the **data floor pick** the ~50 (the Phase-3 target); broader expansion toward most everyday signs comes **later**, accuracy-gated. See [`phase3.md`](phase3.md). | done |
+| ~~Q7~~ | ~~Per-gloss **data floor** for Phase-3 expansion~~ | ✅ **Resolved (2026-05-24):** eligible at **≥ 12 clips / ≥ 5 signers**; preferred **≥ 20 / ≥ 8**; the **signer-disjoint top-1 ≥ 0.50** gate (ADR-019) is the final arbiter. | done |
+| ~~Q8~~ | ~~Record a **real-camera holdout** to make Phase 3 measurable?~~ | ✅ **Resolved (2026-05-24):** **deferred** — owner can't record clips yet. The **signer-disjoint dataset holdout** is the gate (free, no recording); a real-camera holdout is optional and can be added later (ADR-019). | done |
+| ~~Q9~~ | ~~Handedness-agnostic **mirroring** flags — author now or defer?~~ | ✅ **Resolved (2026-05-24):** defer; mirroring ships off by default, per-gloss flags authored incrementally as it's enabled (P3M3, ADR-020). | done |

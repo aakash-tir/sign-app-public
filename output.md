@@ -1,256 +1,210 @@
-# Feedback on the Phase 2 Plan
+# Feedback on the Phase 3 Plan
 
-My thoughts on each section of [`plan.md`](plan.md), informed by the current
-codebase (M0–M7) and your screenshots. TL;DR: the priorities are sound and several
-items are cheaper than they look — but a couple rest on assumptions worth
-correcting before you build.
-
----
-
-## Overall
-
-- **Good instinct:** Phase 2 is mostly about *depth and polish* (more data,
-  in-app learning, better UX) rather than new features. That's the right thing to
-  do before widening scope.
-- **Mixed concerns:** the five items span four very different disciplines — ML data
-  pipeline (#1), UX/visual design (#2, #3), content/licensing (#4), and rendering
-  (#5). Treat each as its own milestone/branch/PR under the existing green-gates
-  workflow, not one big push.
-- **Suggested order:** **#5 → #3 → #2 → #4 → #1.** Start with the cheap, isolated
-  wins (#5 is pure rendering; #3 is a focused refactor), then the UI redesign (#2)
-  which #4's teaching media will plug into, and finish with #1 (the largest, riskiest,
-  and the one most likely to spawn sub-milestones). The one argument for doing #1
-  *first* is that it's foundational — but it won't block the others, so front-load
-  momentum instead.
+My thoughts on [`plan.md`](plan.md)'s Phase 3, grounded in the current codebase
+(M0–M7 + Phase 2 shipped: 20 dynamic signs, 24 letters, GRU→ONNX runtime). TL;DR:
+the *goal* is right, but two of the three items rest on the same misconception that
+"more raw footage = more accuracy," and one of them (open-web scraping) is the
+highest-effort, highest-risk, lowest-yield path on the list. The single biggest
+lever isn't the number of signs — it's **clips-per-sign × signer diversity**, plus
+**an honest way to measure real-camera accuracy.** This supersedes the Phase 2
+feedback that used to live here (preserved in `.claude/docs/phase2.md`).
 
 ---
 
-## 1. Expand the dataset (with a normalization layer first)
+## Overall — name the tension before building
 
-**Verdict: right priority, but disentangle two different "normalizations."**
+The goal is *"improve accuracy AND grow to 50 signs."* Those two pull **against**
+each other unless data grows faster than vocabulary:
 
-Doing the normalization layer before adding data is exactly correct. The catch is
-that "normalization" means two separate things here, and the plan blurs them:
+- Today the dynamic model trains on **~193 clips across 20 glosses ≈ 10 clips/sign**,
+  from ~36 signers. That is *tiny*. 5-fold CV reads **~62% top-1 / ~95% top-5**, and
+  our own notes flag that even this **overstates** real-camera accuracy because of
+  shared-signer leakage (the reason P2M5a built `assign_signer_disjoint_splits`).
+- Going to **50 signs at the same ~10 clips/sign will lower accuracy, not raise it** —
+  more classes, same thin per-class evidence, small GRU. The headline "50 signs"
+  is a *vocabulary* target; it is **not** an accuracy strategy.
 
-1. **Landmark normalization** — *already exists and is frozen.* See
-   `frontend/src/recognition/normalization.ts` + `dynamicNormalization.ts` and
-   their Python mirrors, locked by golden-vector fixtures (spec id
-   `pose-shoulder-hands-v1`, 161-d frames). This already makes inputs scale-,
-   translation-, and (largely) signer-position-invariant.
-2. **Dataset *ingest* normalization** — *what you're actually describing.* Messy
-   raw sources → one canonical format. This sits **upstream** of landmark
-   extraction.
+So reframe the goal: **"50 signs, each with enough signer-diverse clips to clear the
+gate."** Set a concrete data floor per gloss (e.g. **≥ 15–20 clips from ≥ 8 distinct
+signers**) and let the 50 be *whichever glosses meet that floor* across combined
+sources — not a hand-picked 50 we then scrape to fill. Data availability picks the
+vocabulary, not the other way around.
 
-> **Important correction:** because the model trains on *landmarks*, raw image
-> **size/resolution barely matters** — MediaPipe extracts landmarks at any input
-> size and our normalization removes scale. So "make everything one size" is the
-> wrong axis to standardize on. The things that *actually* cause train/serve skew
-> across datasets are:
-> - **Label/vocabulary harmonization** — different sources name the same gloss
->   differently. You need one canonical vocab + a per-source mapping.
-> - **Signer-disjoint splits** — your own progress notes flag shared-signer
->   leakage as why held-out accuracy (≈99.5% static, ≈62% dynamic CV) overstates
->   real-camera accuracy. Mixing datasets makes this *worse* unless splits are
->   enforced by signer/source.
-> - **Dynamic clip length & fps** — for word-level signs, the frame-window
->   contract (30 frames) is the real "one size," not pixels.
-> - **Handedness** — left/right normalization must be consistent.
-
-**Concrete suggestion:** formalize a `DatasetAdapter` contract (you already have the
-pattern in `ml/src/sign_ml/.../wlasl.py`). Each new source implements
-`raw → (canonical_label, landmark_frames, signer_id, split)`. The "one size /
-restrictions" you want is best expressed as that **output contract** (fixed landmark
-dimensionality + fixed window length + canonical label set), not an image dimension.
-Reuse the golden-vector fixtures as the regression guard so "make sure it works for
-the current setup first" is an actual passing test, not a vibe.
-
-**Candidate sources (you provided):**
-
-- [`yayayru/sign-language-datasets`](https://github.com/yayayru/sign-lanuage-datasets)
-  and the [`sign-language-datasets` GitHub topic](https://github.com/topics/sign-language-datasets)
-  — these are **discovery indexes**, not datasets. Each dataset they point to has its
-  own license to vet individually before use.
-- **MS-ASL** (Microsoft) — ~1000 signs / ~25k clips. Licensing checked below; it's
-  cleared for training. Note it ships as **YouTube URLs + time segments**, not video
-  files, so expect significant **link rot** (clips deleted/privated over the years) —
-  the realized dataset will be smaller than the headline numbers.
-
-### MS-ASL licensing — ✅ cleared for training (you may use it)
-
-You confirmed MS-ASL will be used **only to train the model**, with **no outside
-videos shipped in the app**. That is squarely permitted:
-
-- MS-ASL is released under the **Computational Use of Data Agreement (C-UDA v1.0)**.
-- **"Computational Use"** = *"activities necessary to enable the use of Data … for
-  analysis by a computer."* **Training an AI/ML model qualifies** — this is the exact
-  scenario C-UDA was written for.
-- **Your trained model is a "Result," not Data.** The license states: *"Artificial
-  intelligence models trained on Data (and which do not include more than a de minimis
-  portion of Data) are Results,"* and *"the C-UDA does not impose any restriction with
-  respect to the use, modification, or distribution of Results."* → **you can ship the
-  model freely**, including in a public/free app.
-- **What C-UDA does *not* grant:** the right to redistribute the **source Data** (the
-  videos) — those carry separate third-party (YouTube) copyright. You already plan
-  training-only, so this restriction never bites. The only obligation that *would*
-  apply — maintaining attribution and binding downstream recipients to C-UDA — is
-  triggered only if you **redistribute the Data**, which you won't.
-
-**Bottom line:** train on MS-ASL ✅, ship the model ✅, ship MS-ASL videos/frames ❌
-(you don't intend to). *Caveat: this is an informed reading, not legal advice — for a
-commercial launch, a quick counsel review is cheap insurance, but C-UDA is purpose-built
-for exactly this use.* Sources:
-[C-UDA project](https://github.com/microsoft/Computational-Use-of-Data-Agreement) ·
-[C-UDA v1.0 text](https://cdla.dev/computational-use-of-data-agreement-v1-0/) ·
-[MS-ASL project](https://www.microsoft.com/en-us/research/project/ms-asl/) ·
-[MS-ASL download](https://www.microsoft.com/en-us/download/details.aspx?id=100121).
+**Suggested order: fix measurement → MS-ASL → landmark augmentation → (maybe)
+curated extra sources. Open-web scraping last, if at all.** Cheap/foundational and
+high-confidence first; risky/low-yield last — same discipline as Phase 1/2.
 
 ---
 
-## 2. Redesign the UI
+## 0. (New, do first) Make accuracy *measurable* before chasing it
 
-**Verdict: agreed, and the diagnosis can be sharpened.**
+You can't improve what you can't trust. Right now the gate is a **per-gloss top-1
+≥ 0.50 in stratified 5-fold CV** (`cross_validate` / `stratified_folds` in
+`dynamic_model.py`) — but stratified folds split *clips*, so the same signer lands in
+train and test and inflates the number. We already built the fix and only use it for
+reporting, not gating.
 
-Looking at `app1.png` / `app2.png`, the dark navy background itself is fine and
-modern — the problems are more specific than "blue screen":
+**Concrete:**
+- Make **signer-disjoint** (`assign_signer_disjoint_splits`, `ingest.py`) the
+  *default* evaluation and the *gate*, not stratified-clip CV. Expect the honest
+  number to be **lower** than 62% — that's the point; it's the one that predicts
+  real use.
+- Stand up a small **real-camera holdout**: a handful of self-recorded clips per
+  sign (you, on the actual app camera) that **never** enter training. This is the
+  only metric that catches domain shift directly. Even 3–5 clips/sign is enough to
+  see whether each change helps reality or just helps CV.
+- Until this exists, every "accuracy went up" claim in Phase 3 is unfalsifiable.
 
-- **Contrast failure:** buttons are pale-gray fills with washed-out text (the
-  level toggles, the A–Y grid, "Enable camera"/"Skip"). This likely fails WCAG AA.
-  This is the single biggest "looks unfinished" signal.
-- **No hierarchy / dead space:** everything is centre-aligned in one column with
-  large vertical gaps and no cards or grouping. The Learn screen is ~60% empty.
-- **The empty camera box reads as broken:** when the camera is off, `app2.png`
-  shows a large black rectangle with no placeholder — it looks like an error, not
-  a "press Enable camera" affordance.
-
-**Concrete suggestions:**
-
-- Introduce a tiny **design-token layer** (CSS variables for color/spacing/radius)
-  and a consistent button system (primary/secondary/ghost + visible focus states).
-- Give the camera area a **placeholder state** (icon + one-line CTA) instead of a
-  void.
-- **Caution:** you're already fighting bundle size (main chunk 416 kB, M7 fought to
-  code-split). Don't pull in a heavy component library — prefer hand-rolled CSS or a
-  near-zero-runtime approach so you don't regress the offline/PWA goals.
-- Define **"done" criteria** up front (contrast ratios, mobile breakpoints) since a
-  redesign is hard to gate automatically — and keep the Playwright tests green
-  through it.
+This is a pure-`ml/` milestone, no app changes, and it's the prerequisite that makes
+items 1–3 honest.
 
 ---
 
-## 3. Fix camera re-permission on tab switch
+## 1. MS-ASL download → retrain — ✅ green-light, highest leverage
 
-**Verdict: real pain, but the stated cause is slightly off — which changes the fix.**
+This is the right first *data* move and the most leverage per unit risk:
 
-The browser **already persists the camera *permission* per origin** — the OS won't
-re-prompt once granted. What's actually happening: per the frontend rule "always
-release the camera (`.stop()`) on unmount," each view tears down its `MediaStream`
-and shows its own "Enable camera" button, so *you* are re-acquiring the stream (and
-making the user re-click) on every tab switch — not the browser re-asking.
+- **Licensing is already cleared** — C-UDA, training-only, ship the model not the
+  videos (ADR-016; the full reading is in the old Phase 2 analysis). No new legal
+  work.
+- **The ingest layer is built and proven** — `CanonicalSample`, `DatasetAdapter`
+  protocol, `canonical_label` + synonyms, `assign_signer_disjoint_splits`, coverage
+  reporting. A new source = one small `MsaslAdapter` implementing
+  `raw → (canonical_label, landmark_frames, signer_id, split)`.
 
-So "the camera does not remove data from the local device" is true but beside the
-point; nothing is stored either way. The friction is the manual re-enable + camera
-re-acquire.
-
-**Concrete suggestions:**
-
-- **Hoist the camera to one app-level provider/context** that owns a single shared
-  `MediaStream` and a global on/off toggle, instead of each mode owning its own.
-  Views *subscribe* to the shared stream.
-- Persist the user's "camera on" preference and **auto-start when permission is
-  already granted** (`navigator.permissions.query({ name: 'camera' })`).
-- Keep the **one-time privacy explainer** ("video never leaves your device") — it
-  reinforces the on-device value prop and is genuinely reassuring.
-- **Tension to resolve (worth an ADR):** this contradicts the current "release on
-  unmount" rule. Compromise: release on the **`visibilitychange`/tab-hidden** and
-  app-unload events (saves battery + the privacy LED), and re-acquire silently on
-  return — permission persists, so no re-prompt. Still expose a manual disable.
-
----
-
-## 4. Teach signs in-app (no external sites)
-
-**Verdict: strongly agree — and it's actually an *offline correctness bug*, not just polish.**
-
-Today `content/signReference.ts` links out to signasl.org. That doesn't just "feel"
-wrong — it **breaks the offline guarantee M7 was built to deliver** (external links
-fail with no network). So this aligns with a core product promise, not a nice-to-have.
-
-The hard part is **content + licensing, not code.** Copyright-free ASL imagery is
-genuinely scarce, and the WLASL videos you trained on carry their own license terms —
-don't slice frames out of them as "teaching images" without checking redistribution
-rights (this is exactly the kind of dataset-license item the workflow rules say to
-stop and verify).
-
-**Confirmed approach — render from landmark data** (you said yes to this):
-
-- You already *have* landmark sequences for every sign in the training set. Render
-  teaching visuals **from those landmarks** (a canonical hand/pose drawing, animated
-  for dynamic signs, stills-with-arrows for static).
-- This **sidesteps copyright entirely** (it's your own generated art), **works
-  offline**, and is **visually consistent with the live tracker** the user sees —
-  so the "target" and their "attempt" look like the same thing.
-- For static letters specifically, this is easy; for dynamic signs, animated
-  landmark playback solves the "images can't show motion" problem that otherwise
-  forces you toward hard-to-find videos.
-
-**One clean-room caution:** prefer rendering teaching media from landmarks you
-**fully control** — your own captured signs, or idealized poses you author — rather
-than from MS-ASL-derived landmarks. Landmark animations are *arguably* "Results"
-under C-UDA, but authoring your own reference poses keeps the teaching content
-unambiguously yours and removes any dependency on a dataset's terms. (This also
-replaces the `signReference.ts` external links, restoring the offline guarantee.)
+**Caveats to plan for:**
+- **Link rot is real.** MS-ASL ships as **YouTube URLs + time segments**, not video
+  files. Years on, many are deleted/private/region-locked. The realized dataset is
+  **much smaller** than the ~25k-clip headline. The download script must tolerate
+  failures and **report realized clips-per-gloss** so we pick vocabulary from what we
+  actually got, not the manifest.
+- **Pick the 50 as an intersection.** Best candidates clear *all* of: enough clips in
+  MS-ASL ∪ WLASL after rot, ≥ 8 signers, pedagogically useful everyday signs, and the
+  honest gate. Start from the 20 we ship, keep the ones that survive the new
+  signer-disjoint gate, then add toward 50 from the data floor — don't demote working
+  signs on a noisier combined CV (the P2M5b lesson).
+- **Namespace signer IDs by source** (`msasl:123`, `wlasl:456`) so the disjoint split
+  never accidentally treats two sources' signers as one, and so a signer who appears
+  in both can't straddle train/test.
+- **Owner action:** the download is large and auth/tooling-gated (`yt-dlp`, possible
+  rate-limiting). Per the workflow rule, this is a "stop and ask the owner to run it"
+  step — I can write the adapter + download script, you run the fetch.
 
 ---
 
-## 5. Per-finger colors in the hand tracker
+## 2. Scrape the internet for ASL videos — ⚠️ reframe hard; this is the trap
 
-**Verdict: nice, cheap, do it — but correct one expectation.**
+I want to push back on this one directly, because it *sounds* like the biggest win
+and is actually the biggest sink. Three problems, in order of severity:
 
-This is the lowest-risk item: it lives entirely in `drawLandmarks.ts` /
-`drawHolistic.ts`, is pure rendering, and needs **no model changes or retraining**.
-MediaPipe's 21 hand landmarks have fixed finger groupings (thumb 1–4, index 5–8,
-middle 9–12, ring 13–16, pinky 17–20; wrist + palm connections), so mapping each
-finger's connections to its own color is straightforward.
+1. **Labeling/segmentation is the killer, not collection.** Random ASL on the web is
+   overwhelmingly **continuous signing** — vlogs, songs, interpreted speech — not
+   isolated citation-form signs. Our model needs *one sign per clip, segmented and
+   glossed*. Turning continuous video into labeled isolated-gloss clips is itself an
+   unsolved research problem (it's a harder version of what our app does). So
+   "scrape 10,000 videos" yields ~0 usable training clips without enormous manual
+   labeling. You'd spend the whole phase annotating.
+2. **Label noise destroys small models.** Even when you *can* label scraped clips,
+   the web mixes regional variants, non-citation forms, errors, and fingerspelling.
+   A 50-class GRU on ~15 clips/sign has no capacity to absorb noisy labels — a few
+   bad clips per gloss can erase the gains from MS-ASL.
+3. **Licensing is genuinely gray here, unlike MS-ASL.** Scraped clips carry
+   all-rights-reserved + platform ToS, *not* C-UDA. The "we only ship the model, a
+   Result" argument is plausible but **untested for arbitrary copyrighted scraped
+   data** (ML-training fair use is still litigated as of early 2026). For a private
+   learning project that never redistributes video the practical risk is low, but
+   this is exactly the "stop and verify dataset license" case in the workflow rules —
+   and it's a real step *down* in license certainty from MS-ASL.
 
-**One correction:** you wrote that coloring fingers will make *recognition*
-differentiate similar signs better. It won't — the model classifies from
-**normalized coordinates, not colors**; the overlay is invisible to it. What
-per-finger color genuinely helps is the **human**: the learner reading their own
-hand, and *you* debugging why two signs get confused. That's still very worth doing —
-just don't expect an accuracy bump from it.
+**Reframe — what actually delivers the diversity you're after:**
+- **Curated, licensed, isolated-sign dictionaries** (the Phase 2 discovery indexes:
+  the `sign-language-datasets` topic, `yayayru/sign-language-datasets`). These are
+  already *isolated, glossed* — vet each one's license individually as you pick it,
+  then drop it behind the same `DatasetAdapter`. Far higher signal than open web.
+- **Capture your own clips.** This is the *most* underrated lever for **real-camera**
+  accuracy: a few volunteers recording each sign on phones/webcams matches the app's
+  actual input distribution and directly attacks domain shift. It's unambiguously
+  yours (no license question), and 5–10 self-captured clips/sign can move the
+  real-camera holdout more than thousands of scraped frames.
 
-**Bonus from your screenshot:** `fi.png` shows long stray lines shooting to the
-corner — those are holistic **pose** connections running toward the body/off-frame.
-Cleaning those up (skip low-visibility pose connections, or clip to frame) is a
-*bigger* clarity win than the colors alone, and fits naturally in the same change.
-
-**Suggestions:** use a colorblind-safe palette, keep the palm/wrist the default
-color as you said, and add a small legend so the mapping is learnable.
+**My recommendation:** demote open-web scraping to *last, optional, and gated by a
+license check per source*. Spend that energy on MS-ASL + curated dictionaries +
+self-capture instead.
 
 ---
 
-## Open questions — resolved
+## 3. Apply blur / modifiers to the data — ⚠️ right idea, wrong layer
 
-- **#1 datasets:** ✅ MS-ASL (training only) + the two discovery lists. MS-ASL is
-  **cleared under C-UDA** (see the licensing block in §1). Remaining sub-task: vet
-  the *individual* datasets surfaced by the discovery lists as you pick them.
-- **#2 direction:** ✅ **full redesign** — "not user-friendly, buttons not always
-  visible." Full discretion to rebuild the visual layer (contrast, hierarchy,
-  component system), keeping the bundle-size and offline constraints in mind.
-- **#4 teaching media:** ✅ **render from landmarks** confirmed — no external source
-  videos shipped in the app.
+This rests on the same misconception the Phase 2 analysis flagged about image size:
+**we do not train on pixels.** MediaPipe extracts landmarks, and
+`dynamicNormalization.ts` (frozen `pose-shoulder-hands-v1`, 161-d) removes scale and
+position. So:
 
-## Execution model (your call, noted)
+- **Pixel-space augmentation (blur, brightness, color jitter) is almost invisible to
+  the model** — it changes the video, MediaPipe re-extracts roughly the same
+  landmarks, normalization erases the rest. Blur can even *hurt*: heavy blur degrades
+  MediaPipe's detection, injecting *uncontrolled* landmark noise, and it's expensive
+  (re-run holistic extraction per augmented video).
+- **The right layer is landmark space — and we already do it.** `augment_sequences`
+  in `dynamic_model.py` applies per-window **spatial noise (σ=0.01), random scale
+  (0.9–1.1), and whole-frame dropout (0.1)** — the last explicitly *"simulates missed
+  detections, which the runtime sees often."* That dropout is the cheap, controlled
+  equivalent of "blurry/bad-camera" robustness, applied where the model can see it.
 
-You'll tackle these **one at a time, each on its own branch with its own
-milestone** — i.e. continue the phase-1 green-gates workflow (next would be
-**M8+**). Each milestone still ships tests and passes all gates before merge.
-Suggested sequence stands: **#5 → #3 → #2 → #4 → #1** (cheap/isolated first,
-biggest/riskiest last).
+**Extend that instead of doing video blur** (cheap, all in `ml/`, no re-extraction):
+- **Temporal warping** — resample the sequence faster/slower; signers vary in speed
+  and the 30-frame window quantizes it. High value.
+- **Per-landmark dropout / jitter** (not just whole-frame) — mimics partial occlusion
+  and single-joint detection failures, common on real cameras.
+- **Small rotations** about the body axis — viewpoint variance.
+- **Horizontal mirroring — with care.** It cheaply doubles data *but* flips
+  handedness, and ASL has dominant-hand conventions, so mirroring changes meaning for
+  some signs. Apply it consistently and only where the gloss is handedness-agnostic,
+  or it becomes label noise. (Worth an explicit decision per gloss.)
 
-## Still worth confirming as each milestone starts
+Net: keep "augmentation" in Phase 3, drop "blur," move it to landmark space, and
+tune/extend the function we already have. Re-check on the **real-camera holdout**, not
+just CV — augmentation that only helps CV is theater.
 
-- **#1:** which specific datasets from the discovery lists make the cut (license +
-  signer-disjoint-split feasibility per source).
-- **#3:** OK to add an ADR superseding the "release camera on unmount" rule with the
-  shared-stream + release-on-tab-hidden model?
+---
+
+## Cross-cutting
+
+- **Model capacity, modestly.** With cleaner/bigger data a BiGRU or a small attention
+  layer may help — but for a 50-class problem **data quality dominates architecture**.
+  Bump capacity only after the data floor is met, and keep the ONNX small (currently
+  **296 KB**) — the offline/PWA bundle budget (M7 fought for it) is a hard constraint.
+- **Static letters: leave alone.** Phase 3 is dynamic-signs. The 24-letter MLP isn't
+  the bottleneck; don't spend cycles there.
+- **Vocabulary is content, gated by data.** Let the realized clips-per-gloss decide
+  which 50 ship, behind the (now signer-disjoint) gate. `SHIPPED_GLOSSES` in
+  `content/dynamicVocab.ts` stays the single source of truth for what the app prompts.
+
+## Suggested Phase 3 milestones (green-gates, one branch/PR each)
+
+- **P3M1 — Honest eval.** Signer-disjoint as the default gate + a self-recorded
+  real-camera holdout harness. (`ml/` only; foundational.)
+- **P3M2 — MS-ASL ingest + retrain.** `MsaslAdapter`, download script (owner runs the
+  fetch), combine with WLASL, retrain, re-gate, grow vocab toward 50 from the data
+  floor.
+- **P3M3 — Landmark-space augmentation v2.** Extend `augment_sequences` (temporal
+  warp, per-landmark dropout, rotation, careful mirroring); validate on the holdout.
+- **P3M4 — (optional) Curated dictionaries + self-capture** to close real-camera
+  domain shift; open-web scraping only here, per-source license-gated, if pursued.
+
+## Owner / "stop and ask" items (workflow rule)
+
+- **MS-ASL fetch** — large, `yt-dlp`-based, expect link rot; you run it, I script it.
+- **Self-capture / volunteer clips** — needs you + people to record on real cameras.
+- **Each scraped/curated source** — license must be vetted *before* it's used; for
+  anything outside C-UDA-cleared MS-ASL, I stop and confirm with you per source.
+
+## Open questions to settle before P3M2
+
+- **Vocabulary policy:** fix a target list of 50 and fill it, or let the data floor
+  pick the 50? (I recommend the latter.)
+- **Data floor:** what minimum clips/signers per gloss is "good enough to ship"?
+- **Mirroring:** OK to author a per-gloss handedness-agnostic flag so we can safely
+  double data on the eligible ones?
+- **Real-camera holdout:** are you up for recording a small fixed holdout set — the
+  one investment that makes all of Phase 3 measurable?
