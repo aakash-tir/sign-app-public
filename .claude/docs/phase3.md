@@ -29,7 +29,7 @@ One milestone is **added ahead of both**: before chasing accuracy we must be abl
 | Milestone | Theme | Status |
 | --- | --- | --- |
 | **P3M1** | Honest accuracy measurement — signer-disjoint gate (real-camera holdout optional/deferred) | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) |
-| **P3M2** | MS-ASL ingest + retrain → grow dynamic vocabulary toward ~50 signs | ◐ part 1 (ingest) merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (retrain) **owner-gated** on MS-ASL fetch |
+| **P3M2** | MS-ASL ingest + retrain → grow dynamic vocabulary toward ~50 signs | ☑ part 1 (ingest) merged [#22](https://github.com/aakash-tir/sign-app/pull/22); **part 2 (MS-ASL fetch + combined retrain + honest re-gate) done** on `milestone/P3M2-download-hardening` ([PR #24](https://github.com/aakash-tir/sign-app/pull/24)) — 24-gloss model, honest CV **0.719** (+15 pts), shipped 20. ~50 needs a further download pass |
 | **P3M3** | Expanded landmark-space augmentation (the "modifiers") | ☑ merged [#23](https://github.com/aakash-tir/sign-app/pull/23) (toolkit; tuning deferred to P3M2 data) |
 
 > **P3M1 baseline measured (2026-05-24):** starter-20 signer-disjoint **top-1 0.570 /
@@ -330,9 +330,33 @@ and the data floor.
 > writes a realized-coverage report (`--extra msasl`, needs ffmpeg). +6 pytest (68),
 > all ml gates green. The download default targets our current 24 glosses (adds
 > signer diversity to existing signs); broaden via `--glosses` once we pick the ~50.
-> **Next (owner):** `uv sync --extra msasl`, place MS-ASL annotation JSON in
-> `data/msasl/`, run `python -m sign_ml.msasl_download` → then I wire the combined
-> extract + retrain + signer-disjoint re-gate.
+>
+> **Download hardened + fetched (2026-05-28, branch `milestone/P3M2-download-hardening`,
+> 2 local commits, unpushed/no PR):** the first bulk run was throttled by YouTube
+> bot-detection, so `msasl_download.py` gained **browser-cookie auth** + a `--cookies`
+> Netscape-file flag (Windows/Chromium App-Bound-Encryption workaround), jittered
+> `--sleep`, a container-agnostic `FORMAT` (accept webm/m4v, transcode at merge), and
+> **multi-client extraction** (`player_client = web/mweb/android/ios`). Live read
+> 2026-05-28: **22/24 expanded glosses populated, 792/1195 clips (66.3%)**, ~20–31
+> signers/gloss; only `want`/`yes` still at 0 when checked (download still running).
+> Clips gitignored at `ml/data/msasl/videos/`. ⚠️ `coverage.json` only writes at run
+> end, so it's stale during the run — recount via a read-only join of `MSASL_*.json`
+> against present `<clip_id>.mp4`, not that file.
+>
+> **Part 2 DONE (2026-05-28):** fetched the remaining `want`/`yes` clips (cookies.txt
+> auth) → final MS-ASL ~909 clips. Wired a combined `extract-combined` →
+> `assemble-combined` path through `ingest.merge` with signer-disjoint splits across
+> sources; extraction is **resumable + hang-proof** (per-clip cache; a recycled worker
+> subprocess with a per-clip 90 s timeout that **quarantines** clips hanging MediaPipe
+> `detect()` — 6 quarantined, 1148 extracted). Combined cache **1151 clips / 24 glosses
+> / 128 signers** (vs 193/36). Honest signer-disjoint CV **top-1 0.719 / top-5 0.931**
+> (P3M1 baseline 0.570/0.922 → **+15 pts**), exported model test 0.716/0.919. Re-gate
+> (strict honest gate, owner-confirmed): shipped **20** — promoted `like`/`bad`/`happy`,
+> demoted `good`/`before`/`tall` (now < 0.50); `thank you` still held. Re-bundled
+> 24-class ONNX + reference clips; `SHIPPED_GLOSSES` updated; recognition.md §6.5; all
+> gates green. **~50 signs awaits a further MS-ASL download pass for *new* glosses**
+> (this pass reinforced the existing 24). P3M3 augmentation tuning on this larger set
+> remains optional follow-up.
 
 ---
 

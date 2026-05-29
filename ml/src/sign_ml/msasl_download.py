@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -29,10 +30,17 @@ from .wlasl import CURATED_STARTER_GLOSSES, EXPANDED_GLOSSES
 VOCABS = {"starter": CURATED_STARTER_GLOSSES, "expanded": EXPANDED_GLOSSES}
 DATA_DIR = Path("data/msasl")
 # Cap fetched resolution: we only extract landmarks, so small files are plenty and
-# keep the download light.
+# keep the download light. Container-agnostic on purpose -- many YouTube videos are
+# only available as DASH/HLS (webm/m4v) and the strict `ext=mp4` filter rejected them
+# even though ffmpeg can transcode to mp4 at merge time.
 FORMAT = (
-    "bestvideo[ext=mp4][height<=480]+bestaudio/best[ext=mp4]/best[height<=480]/best"
+    "bestvideo[height<=480]+bestaudio/best[height<=480]/"
+    "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
 )
+
+# YouTube blocks the default `web` client for many videos under bot detection;
+# falling back through mobile/android clients unblocks a large fraction.
+PLAYER_CLIENTS = ["web", "mweb", "android", "ios"]
 
 
 def _load_yt_dlp() -> Any:  # pragma: no cover - optional heavy dep
@@ -47,13 +55,27 @@ def _load_yt_dlp() -> Any:  # pragma: no cover - optional heavy dep
 
 
 def download_clip(
-    clip: MsaslClip, videos_dir: Path
+    clip: MsaslClip,
+    videos_dir: Path,
+    cookies_browser: str | None = None,
+    cookies_file: Path | None = None,
+    sleep: float = 0.0,
+    ffmpeg_location: str | None = None,
 ) -> bool:  # pragma: no cover - network
     """Fetch ``[start_time, end_time]`` of the clip's YouTube video → ``<clip_id>.mp4``.
     Returns ``True`` on success; ``False`` for any failure (dead/private/region-locked
-    link, format error) so one bad URL never aborts the run."""
+    link, format error) so one bad URL never aborts the run.
+
+    ``cookies_browser`` (e.g. ``"chrome"``) makes yt-dlp authenticate using the
+    browser's logged-in YouTube cookies — far higher rate limits, the practical fix
+    for bulk-download throttling. The browser must be **closed** (yt-dlp locks the
+    cookie store). On Windows + Chromium browsers (Chrome/Edge/Brave) this is broken
+    by App-Bound Encryption (yt-dlp #10927); use ``cookies_file`` instead — a Netscape
+    cookies.txt exported via a browser extension (e.g. "Get cookies.txt LOCALLY"),
+    which bypasses ABE entirely. ``sleep`` adds a random ``[sleep, 2*sleep]`` pause
+    before each download to look less bot-like (set 1-3 s for bulk runs)."""
     yt_dlp = _load_yt_dlp()
-    options = {
+    options: dict[str, Any] = {
         "outtmpl": str(videos_dir / f"{clip.clip_id}.%(ext)s"),
         "format": FORMAT,
         "merge_output_format": "mp4",
@@ -64,9 +86,21 @@ def download_clip(
         "quiet": True,
         "no_warnings": True,
         "noprogress": True,
-        "retries": 2,
+        "retries": 5,
+        "fragment_retries": 5,
         "ignoreerrors": False,
+        "extractor_args": {"youtube": {"player_client": PLAYER_CLIENTS}},
     }
+    if cookies_browser:
+        options["cookiesfrombrowser"] = (cookies_browser,)
+    if cookies_file:
+        options["cookiefile"] = str(cookies_file)
+    if ffmpeg_location:
+        options["ffmpeg_location"] = ffmpeg_location
+    if sleep > 0.0:
+        options["sleep_interval"] = sleep
+        options["max_sleep_interval"] = sleep * 2
+        options["sleep_interval_requests"] = 1
     try:
         with yt_dlp.YoutubeDL(options) as ydl:
             ydl.download([clip.url])
@@ -82,6 +116,10 @@ def run_download(
     splits: tuple[str, ...] = SPLITS,
     max_per_gloss: int | None = None,
     skip_existing: bool = True,
+    cookies_browser: str | None = None,
+    cookies_file: Path | None = None,
+    sleep: float = 0.0,
+    ffmpeg_location: str | None = None,
 ) -> dict[str, dict[str, int]]:  # pragma: no cover - network/real-data path
     """Download every targeted clip and report realized per-gloss coverage.
 
@@ -109,7 +147,14 @@ def run_download(
         downloaded = 0
         for clip in clips:
             dest = videos_dir / f"{clip.clip_id}.mp4"
-            if (skip_existing and dest.exists()) or download_clip(clip, videos_dir):
+            if (skip_existing and dest.exists()) or download_clip(
+                clip,
+                videos_dir,
+                cookies_browser=cookies_browser,
+                cookies_file=cookies_file,
+                sleep=sleep,
+                ffmpeg_location=ffmpeg_location,
+            ):
                 downloaded += 1
                 signers.add(clip.signer_id)
         report[gloss] = {
@@ -147,7 +192,49 @@ def main() -> None:  # pragma: no cover - CLI
         action="store_true",
         help="re-download clips even if the file already exists",
     )
+    parser.add_argument(
+        "--cookies-from-browser",
+        choices=["chrome", "edge", "firefox", "brave", "opera", "chromium", "vivaldi"],
+        default=None,
+        help="authenticate via the browser's YouTube cookies (browser must be CLOSED)",
+    )
+    parser.add_argument(
+        "--cookies",
+        type=Path,
+        default=None,
+        help=(
+            "path to a Netscape cookies.txt (export via a browser extension, e.g. "
+            "'Get cookies.txt LOCALLY'). Use this on Windows + Chromium browsers "
+            "where --cookies-from-browser is blocked by App-Bound Encryption."
+        ),
+    )
+    parser.add_argument(
+        "--sleep",
+        type=float,
+        default=0.0,
+        help="seconds to sleep before each clip (jittered to 2x); set 1-3 for bulk",
+    )
+    parser.add_argument(
+        "--ffmpeg-location",
+        type=str,
+        default=None,
+        help=(
+            "path to an ffmpeg binary (or its dir) when ffmpeg is not on PATH. If "
+            "omitted and ffmpeg is missing, falls back to the imageio-ffmpeg bundled "
+            "binary when that package is installed."
+        ),
+    )
     args = parser.parse_args()
+
+    ffmpeg_location = args.ffmpeg_location
+    if ffmpeg_location is None and shutil.which("ffmpeg") is None:
+        try:
+            import imageio_ffmpeg
+
+            ffmpeg_location = imageio_ffmpeg.get_ffmpeg_exe()
+            print(f"Using bundled ffmpeg: {ffmpeg_location}")
+        except ImportError:
+            pass
 
     if args.glosses:
         glosses = [canonical_label(g) for g in args.glosses.split(",") if g.strip()]
@@ -159,6 +246,10 @@ def main() -> None:  # pragma: no cover - CLI
         glosses,
         max_per_gloss=args.max_per_gloss,
         skip_existing=not args.no_skip_existing,
+        cookies_browser=args.cookies_from_browser,
+        cookies_file=args.cookies,
+        sleep=args.sleep,
+        ffmpeg_location=ffmpeg_location,
     )
 
 

@@ -38,7 +38,6 @@ SHIPPED_GLOSSES: tuple[str, ...] = (
     "help",
     "yes",
     "no",
-    "good",
     "want",
     "finish",
     "family",
@@ -49,11 +48,12 @@ SHIPPED_GLOSSES: tuple[str, ...] = (
     "please",
     "sorry",
     "love",
-    # P2M5b additions
-    "before",
     "cold",
-    "tall",
     "walk",
+    # P3M2: promoted under the honest signer-disjoint gate (MS-ASL u WLASL)
+    "like",
+    "bad",
+    "happy",
 )
 
 

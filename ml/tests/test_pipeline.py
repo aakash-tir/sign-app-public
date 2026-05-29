@@ -6,6 +6,8 @@ from pathlib import Path
 import numpy as np
 
 from sign_ml.data import make_synthetic_dataset
+from sign_ml.dynamic_pipeline import _clip_cache_path, _sanitize
+from sign_ml.ingest import CanonicalSample
 from sign_ml.pipeline import run_synthetic_pipeline
 
 
@@ -20,6 +22,23 @@ def test_synthetic_dataset_is_deterministic() -> None:
     a, _, _ = make_synthetic_dataset(samples_per_class=5, seed=7)
     b, _, _ = make_synthetic_dataset(samples_per_class=5, seed=7)
     np.testing.assert_array_equal(a, b)
+
+
+def test_clip_cache_path_namespaces_by_source_and_sanitizes() -> None:
+    # Per-clip cache keys must be source-namespaced (so WLASL "5" and MS-ASL "5"
+    # never collide) and filesystem-safe, with no extension collisions between a
+    # frame-based and time-based MS-ASL clip id.
+    clips = Path("cache/clips")
+    wlasl = CanonicalSample("yes", "wlasl", "65540", "5", "train")
+    msasl = CanonicalSample("yes", "msasl", "abc_10_40", "msasl:5", "train")
+    assert _clip_cache_path(clips, wlasl) == clips / "wlasl__65540.npy"
+    assert _clip_cache_path(clips, msasl) == clips / "msasl__abc_10_40.npy"
+    assert _clip_cache_path(clips, wlasl) != _clip_cache_path(clips, msasl)
+
+
+def test_sanitize_replaces_unsafe_chars() -> None:
+    assert _sanitize("abc_10_40") == "abc_10_40"  # already safe (kept verbatim)
+    assert _sanitize("a/b\\c d:e") == "a_b_c_d_e"
 
 
 def test_pipeline_trains_and_exports(tmp_path: Path) -> None:

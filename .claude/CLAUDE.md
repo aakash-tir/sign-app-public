@@ -59,6 +59,12 @@ per-finger overlay option, a persistent shared camera, a redesigned UI, and offl
 in-app sign references. See [`progress.md`](progress.md); Phase 2 detail in
 [`docs/phase2.md`](docs/phase2.md).
 
-**Parked for the future** (no work in progress): MS-ASL download → retrain for
-dynamic-sign accuracy (P2M5c, owner action, ADR-016); real multi-sign Learn
-sentences (ADR-012). *(P2M6 tab-hidden camera release is done.)*
+**🚧 Phase 3 (accuracy & vocabulary depth) in progress** — P3M1 (honest
+signer-disjoint gate) + P3M3 (landmark augmentation toolkit) merged; **P3M2 is the
+active work**: the MS-ASL download is ~complete (22/24 glosses on branch
+`milestone/P3M2-download-hardening`, unpushed), and **part 2 (combined extract +
+retrain + re-gate) is the resume point**. See [`progress.md`](progress.md) *Current
+state* + Log 2026-05-28, and [`docs/phase3.md`](docs/phase3.md) P3M2.
+
+**Parked for the future** (no work in progress): real multi-sign Learn sentences
+beyond the shipped drill (ADR-012); continuous-sign data for sentence content.

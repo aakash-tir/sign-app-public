@@ -289,6 +289,52 @@ so a correct left-right mirror needs paired pose-landmark swaps + per-hand
 re-canonicalization (skew-prone), and front-padded windows + a last-timestep GRU make
 naive time-shift corrupt the final read frame. Reproduce: `… crossval --aug`.
 
+### 6.5 P3M2 retrain — MS-ASL ∪ WLASL combined (ADR-016/019)
+
+P3M2 added **MS-ASL** (C-UDA — train-and-ship, ADR-016) to the WLASL we already had,
+through the canonical ingest layer (P2M5a). The owner ran the `yt-dlp` fetch
+(`msasl_download`, cookies.txt auth); realized coverage after link rot:
+
+| Source | clips | signers |
+| --- | --- | --- |
+| WLASL (existing) | 245 | 43 |
+| MS-ASL (P3M2 fetch) | ~909 | 85 |
+| **Combined cache** | **1151** | **128** |
+
+All 24 glosses clear the data floor (≥ 12 clips / ≥ 5 signers, Q7); most have 30–60
+clips from 20–30 signers. Extraction is **resumable per-clip** (one `.npy` each, in a
+worker subprocess the parent recycles + per-clip-timeouts); 6 MS-ASL clips that hung
+MediaPipe `detect()` were auto-**quarantined** (`.skip`) and excluded — link-rot-
+tolerant by design.
+
+**Honest signer-disjoint CV (5-fold, seed 42):**
+
+| Model | n | top-1 | top-5 |
+| --- | --- | --- | --- |
+| Starter-20, WLASL only (P3M1 baseline) | 193 | 0.570 | 0.922 |
+| **24-gloss, MS-ASL ∪ WLASL (P3M2)** | 1151 | **0.719** | **0.931** |
+
+**+15 points top-1** from more clips and far more signers — the data lever, as the
+central framing predicted. The exported model's held-out signer-disjoint **test** split
+(n=211) reads **top-1 0.716 / top-5 0.919**, consistent with CV.
+
+**Per-gloss top-1 under the honest gate (bar 0.50):** love 0.91 · family 0.90 ·
+want 0.88 · sad 0.88 · yes 0.84 · finish 0.84 · learn 0.83 · help 0.81 · more 0.79 ·
+please 0.78 · drink 0.77 · no 0.77 · like 0.74 · cold 0.73 · go 0.73 · sorry 0.70 ·
+eat 0.69 · walk 0.67 · happy 0.55 · bad 0.53 **clear it**; **tall 0.49 · thank you
+0.44 · before 0.43 · good 0.36** fall below.
+
+**Re-gate (strict honest gate, owner-confirmed):** the shipped set stays at **20** but
+rises in quality — **promoted** `like`/`bad`/`happy` (now ≥ 0.50 with the larger,
+more signer-diverse data) and **demoted** `good`/`before`/`tall` (below 0.50 honestly;
+their earlier shipping rested on the leaky/noisy estimate P3M1 flagged). `thank you`
+stays held back. **Every shipped gloss now clears 0.50 on the honest gate.** The
+24-class GRU (ONNX 300 KB) is bundled at `frontend/public/models/dynamic/`; the app
+prompts only `SHIPPED_GLOSSES` (`content/dynamicVocab.ts`). Reaching ~50 signs needs a
+further MS-ASL download pass for new glosses (this pass reinforced the existing 24).
+Reproduce: `… dynamic_pipeline extract-combined` → `assemble-combined` →
+`crossval --cache models/combined` → `train --cache models/combined`.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

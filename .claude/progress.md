@@ -31,9 +31,24 @@ is in [`docs/milestones.md`](docs/milestones.md).
   the starter-20 set **top-1 0.570 / top-5 0.922** vs stratified 0.622 / 0.953
   (leakage ≈ +5 pts) — recognition.md §6.3. Real-camera holdout deferred (no clips
   yet, ADR-019). +4 pytest (62); both CI lanes green.
-- **Future data work (P2M5c → folded into P3M2):** download **MS-ASL** + any
-  owner-curated, reviewed datasets for more clips-per-sign → real dynamic-sign
-  accuracy; the ingest layer is ready via a small `MsaslAdapter` (ADR-016).
+- **✅ P3M2 part 2 (retrain) COMPLETE** (branch `milestone/P3M2-download-hardening`;
+  see Log **2026-05-28**). MS-ASL fetched (cookies.txt auth, 909 clips) + combined
+  with WLASL through the ingest layer → a **1151-clip / 24-gloss / 128-signer** cache
+  (vs the old 193/36). Honest signer-disjoint CV **top-1 0.719 / top-5 0.931** — vs
+  the P3M1 baseline 0.570/0.922, a **+15-pt** top-1 gain purely from the data.
+  Re-gated under the **strict honest gate** (owner-confirmed): the shipped set stays
+  **20** but improves in quality — **promoted** `like`/`bad`/`happy` (now ≥ 0.50),
+  **demoted** `good`/`before`/`tall` (now < 0.50 honestly); `thank you` still held
+  back. New 24-class ONNX (300 KB) + reference clips bundled; `SHIPPED_GLOSSES`
+  updated (frontend + ml). All gates green (155 vitest / 15 playwright; ml 77 pytest).
+  Detail in [`docs/recognition.md`](docs/recognition.md) §6.5. **Reaching ~50 signs
+  needs a further MS-ASL download pass for new glosses** — this pass reinforced the
+  existing 24. Extraction is now resumable + hang-proof (per-clip cache, worker
+  recycle, per-clip timeout + quarantine).
+- **Untracked working-tree files** (`1138_Paper.pdf`, `DAI - ASLLVD.pdf`, the ASLLVD
+  `.xlsx`) are **dataset-review materials** — ASLLVD/ASL-Citizen were already reviewed
+  and **declined** (research-only, no model carve-out; phase3.md review log). Safe to
+  ignore or delete; not part of the branch.
 - **Phase 2 — P2M3 ✅ merged. (Full UI redesign.)** **P2M3**
   (full UI redesign, plan item #2, FR-16) **merged via
   [PR #15](https://github.com/aakash-tir/sign-app/pull/15)** (squash `1297a6e`):
@@ -131,11 +146,49 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | Milestone | Theme | Status | Branch |
 | --- | --- | --- | --- |
 | P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) | `milestone/P3M1-honest-eval` |
-| P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ part 1 (ingest) ☑ merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (retrain) **owner-gated** on MS-ASL fetch | `milestone/P3M2-msasl-ingest` |
+| P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ part 1 (ingest) ☑ merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (MS-ASL fetch + combined retrain + re-gate) ☑ done on `milestone/P3M2-download-hardening` ([PR #24](https://github.com/aakash-tir/sign-app/pull/24)). 24-gloss model, honest CV 0.719; ~50 signs needs a further download pass | `milestone/P3M2-download-hardening` |
 | P3M3 — Expanded landmark-space augmentation | augmentation | ☑ merged [#23](https://github.com/aakash-tir/sign-app/pull/23) | `milestone/P3M3-augmentation` |
 
 ## Log
 
+- **2026-05-28** — **P3M2 part 2: combined MS-ASL ∪ WLASL retrain + honest re-gate**
+  (branch `milestone/P3M2-download-hardening`). Fetched the last `want`/`yes` MS-ASL
+  clips (cookies.txt auth via "Get cookies.txt LOCALLY" — Chrome ABE blocks
+  `--cookies-from-browser`; ffmpeg from pip `imageio-ffmpeg`, no system install — both
+  recorded in memory). Wired a combined extract (`extract-combined` → per-clip
+  resumable cache → `assemble-combined`) through the P2M5a ingest layer with
+  signer-disjoint splits across sources. **Extraction had to be made hang-proof:**
+  MediaPipe `detect()` hangs on a few clips (and accumulates threads to a deadlock over
+  hundreds of fresh detectors), so extraction now runs in a **recycled worker
+  subprocess with a per-clip 90 s timeout + `.skip` quarantine** — 6 MS-ASL clips
+  quarantined, 1148 extracted. Combined cache **1151 clips / 24 glosses / 128 signers**
+  (vs 193/36). Honest signer-disjoint CV **top-1 0.719 / top-5 0.931** (P3M1 baseline
+  0.570/0.922 → **+15 pts** from data); exported model test split 0.716/0.919.
+  **Re-gate (strict honest gate, owner-confirmed):** shipped set stays **20** —
+  promoted `like`/`bad`/`happy`, demoted `good`/`before`/`tall` (now < 0.50);
+  `thank you` still held. Re-bundled 24-class ONNX (300 KB) + reference clips;
+  `SHIPPED_GLOSSES` updated (frontend + ml); recognition.md §6.5. All gates green
+  (155 vitest / 15 playwright; ml 77 pytest). **~50 signs awaits a download pass for
+  new glosses.** PR [#24](https://github.com/aakash-tir/sign-app/pull/24).
+- **2026-05-28** — **P3M2: MS-ASL download hardening + fetch ~complete** (branch
+  `milestone/P3M2-download-hardening`, **2 local commits, unpushed, no PR**). The first
+  bulk fetch was throttled by YouTube bot-detection (only ~97 clips, most glosses at 0),
+  so `msasl_download.py` was hardened: **browser-cookie auth** (`--cookies-from-browser`)
+  + a **`--cookies` Netscape file flag** (the Windows + Chromium App-Bound-Encryption
+  workaround), **jittered `--sleep` delays**, a **container-agnostic format** string
+  (accept webm/m4v, transcode at merge — strict `ext=mp4` was rejecting DASH/HLS), and
+  **multi-client extraction** (`player_client = web/mweb/android/ios` to dodge per-video
+  blocks). Result, **live read 2026-05-28** (read-only join of `MSASL_*.json` against
+  on-disk `<clip_id>.mp4`): **22 of 24 expanded glosses populated, 792/1195 clips
+  (66.3%)**, healthy signer diversity (~20–31 distinct signers per gloss) — vs the old
+  broken pass. Script still running at check time (alphabetical; `walk` in progress,
+  only `want`/`yes` left at 0); **`coverage.json` is stale** (written only at run end,
+  so it still shows the old broken pass — recount with the read-only peek, not that
+  file). Clips gitignored under `ml/data/msasl/videos/`. **Peek command (read-only, no
+  new file):** `cd ml && uv run python -` with a script that loads `load_msasl_index` +
+  `EXPANDED_GLOSSES`, filters by `canonical_label`, and counts present `<clip_id>.mp4`.
+  **Next:** combined extract + retrain + signer-disjoint re-gate (P3M2 part 2) — see the
+  P3M2 bullet under *Current state*.
 - **2026-05-24** — **P3M3: landmark-space augmentation** (branch
   `milestone/P3M3-augmentation`, ADR-020). Extended `augment_sequences` with three
   **opt-in (default off)** primitives — `drop_landmarks` (per-joint dropout),
