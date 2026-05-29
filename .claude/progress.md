@@ -46,6 +46,18 @@ is in [`docs/milestones.md`](docs/milestones.md).
   needs a further MS-ASL download pass for new glosses** — this pass reinforced the
   existing 24. Extraction is now resumable + hang-proof (per-clip cache, worker
   recycle, per-clip timeout + quarantine).
+- **▶ NEXT TASK (fresh session): push the dynamic vocabulary toward ~50 signs.** The
+  full recipe + exact commands are the **"Reaching ~50 signs — runbook for the next
+  session"** in [`docs/phase3.md`](docs/phase3.md) (end of the P3M2 section). TL;DR:
+  the model knows 24 / app ships 20; the combined pipeline (`extract-combined` →
+  `assemble-combined` → `crossval` → `train`), ingest layer, honest signer-disjoint
+  gate, and resumable/hang-proof extraction are **all built + merged** — the only new
+  work is (1) curate ~25–35 *new* everyday glosses, (2) pre-screen MS-ASL + WLASL
+  coverage (read-only) against the data floor, (3) download MS-ASL for them (owner-run;
+  cookies.txt + bundled ffmpeg — see memory `msasl-download-setup`), (4) run the
+  pipeline, (5) let the honest gate (≥ 0.50 + data floor) pick membership without
+  demoting passing signs, (6) re-bundle + docs + gates + PR + verify deploy. Aim to
+  download **more** than 50 candidates (some won't clear the gate).
 - **Untracked working-tree files** (`1138_Paper.pdf`, `DAI - ASLLVD.pdf`, the ASLLVD
   `.xlsx`) are **dataset-review materials** — ASLLVD/ASL-Citizen were already reviewed
   and **declined** (research-only, no model carve-out; phase3.md review log). Safe to

@@ -358,6 +358,68 @@ and the data floor.
 > (this pass reinforced the existing 24). P3M3 augmentation tuning on this larger set
 > remains optional follow-up.
 
+### Reaching ~50 signs — runbook for the next session
+
+P3M2 part 2 proved the recipe on the existing 24 glosses (honest CV **0.719**, model
+live). Growing toward ~50 is **the same recipe applied to *new* glosses** — the
+pipeline, ingest layer, honest gate, and resumable/hang-proof extraction are all built
+and merged. The one new input is **which glosses to add + downloading their clips.**
+
+**The model currently knows 24 glosses; the app ships 20.** To grow, download MS-ASL
+for *new* glosses, retrain on the combined set, and let the honest gate decide which
+clear. Aim to *download more candidates than 50* (some won't clear the gate or the data
+floor). Step by step:
+
+1. **Curate candidate new glosses (owner).** Pick ~25–35 everyday ASL signs **not in
+   the current 24** (the 24 are `CURATED_STARTER_GLOSSES` + `EXPANSION_GLOSSES` in
+   `ml/src/sign_ml/wlasl.py`). Common picks: greetings/pronouns/time/family/everyday
+   verbs+nouns (e.g. hello, name, friend, mother, father, water, school, work, play,
+   big, small, hot, again, stop, where, who, what, day, book, dog, house, car…). Final
+   membership is **gated by data + accuracy, not by this list** (Q6).
+2. **Pre-screen coverage *before* downloading (read-only, free).** For each candidate,
+   confirm it's worth fetching:
+   - **MS-ASL headline:** it must appear in `ml/data/msasl/MSASL_classes.json` and have
+     enough index entries (≥ ~25, since link rot drops ~30–45%) — count via
+     `load_msasl_index` filtered by `canonical_label` (see the peek pattern in
+     [[msasl-download-setup]] / Log 2026-05-28).
+   - **WLASL local:** `coverage_for` against `data/wlasl/videos/` (already downloaded).
+   - Drop candidates thin in **both** sources (target the data floor: ≥ 12 clips / ≥ 5
+     signers realized, Q7).
+3. **Register the glosses.** Add a new tuple in `wlasl.py` (e.g. `PHASE3B_GLOSSES`),
+   fold it into a new `VOCABS` key used by both `msasl_download` and
+   `dynamic_pipeline` (the existing `expanded` vocab = the 24; make e.g. `vocab50`).
+   Add a synonym entry in `canonical_label` if a source's label differs.
+4. **Download MS-ASL for the new glosses (owner-run).**
+   `uv run python -m sign_ml.msasl_download --glosses "<comma-list>" --sleep 2 --cookies "<cookies.txt>"`
+   — **see [[msasl-download-setup]]**: Chrome App-Bound Encryption means a `cookies.txt`
+   export (not `--cookies-from-browser`); ffmpeg auto-resolves from the bundled
+   `imageio-ffmpeg` (in the `msasl` extra now). If the venv was re-synced,
+   `uv sync --extra msasl` restores yt-dlp + imageio-ffmpeg.
+5. **Combined extract → gate → train** (all built; resumable, hang-proof, quarantines
+   bad clips automatically):
+   `… dynamic_pipeline extract-combined --vocab vocab50` →
+   `… assemble-combined --vocab vocab50` →
+   `… crossval --cache models/combined --folds 5` (honest signer-disjoint gate) →
+   `… train --cache models/combined`.
+6. **Re-gate (strict honest gate).** `SHIPPED_GLOSSES` = every gloss with per-gloss
+   top-1 **≥ 0.50** AND the data floor; **do not demote currently-shipped signs that
+   still pass** (the 20 from P3M2). If realized coverage leaves you short of ~50 at the
+   floor, curate + download more candidates rather than lowering the gate.
+7. **Bundle + docs + gates + PR.** Copy `models/combined/onnx/{model.onnx,metadata.json}`
+   → `frontend/public/models/dynamic/`; regen reference clips for **newly shipped**
+   glosses (`reference_export --out ../frontend/public/reference`) and delete demoted
+   ones; update `SHIPPED_GLOSSES` in **both** `frontend/src/content/dynamicVocab.ts` and
+   `ml/src/sign_ml/reference_export.py` + the `dynamicVocab.test.ts` assertions; update
+   `recognition.md` §6 (new §6.6), this doc, and `progress.md`. Run **all** gates (ml +
+   frontend), then branch → PR → squash-merge → verify the live deploy
+   (compare live `model.onnx` sha256 to local; SPA fallback makes status-code checks
+   unreliable — check **content**).
+
+**Carry-over learnings (already captured):** the MediaPipe extraction hang is handled
+automatically (per-clip timeout + `.skip` quarantine); the honest gate translated to
+good real-camera behavior here (so trust it — [[p3m2-model-validated]]); the bundle
+budget (ONNX was 300 KB) is a hard constraint from M7 — watch it as classes grow.
+
 ---
 
 ## P3M3 — Expanded landmark-space augmentation (the "modifiers")

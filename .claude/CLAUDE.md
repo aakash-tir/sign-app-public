@@ -59,12 +59,17 @@ per-finger overlay option, a persistent shared camera, a redesigned UI, and offl
 in-app sign references. See [`progress.md`](progress.md); Phase 2 detail in
 [`docs/phase2.md`](docs/phase2.md).
 
-**🚧 Phase 3 (accuracy & vocabulary depth) in progress** — P3M1 (honest
-signer-disjoint gate) + P3M3 (landmark augmentation toolkit) merged; **P3M2 is the
-active work**: the MS-ASL download is ~complete (22/24 glosses on branch
-`milestone/P3M2-download-hardening`, unpushed), and **part 2 (combined extract +
-retrain + re-gate) is the resume point**. See [`progress.md`](progress.md) *Current
-state* + Log 2026-05-28, and [`docs/phase3.md`](docs/phase3.md) P3M2.
+**🚧 Phase 3 (accuracy & vocabulary depth) — P3M1, P3M2, P3M3 all merged.** The
+dynamic recognizer was retrained on **MS-ASL ∪ WLASL** (P3M2, [#24](https://github.com/aakash-tir/sign-app/pull/24)):
+honest signer-disjoint CV **top-1 0.719** (+15 pts over the P3M1 baseline), now a
+24-gloss model with **20 signs shipped** — live + verified on Cloudflare.
+
+**▶ Active next task (fresh session): grow the dynamic vocabulary toward ~50 signs.**
+The pipeline/gate/extraction are all built + merged; the work is curating + downloading
+*new* glosses and re-gating. **Start from the step-by-step "Reaching ~50 signs —
+runbook for the next session"** in [`docs/phase3.md`](docs/phase3.md) (end of the P3M2
+section) and the *NEXT TASK* bullet in [`progress.md`](progress.md). MS-ASL fetch
+mechanics are in memory `msasl-download-setup`.
 
 **Parked for the future** (no work in progress): real multi-sign Learn sentences
 beyond the shipped drill (ADR-012); continuous-sign data for sentence content.
