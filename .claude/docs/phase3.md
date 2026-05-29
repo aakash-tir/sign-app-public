@@ -29,7 +29,7 @@ One milestone is **added ahead of both**: before chasing accuracy we must be abl
 | Milestone | Theme | Status |
 | --- | --- | --- |
 | **P3M1** | Honest accuracy measurement — signer-disjoint gate (real-camera holdout optional/deferred) | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) |
-| **P3M2** | MS-ASL ingest + retrain → grow dynamic vocabulary toward ~50 signs | ☑ part 1 (ingest) merged [#22](https://github.com/aakash-tir/sign-app/pull/22); **part 2 (MS-ASL fetch + combined retrain + honest re-gate) done** on `milestone/P3M2-download-hardening` ([PR #24](https://github.com/aakash-tir/sign-app/pull/24)) — 24-gloss model, honest CV **0.719** (+15 pts), shipped 20. ~50 needs a further download pass |
+| **P3M2** | MS-ASL ingest + retrain → grow dynamic vocabulary toward ~50 signs | ☑ part 1 (ingest) merged [#22](https://github.com/aakash-tir/sign-app/pull/22); **part 2 (MS-ASL fetch + combined retrain + honest re-gate) merged** [#24](https://github.com/aakash-tir/sign-app/pull/24) (squash `0851c1a`) — 24-gloss model, honest CV **0.719** (+15 pts), shipped 20. ~50 needs a further download pass |
 | **P3M3** | Expanded landmark-space augmentation (the "modifiers") | ☑ merged [#23](https://github.com/aakash-tir/sign-app/pull/23) (toolkit; tuning deferred to P3M2 data) |
 
 > **P3M1 baseline measured (2026-05-24):** starter-20 signer-disjoint **top-1 0.570 /
