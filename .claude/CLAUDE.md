@@ -59,17 +59,17 @@ per-finger overlay option, a persistent shared camera, a redesigned UI, and offl
 in-app sign references. See [`progress.md`](progress.md); Phase 2 detail in
 [`docs/phase2.md`](docs/phase2.md).
 
-**🚧 Phase 3 (accuracy & vocabulary depth) — P3M1, P3M2, P3M3 all merged.** The
-dynamic recognizer was retrained on **MS-ASL ∪ WLASL** (P3M2, [#24](https://github.com/aakash-tir/sign-app/pull/24)):
-honest signer-disjoint CV **top-1 0.719** (+15 pts over the P3M1 baseline), now a
-24-gloss model with **20 signs shipped** — live + verified on Cloudflare.
+**🚧 Phase 3 (accuracy & vocabulary depth) — P3M1, P3M2, P3M3 merged; P3M2c (vocab50)
+done, PR pending.** The dynamic recognizer was grown to an **81-gloss MS-ASL ∪ WLASL
+model** (P3M2c: 3583 samples / 163 signers) trained with P3M3 augmentation — honest
+signer-disjoint CV **top-1 0.615**. The honest ≥ 0.50 gate ships **63 dynamic signs**
+(up from 20: all 20 retained + 43 new incl. `thank you`), alongside 24 fingerspelling
+letters. ONNX 315 KB. Detail: [`docs/recognition.md`](docs/recognition.md) §6.6.
 
-**▶ Active next task (fresh session): grow the dynamic vocabulary toward ~50 signs.**
-The pipeline/gate/extraction are all built + merged; the work is curating + downloading
-*new* glosses and re-gating. **Start from the step-by-step "Reaching ~50 signs —
-runbook for the next session"** in [`docs/phase3.md`](docs/phase3.md) (end of the P3M2
-section) and the *NEXT TASK* bullet in [`progress.md`](progress.md). MS-ASL fetch
-mechanics are in memory `msasl-download-setup`.
+**▶ Active next task: land P3M2c — run all gates (ml + frontend), open the PR for
+`milestone/P3M2c-vocab50`, squash-merge, and verify the live Cloudflare deploy** (compare
+live `model.onnx` sha256 to local; check content, not status codes). MS-ASL fetch
+mechanics + the ffmpeg-on-PATH fix are in memory `msasl-download-setup`.
 
 **Parked for the future** (no work in progress): real multi-sign Learn sentences
 beyond the shipped drill (ADR-012); continuous-sign data for sentence content.

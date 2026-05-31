@@ -65,6 +65,85 @@ EXPANSION_GLOSSES: tuple[str, ...] = (
 
 EXPANDED_GLOSSES: tuple[str, ...] = CURATED_STARTER_GLOSSES + EXPANSION_GLOSSES
 
+# P3M2 follow-on — the ~50-sign push. 57 everyday glosses NOT in the 24 above,
+# chosen by a read-only coverage pre-screen (MS-ASL index + locally-downloaded
+# WLASL) that every entry cleared the data floor (>= 12 realized clips, >= 5
+# signers; Q7). We deliberately OVER-propose: final membership is gated by the
+# honest signer-disjoint accuracy gate (>= 0.50, Q6), which culls a chunk of even
+# well-covered candidates (cf. P2M5b: 4/12). All 57 need a fresh MS-ASL download
+# pass (the existing 909 on-disk clips are all for the current 24); WLASL clips
+# for these are already local. ("look" was dropped — not a class in either source.)
+PHASE3B_GLOSSES: tuple[str, ...] = (
+    # greetings / social
+    "hello",
+    "name",
+    "nice",
+    "friend",
+    "fine",
+    # people / family
+    "mother",
+    "father",
+    "sister",
+    "brother",
+    "girl",
+    "boy",
+    "man",
+    "woman",
+    "baby",
+    "teacher",
+    "student",
+    "doctor",
+    # everyday verbs
+    "sit",
+    "stand",
+    "come",
+    "see",
+    "know",
+    "think",
+    "understand",
+    "need",
+    "write",
+    "read",
+    "play",
+    "work",
+    "sleep",
+    "run",
+    "stop",
+    "forget",
+    # nouns / places
+    "water",
+    "milk",
+    "book",
+    "school",
+    "house",
+    "car",
+    "dog",
+    "computer",
+    "bathroom",
+    "money",
+    # question words
+    "what",
+    "where",
+    "who",
+    "how",
+    # time
+    "again",
+    "now",
+    "day",
+    # descriptors / state
+    "big",
+    "small",
+    "hot",
+    "hungry",
+    "tired",
+    "white",
+    "black",
+)
+
+# The full vocab50 candidate set: the current 24 + the 57 new candidates (81 total
+# downloaded; the honest gate decides which ~50 ship).
+VOCAB50_GLOSSES: tuple[str, ...] = EXPANDED_GLOSSES + PHASE3B_GLOSSES
+
 
 @dataclass(frozen=True)
 class Clip:

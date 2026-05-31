@@ -26,13 +26,18 @@ from .ingest import CanonicalSample
 from .wlasl import (
     CURATED_STARTER_GLOSSES,
     EXPANDED_GLOSSES,
+    VOCAB50_GLOSSES,
     available_video_ids,
     coverage_for,
     load_wlasl_index,
     select_clips,
 )
 
-VOCABS = {"starter": CURATED_STARTER_GLOSSES, "expanded": EXPANDED_GLOSSES}
+VOCABS = {
+    "starter": CURATED_STARTER_GLOSSES,
+    "expanded": EXPANDED_GLOSSES,
+    "vocab50": VOCAB50_GLOSSES,
+}
 
 DATA_DIR = Path("data/wlasl")
 MSASL_DATA_DIR = Path("data/msasl")
@@ -343,7 +348,9 @@ def run_assemble_combined(
         print(f"  {split}: {int((s == split).sum())} samples")
 
 
-def run_train(cache_dir: Path, seed: int) -> None:  # pragma: no cover - heavy path
+def run_train(
+    cache_dir: Path, seed: int, aug: dict[str, float] | None = None
+) -> None:  # pragma: no cover - heavy path
     from .dynamic_export import export_onnx
     from .dynamic_model import train_and_eval
 
@@ -352,8 +359,11 @@ def run_train(cache_dir: Path, seed: int) -> None:  # pragma: no cover - heavy p
     splits = np.load(cache_dir / "splits.npy")
     glosses: list[str] = json.loads((cache_dir / "glosses.json").read_text())
 
-    model, metrics = train_and_eval(x, y, splits, n_classes=len(glosses), seed=seed)
+    model, metrics = train_and_eval(
+        x, y, splits, n_classes=len(glosses), seed=seed, aug=aug
+    )
     metrics["glosses"] = glosses
+    metrics["augmentation"] = aug or "baseline-jitter-only"
     metrics["num_samples"] = int(x.shape[0])
 
     out_dir = cache_dir / "onnx"
@@ -454,6 +464,12 @@ def main() -> None:  # pragma: no cover - CLI
     tr = sub.add_parser("train", help="train + eval + export ONNX from cache")
     tr.add_argument("--cache", type=Path, default=CACHE_DIR)
     tr.add_argument("--seed", type=int, default=42)
+    tr.add_argument(
+        "--aug",
+        action="store_true",
+        help="train the exported model with the P3M3 landmark-space augmentation "
+        "preset (must match the gate measured via `crossval --aug`)",
+    )
 
     cv = sub.add_parser(
         "crossval", help="signer-disjoint k-fold CV (the honest ship gate, ADR-019)"
@@ -511,7 +527,7 @@ def main() -> None:  # pragma: no cover - CLI
             aug=P3M3_AUG if args.aug else None,
         )
     else:
-        run_train(args.cache, args.seed)
+        run_train(args.cache, args.seed, aug=P3M3_AUG if args.aug else None)
 
 
 if __name__ == "__main__":

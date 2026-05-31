@@ -1,13 +1,14 @@
 /**
- * Dynamic-sign glosses the app **prompts** (see `.claude/docs/recognition.md` §6.1).
+ * Dynamic-sign glosses the app **prompts** (see `.claude/docs/recognition.md` §6.6).
  *
- * The model is trained on 24 glosses (MS-ASL ∪ WLASL, P3M2). Membership here is
- * decided by the **honest signer-disjoint** gate (per-gloss top-1 ≥ 0.50, ADR-019)
- * on the combined data: 20 glosses clear it. P3M2 promoted `like`/`bad`/`happy`
- * (now ≥ 0.50 with the larger, more signer-diverse data) and demoted
- * `good`/`before`/`tall` (below 0.50 under the honest gate); `thank you` (0.44)
- * stays held back. Recognition misses are absorbed by the "That's what I did" valve
- * (ADR-007).
+ * The model is trained on **81 glosses** (MS-ASL ∪ WLASL, P3M2c vocab50 push:
+ * 3583 samples / 163 signers) with the P3M3 landmark-space augmentation.
+ * Membership here is decided by the **honest signer-disjoint** gate (per-gloss
+ * top-1 ≥ 0.50, ADR-019) on that combined data: **63 glosses clear it**. All 20
+ * from P3M2 still pass (no demotions); `thank you` (0.63) finally clears after
+ * being held back since M6; 18 hard/confusable glosses stay known-but-unshipped
+ * and serve as negatives. Recognition misses are absorbed by the "That's what I
+ * did" valve (ADR-007).
  */
 export const SHIPPED_GLOSSES: readonly string[] = [
   'drink',
@@ -31,6 +32,52 @@ export const SHIPPED_GLOSSES: readonly string[] = [
   'like',
   'bad',
   'happy',
+  // P3M2c (vocab50 push): 43 new signs cleared the honest >=0.50 gate on the
+  // 81-gloss model trained with P3M3 augmentation (CV top-1 0.615). All 20 above
+  // still pass; `thank you` finally clears (held back since M6). recognition.md §6.6.
+  'thank you',
+  'hello',
+  'name',
+  'fine',
+  'friend',
+  'father',
+  'sister',
+  'brother',
+  'boy',
+  'baby',
+  'teacher',
+  'student',
+  'doctor',
+  'sit',
+  'stand',
+  'see',
+  'know',
+  'think',
+  'understand',
+  'need',
+  'write',
+  'read',
+  'play',
+  'work',
+  'forget',
+  'water',
+  'milk',
+  'book',
+  'school',
+  'house',
+  'computer',
+  'bathroom',
+  'what',
+  'where',
+  'how',
+  'again',
+  'now',
+  'day',
+  'big',
+  'hot',
+  'hungry',
+  'tired',
+  'black',
 ]
 
 /** Filter a model's labels to the shipped set, preserving the model's order. */

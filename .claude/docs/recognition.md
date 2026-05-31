@@ -335,6 +335,46 @@ further MS-ASL download pass for new glosses (this pass reinforced the existing 
 Reproduce: `… dynamic_pipeline extract-combined` → `assemble-combined` →
 `crossval --cache models/combined` → `train --cache models/combined`.
 
+### 6.6 P3M2c vocab50 — the ~50-sign push (81-gloss model)
+
+Applied the P3M2 recipe to **57 new everyday glosses** (a read-only MS-ASL+WLASL
+coverage pre-screen picked candidates above the data floor; `look` dropped — not a
+class in either source). The owner ran the MS-ASL fetch; YouTube bot-detection
+throttling forced **three 75-min-cooldown retry passes** (the focused final pass
+recovered `play`/`tired`/`doctor`, confirming they were throttle victims, not link
+rot). A two-part **ffmpeg-on-PATH** fix (`_resolve_ffmpeg`: canonical-name copy +
+`PATH` prepend) was needed — yt-dlp's partial-download gate ignores
+`--ffmpeg-location` (see [[msasl-download-setup]]).
+
+| Source | clips | signers |
+| --- | --- | --- |
+| WLASL (local) | 709 | 49 |
+| MS-ASL (vocab50 fetch) | 2880 | 114 |
+| **Combined cache (81 glosses)** | **3583 samples** | **163** |
+
+All 81 glosses clear the data floor. **Honest signer-disjoint CV (5-fold):**
+
+| Model | n | top-1 | top-5 |
+| --- | --- | --- | --- |
+| 24-gloss MS-ASL ∪ WLASL (P3M2) | 1151 | 0.719 | 0.931 |
+| 81-gloss, plain training | 3583 | 0.561 | 0.842 |
+| **81-gloss + P3M3 augmentation (shipped)** | 3583 | **0.615** | **0.872** |
+
+The overall top-1 is lower than P3M2's 0.719 **because this is an 81-way problem**, not
+24-way — the per-gloss gate is what matters. **P3M3 landmark-space augmentation**
+(rotation 12° / per-joint dropout 0.1 / time-warp 0.2), now tuned on real combined
+data, lifts the aggregate **+5.4 pts** and is enabled for the shipped model (threaded
+through `train --aug` so the export matches the gate). It recovers both P3M2 incumbents
+(`drink` 0.45→0.51, `happy` 0.48→0.55), so **no sign is demoted**.
+
+**Re-gate (≥ 0.50, owner-confirmed bar):** **63 of 81 glosses ship** — all 20 from P3M2
+plus **43 new**, including `thank you` (0.63, held back since M6). The 18 below the bar
+(`come` 0.08 … `mother` 0.49) stay known-but-unshipped and act as negatives. The
+81-class GRU (**ONNX 315 KB**) is bundled at `frontend/public/models/dynamic/`; 63
+WLASL-derived reference clips regenerated. Reproduce: `… extract-combined --vocab
+vocab50` → `assemble-combined --vocab vocab50` → `crossval --cache models/combined
+--folds 5 --aug` → `train --cache models/combined --aug`.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

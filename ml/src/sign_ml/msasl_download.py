@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 from collections import defaultdict
 from pathlib import Path
@@ -25,9 +26,13 @@ from typing import Any
 
 from .ingest import canonical_label
 from .msasl import SPLITS, MsaslClip, load_msasl_index
-from .wlasl import CURATED_STARTER_GLOSSES, EXPANDED_GLOSSES
+from .wlasl import CURATED_STARTER_GLOSSES, EXPANDED_GLOSSES, VOCAB50_GLOSSES
 
-VOCABS = {"starter": CURATED_STARTER_GLOSSES, "expanded": EXPANDED_GLOSSES}
+VOCABS = {
+    "starter": CURATED_STARTER_GLOSSES,
+    "expanded": EXPANDED_GLOSSES,
+    "vocab50": VOCAB50_GLOSSES,
+}
 DATA_DIR = Path("data/msasl")
 # Cap fetched resolution: we only extract landmarks, so small files are plenty and
 # keep the download light. Container-agnostic on purpose -- many YouTube videos are
@@ -52,6 +57,53 @@ def _load_yt_dlp() -> Any:  # pragma: no cover - optional heavy dep
             "`uv sync --extra msasl` (and ensure ffmpeg is on PATH)"
         ) from exc
     return yt_dlp
+
+
+def _prepend_path(directory: Path) -> None:
+    """Put ``directory`` first on ``PATH`` (idempotent) for this process + children."""
+    d = str(directory)
+    current = os.environ.get("PATH", "")
+    if d not in current.split(os.pathsep):
+        os.environ["PATH"] = d + os.pathsep + current if current else d
+
+
+def _resolve_ffmpeg(explicit: str | None) -> str | None:
+    """Resolve ffmpeg for yt-dlp and make sure it's reachable on ``PATH``.
+
+    Two yt-dlp gotchas force both halves of this:
+
+    1. The ``ffmpeg_location`` option only accepts a binary whose basename is
+       exactly ``ffmpeg`` — it rejects imageio-ffmpeg's ``ffmpeg-win-x86_64-v7.1.exe``.
+    2. The **partial-download** check (``FFmpegFD.available()``) ignores
+       ``ffmpeg_location`` entirely and only looks on ``PATH`` (there's even a
+       "Fixme" for this in yt-dlp). Without ffmpeg on PATH, every range download
+       aborts with "ffmpeg is not installed".
+
+    So we canonicalize the bundled binary to ``ffmpeg(.exe)`` in a cache dir AND
+    prepend that dir to ``PATH``. Returns the path to hand to ``ffmpeg_location``
+    (belt-and-suspenders for the merge postprocessor), or ``None`` when a system
+    ffmpeg is already on PATH.
+    """
+    if explicit is not None:
+        p = Path(explicit)
+        _prepend_path(p if p.is_dir() else p.parent)
+        return explicit
+    if shutil.which("ffmpeg") is not None:
+        return None  # already on PATH; yt-dlp finds it for both gates
+    try:
+        import imageio_ffmpeg
+    except ImportError:
+        return None
+    src = Path(imageio_ffmpeg.get_ffmpeg_exe())
+    canonical = f"ffmpeg{src.suffix}"  # ffmpeg.exe on Windows, ffmpeg elsewhere
+    cache_dir = Path(__file__).resolve().parents[2] / ".cache" / "ffmpeg"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    dest = cache_dir / canonical
+    if not dest.exists():
+        shutil.copy2(src, dest)
+    _prepend_path(cache_dir)
+    print(f"Using bundled ffmpeg (canonicalized + on PATH): {dest}")
+    return str(dest)
 
 
 def download_clip(
@@ -226,15 +278,7 @@ def main() -> None:  # pragma: no cover - CLI
     )
     args = parser.parse_args()
 
-    ffmpeg_location = args.ffmpeg_location
-    if ffmpeg_location is None and shutil.which("ffmpeg") is None:
-        try:
-            import imageio_ffmpeg
-
-            ffmpeg_location = imageio_ffmpeg.get_ffmpeg_exe()
-            print(f"Using bundled ffmpeg: {ffmpeg_location}")
-        except ImportError:
-            pass
+    ffmpeg_location = _resolve_ffmpeg(args.ffmpeg_location)
 
     if args.glosses:
         glosses = [canonical_label(g) for g in args.glosses.split(",") if g.strip()]

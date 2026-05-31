@@ -360,6 +360,15 @@ and the data floor.
 
 ### Reaching ~50 signs — runbook for the next session
 
+> **✅ EXECUTED as P3M2c (2026-05-31, branch `milestone/P3M2c-vocab50`).** Result: an
+> **81-gloss** model (3583 samples / 163 signers), honest CV **0.615** with P3M3
+> augmentation, **63 signs shipped** (20 + 43 new). The runbook below is the recipe that
+> was followed; see [`recognition.md`](recognition.md) §6.6 and `progress.md` (Log
+> 2026-05-31) for the as-run detail. Notable deviations: augmentation was enabled for the
+> shipped model (threaded through `train --aug`); throttling needed 3× 75-min-cooldown
+> retry passes; an ffmpeg-on-PATH fix was required (yt-dlp's partial-download gate
+> ignores `--ffmpeg-location`).
+
 P3M2 part 2 proved the recipe on the existing 24 glosses (honest CV **0.719**, model
 live). Growing toward ~50 is **the same recipe applied to *new* glosses** — the
 pipeline, ingest layer, honest gate, and resumable/hang-proof extraction are all built

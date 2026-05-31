@@ -46,18 +46,18 @@ is in [`docs/milestones.md`](docs/milestones.md).
   needs a further MS-ASL download pass for new glosses** — this pass reinforced the
   existing 24. Extraction is now resumable + hang-proof (per-clip cache, worker
   recycle, per-clip timeout + quarantine).
-- **▶ NEXT TASK (fresh session): push the dynamic vocabulary toward ~50 signs.** The
-  full recipe + exact commands are the **"Reaching ~50 signs — runbook for the next
-  session"** in [`docs/phase3.md`](docs/phase3.md) (end of the P3M2 section). TL;DR:
-  the model knows 24 / app ships 20; the combined pipeline (`extract-combined` →
-  `assemble-combined` → `crossval` → `train`), ingest layer, honest signer-disjoint
-  gate, and resumable/hang-proof extraction are **all built + merged** — the only new
-  work is (1) curate ~25–35 *new* everyday glosses, (2) pre-screen MS-ASL + WLASL
-  coverage (read-only) against the data floor, (3) download MS-ASL for them (owner-run;
-  cookies.txt + bundled ffmpeg — see memory `msasl-download-setup`), (4) run the
-  pipeline, (5) let the honest gate (≥ 0.50 + data floor) pick membership without
-  demoting passing signs, (6) re-bundle + docs + gates + PR + verify deploy. Aim to
-  download **more** than 50 candidates (some won't clear the gate).
+- **✅ P3M2c vocab50 (~50-sign push) — DONE (branch `milestone/P3M2c-vocab50`, PR pending).**
+  Registered **57 new glosses** (`PHASE3B_GLOSSES`/`vocab50`, after a read-only
+  coverage pre-screen), the owner ran the MS-ASL fetch (3 throttle-cooldown retry
+  passes; an ffmpeg-on-PATH fix was needed — yt-dlp's partial-download gate ignores
+  `--ffmpeg-location`). Combined cache **3583 samples / 81 glosses / 163 signers** (vs
+  P3M2's 1151/24/128). Honest signer-disjoint CV **top-1 0.561 plain → 0.615 with P3M3
+  augmentation** (enabled for the shipped model via new `train --aug`; recovers both
+  P3M2 incumbents, so no demotions). **Re-gate at ≥ 0.50 (owner-confirmed): 63 of 81
+  glosses ship** — all 20 from P3M2 + **43 new** (incl. `thank you`, held since M6).
+  81-class ONNX (315 KB) + 63 reference clips bundled; `SHIPPED_GLOSSES` 20→63 (frontend
+  + ml). Detail in [`docs/recognition.md`](docs/recognition.md) §6.6. **Shipped
+  vocabulary: 24 letters + 63 dynamic signs.**
 - **Untracked working-tree files** (`1138_Paper.pdf`, `DAI - ASLLVD.pdf`, the ASLLVD
   `.xlsx`) are **dataset-review materials** — ASLLVD/ASL-Citizen were already reviewed
   and **declined** (research-only, no model carve-out; phase3.md review log). Safe to
@@ -160,10 +160,28 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | --- | --- | --- | --- |
 | P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) | `milestone/P3M1-honest-eval` |
 | P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ part 1 (ingest) ☑ merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (MS-ASL fetch + combined retrain + re-gate) ☑ **merged** [#24](https://github.com/aakash-tir/sign-app/pull/24) (squash `0851c1a`). 24-gloss model, honest CV 0.719; ~50 signs needs a further download pass | `milestone/P3M2-download-hardening` |
+| P3M2c — vocab50 (~50-sign push) | data | ◐ done, **PR pending**: 81-gloss model (3583 samples / 163 signers), honest CV 0.615 w/ aug, **63 signs ship** (20 + 43 new) | `milestone/P3M2c-vocab50` |
 | P3M3 — Expanded landmark-space augmentation | augmentation | ☑ merged [#23](https://github.com/aakash-tir/sign-app/pull/23) | `milestone/P3M3-augmentation` |
 
 ## Log
 
+- **2026-05-31** — **P3M2c: vocab50 ~50-sign push** (branch `milestone/P3M2c-vocab50`).
+  Pre-screened + registered **57 new everyday glosses** (`PHASE3B_GLOSSES` + `vocab50`
+  in `wlasl.py`, wired into `msasl_download`/`dynamic_pipeline`). Owner ran the MS-ASL
+  fetch over ~4 days; **YouTube throttling needed 3× 75-min-cooldown retry passes** (the
+  focused final pass recovered `play`/`tired`/`doctor` — throttle, not link rot). Fixed
+  a real download blocker: yt-dlp's partial-download gate (`FFmpegFD.available()`)
+  ignores `--ffmpeg-location` and checks PATH only, so `_resolve_ffmpeg` now copies the
+  imageio-ffmpeg binary to a canonical `ffmpeg.exe` **and** prepends it to `PATH`
+  (memory `msasl-download-setup` updated). Combined extract (resumable, 0 new
+  quarantines) → **3583 samples / 81 glosses / 163 signers**. Honest signer-disjoint CV
+  **0.561 plain → 0.615 with P3M3 augmentation** — augmentation finally tuned on real
+  data (+5.4 pts), enabled for the shipped model via a new `train --aug` (threaded
+  through `train_and_eval`/`run_train`). **Re-gate ≥ 0.50 (owner-confirmed bar): 63/81
+  ship** — all 20 from P3M2 (no demotions; `drink`/`happy` recovered by aug) + 43 new
+  incl. `thank you` (0.63). Bundled 81-class ONNX (315 KB) + 63 reference clips;
+  `SHIPPED_GLOSSES` 20→63 both sides; tests updated (vocab 63, bank 87). recognition.md
+  §6.6. **Gates + PR + deploy verify pending.**
 - **2026-05-28** — **P3M2 part 2: combined MS-ASL ∪ WLASL retrain + honest re-gate**
   (branch `milestone/P3M2-download-hardening`). Fetched the last `want`/`yes` MS-ASL
   clips (cookies.txt auth via "Get cookies.txt LOCALLY" — Chrome ABE blocks

@@ -278,8 +278,13 @@ def train_and_eval(
     lr: float = 1e-3,
     patience: int = 20,
     augment: bool = True,
+    aug: dict[str, Any] | None = None,
 ) -> tuple[Any, dict[str, Any]]:  # pragma: no cover - needs torch
-    """Train the GRU with early stopping on val loss; report top-1/top-5 on test."""
+    """Train the GRU with early stopping on val loss; report top-1/top-5 on test.
+
+    ``aug`` passes the P3M3 landmark-space preset (rotation / per-joint dropout /
+    time-warp) through to :func:`augment_sequences` so the exported model is trained
+    with the **same** augmentation the honest gate measures (``crossval --aug``)."""
     import torch
     from torch import nn
 
@@ -305,7 +310,11 @@ def train_and_eval(
         order = rng.permutation(train_idx)  # one shuffle per epoch
         for start in range(0, len(order), batch_size):
             batch = order[start : start + batch_size]
-            xb = augment_sequences(x_np[batch], rng) if augment else x_np[batch]
+            xb = (
+                augment_sequences(x_np[batch], rng, **(aug or {}))
+                if augment
+                else x_np[batch]
+            )
             optimizer.zero_grad()
             loss = loss_fn(model(torch.tensor(xb.astype(np.float32))), yt[batch])
             loss.backward()
