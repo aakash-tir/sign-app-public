@@ -375,6 +375,46 @@ WLASL-derived reference clips regenerated. Reproduce: `… extract-combined --vo
 vocab50` → `assemble-combined --vocab vocab50` → `crossval --cache models/combined
 --folds 5 --aug` → `train --cache models/combined --aug`.
 
+### 6.7 Diagnosis of the 18 low signs (P4M2)
+
+Before chasing accuracy (Phase 4 accuracy track, [`phase4.md`](phase4.md)), P4M2
+**diagnoses why** each of the 18 below-gate glosses is low — exactly as P3M1 made
+accuracy honest before improving it. `cross_validate` now also emits a **confusion
+matrix** + **per-gloss distinct-signer count** + a **hand-tracking proxy** (fraction of
+active frames with ≥ 1 hand detected); `dynamic_pipeline diagnose --aug` classifies each
+low gloss by likely cause. Run on the shipped 81-gloss cache (signer-disjoint, with
+augmentation → the same CV top-1 **0.615**):
+
+| cause | count | meaning → lever |
+| --- | --- | --- |
+| **confusable** | **3** | one other sign captures ≥ 30 % of its samples → motion/temporal model |
+| **diffuse** | **15** | errors spread across many signs; not data-starved, not mistracked → discriminative power |
+| data-starved | 0 | (none — every low sign has **12–39 signers**) |
+| poorly-tracked | 0 | (none — hand presence **0.69–0.83**, all above the 0.60 floor) |
+
+**The headline finding: data is *not* the bottleneck for these signs.** Every one has
+ample signer diversity (12–39) and acceptable tracking, so a targeted data fetch (P4M6)
+is **low-value here** — the model simply **can't separate them**. That points the track
+at the **modeling** levers (motion/velocity features P4M4, temporal attention pooling
+P4M5) with augmentation (P4M3) as the cheap first try.
+
+**The 3 cleanly confusable signs** (a single dominant confuser — likely shared
+handshape/location where *motion* is the real differentiator):
+
+| gloss | top-1 | mistaken for | n / signers |
+| --- | --- | --- | --- |
+| `come` | 0.08 | **car** (62 %) | 13 / 12 |
+| `sleep` | 0.12 | **eat** (44 %) | 25 / 22 |
+| `nice` | 0.47 | **school** (37 %) | 60 / 34 |
+
+**The 15 diffuse signs** still often have a *moderate* leading confuser (just below the
+30 % bar) — `tall`→boy 26 %, `white`→like 25 %, `good`→thank you 25 %, `dog`→milk 19 %,
+`small`→book 18 %, `who`→milk 16 %, … — i.e. each is weakly confused with **several**
+neighbours at once. This is the signature of **under-separated trajectories** that a
+richer feature (motion) and a whole-sequence reader (attention vs last-timestep) are
+meant to fix. Full per-gloss confusion + counts in `models/combined/diagnosis.json`.
+Reproduce: `… diagnose --cache models/combined --aug`.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

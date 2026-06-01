@@ -9,7 +9,11 @@ import pytest
 from sign_ml.dynamic_export import build_metadata
 from sign_ml.dynamic_model import (
     augment_sequences,
+    classify_low_signs,
+    confusion_matrix,
+    distinct_signers_per_class,
     drop_landmarks,
+    mean_hand_presence_per_class,
     resolve_splits,
     rotate_xy,
     signer_folds,
@@ -277,3 +281,83 @@ def test_export_onnx_writes_files(tmp_path: Path) -> None:
     export_onnx(model, tmp_path, ["a", "b", "c"], window=8, feat=6)
     assert (tmp_path / "model.onnx").exists()
     assert (tmp_path / "metadata.json").exists()
+
+
+def test_confusion_matrix_counts_and_skips_sentinel() -> None:
+    y_true = np.array([0, 0, 1, 2], dtype=np.int64)
+    y_pred = np.array([0, 1, 1, -1], dtype=np.int64)  # last never predicted in CV
+    m = confusion_matrix(y_true, y_pred, n_classes=3)
+    assert m.shape == (3, 3)
+    assert m[0, 0] == 1 and m[0, 1] == 1  # one correct, one 0->1
+    assert m[1, 1] == 1
+    assert m[2].sum() == 0  # sentinel prediction skipped
+
+
+def test_distinct_signers_per_class() -> None:
+    y = np.array([0, 0, 0, 1], dtype=np.int64)
+    signers = ["a", "a", "b", "c"]  # class 0: {a,b}=2, class 1: {c}=1
+    counts = distinct_signers_per_class(y, signers, n_classes=2)
+    assert counts == {0: 2, 1: 1}
+    # No signer info -> all zero.
+    assert distinct_signers_per_class(y, None, n_classes=2) == {0: 0, 1: 0}
+
+
+def test_mean_hand_presence_per_class() -> None:
+    # frame layout: [x, y, z, left_flag, right_flag] (spatial dim 3 -> 1 landmark)
+    pad = [0.0, 0.0, 0.0, 0.0, 0.0]  # padding (all-zero) frame -> inactive
+    seen = [0.1, 0.2, 0.0, 0.0, 1.0]  # active, right hand present
+    missed = [0.1, 0.2, 0.0, 0.0, 0.0]  # active, no hand detected
+    x = np.array(
+        [
+            [pad, seen, seen],  # class 0: 2 active, 2 with hand -> 1.0
+            [pad, seen, missed],  # class 1: 2 active, 1 with hand -> 0.5
+        ],
+        dtype=np.float64,
+    )
+    y = np.array([0, 1], dtype=np.int64)
+    pres = mean_hand_presence_per_class(x, y, n_classes=2)
+    assert pres[0] == pytest.approx(1.0)
+    assert pres[1] == pytest.approx(0.5)
+
+
+def test_classify_low_signs_causes() -> None:
+    glosses = ["aa", "bb", "cc", "dd"]
+    # confusion rows = true, cols = pred.
+    confusion = np.array(
+        [
+            [2, 8, 0, 0],  # aa mostly predicted as bb -> confusable
+            [9, 1, 0, 0],  # bb fine (above gate, excluded)
+            [
+                2,
+                2,
+                4,
+                2,
+            ],  # cc errors spread (max off-diag 0.2 < 0.30) -> not confusable
+            [0, 0, 0, 10],  # dd fine
+        ],
+        dtype=np.int64,
+    )
+    per_gloss = {
+        "aa": {"top1": 0.20, "n": 10, "signers": 12, "presence": 0.9},  # confusable
+        "bb": {"top1": 0.90, "n": 10, "signers": 12, "presence": 0.9},  # above gate
+        "cc": {"top1": 0.40, "n": 10, "signers": 3, "presence": 0.9},  # data-starved
+        "dd": {"top1": 1.00, "n": 10, "signers": 12, "presence": 0.9},
+    }
+    dossier = classify_low_signs(per_gloss, confusion, glosses, gate=0.5)
+    assert set(dossier) == {"aa", "cc"}  # only below-gate glosses
+    assert dossier["aa"]["cause"] == "confusable"
+    assert dossier["aa"]["top_confusions"][0][0] == "bb"
+    assert dossier["cc"]["cause"] == "data-starved"
+
+
+def test_classify_low_signs_poorly_tracked_and_mixed() -> None:
+    glosses = ["aa", "bb"]
+    confusion = np.array([[5, 5], [0, 10]], dtype=np.int64)
+    per_gloss = {
+        # low presence only -> poorly-tracked (confusion split 50/50 >= 0.30 too,
+        # so this is actually mixed: confusable + poorly-tracked)
+        "aa": {"top1": 0.30, "n": 10, "signers": 12, "presence": 0.4},
+        "bb": {"top1": 0.95, "n": 10, "signers": 12, "presence": 0.9},
+    }
+    dossier = classify_low_signs(per_gloss, confusion, glosses, gate=0.5)
+    assert dossier["aa"]["cause"] == "mixed"

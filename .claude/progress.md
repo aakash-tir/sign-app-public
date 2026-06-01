@@ -174,7 +174,7 @@ arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
 | Milestone | Track | Status | Branch |
 | --- | --- | --- | --- |
 | P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deployed (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
-| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ☐ planned | `milestone/P4M2-diagnose` |
+| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ◐ done, PR pending — **3 confusable / 15 diffuse / 0 data-starved** (recognition.md §6.7) | `milestone/P4M2-diagnose` |
 | P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☐ planned | `milestone/P4M3-aug-loss` |
 | P4M4 — Motion / velocity features (frame spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
 | P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☐ planned | `milestone/P4M5-temporal-model` |
@@ -184,6 +184,20 @@ arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
 
 ## Log
 
+- **2026-06-01** — **P4M2: diagnose the 18 low signs** (branch `milestone/P4M2-diagnose`).
+  Added pure, testable diagnostics to `dynamic_model.py` (`confusion_matrix`,
+  `distinct_signers_per_class`, `mean_hand_presence_per_class` tracking proxy,
+  `classify_low_signs`); `cross_validate` now captures held-out predictions → emits the
+  confusion matrix + per-gloss signer/presence (backward-compatible); new `dynamic_pipeline
+  diagnose --aug` CLI writes `diagnosis.json` + prints the dossier. Ran it on the 81-gloss
+  cache (signer-disjoint, augmented → reproduced CV top-1 **0.615**). **Headline: data is
+  NOT the bottleneck** — all 18 low signs have **12–39 signers** + hand presence
+  **0.69–0.83**. Causes: **3 confusable** (`come`→car 62 %, `sleep`→eat 44 %, `nice`→school
+  37 %), **15 diffuse** (under-separated trajectories), **0 data-starved / 0 poorly-tracked**.
+  → **Re-prioritizes the track:** modeling levers (P4M4 motion features, P4M5 temporal
+  model) are highest-value; **P4M6 targeted data is low-value for these signs**. Dossier in
+  recognition.md §6.7. +5 pytest (**82**); ruff/mypy/pytest green; no on-device or spec
+  change. **Next: PR + merge, then STOP for owner go-ahead on P4M3.**
 - **2026-06-01** — **Phase 4 accuracy track planned (P4M2–P4M8)** — owner asked to take
   on the full menu from the "improve low-accuracy signs" research. Goal: lift the **18
   dynamic signs below the honest 0.50 gate** (`come` 0.08 … `mother` 0.49) over the bar

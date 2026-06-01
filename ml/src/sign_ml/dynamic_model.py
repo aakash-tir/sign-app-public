@@ -234,6 +234,129 @@ def signer_folds(
     return [fold_id == f for f in range(k)]
 
 
+def confusion_matrix(y_true: IntArray, y_pred: IntArray, n_classes: int) -> IntArray:
+    """Count matrix where ``M[i, j]`` = #samples with true class ``i`` predicted as
+    ``j``. Rows are true classes, columns are predictions; the diagonal is correct.
+    Samples with a sentinel prediction (``< 0``, i.e. never predicted in CV) are
+    skipped. Pure — drives the P4M2 low-sign diagnosis (recognition.md §6.7)."""
+    m = np.zeros((n_classes, n_classes), dtype=np.int64)
+    for true, pred in zip(y_true.tolist(), y_pred.tolist(), strict=True):
+        if pred < 0:
+            continue
+        m[int(true), int(pred)] += 1
+    return m
+
+
+def distinct_signers_per_class(
+    y: IntArray, signer_ids: Sequence[str | None] | None, n_classes: int
+) -> dict[int, int]:
+    """Number of **distinct** non-empty signer ids contributing to each class. Signer
+    diversity (not just clip count) is what drove the P3M2 accuracy jump, so a low
+    count flags a *data-starved* gloss. Returns 0 for every class when ``signer_ids``
+    is unavailable."""
+    out = {cls: 0 for cls in range(n_classes)}
+    if signer_ids is None:
+        return out
+    seen: dict[int, set[str]] = {cls: set() for cls in range(n_classes)}
+    for cls, sid in zip(y.tolist(), signer_ids, strict=True):
+        if sid:
+            seen[int(cls)].add(sid)
+    return {cls: len(s) for cls, s in seen.items()}
+
+
+def mean_hand_presence_per_class(
+    x: FloatArray, y: IntArray, n_classes: int
+) -> dict[int, float]:
+    """Per class, the fraction of **active** (non-padding) frames in which at least one
+    hand was detected — a proxy for landmark-tracking quality. The last two features
+    are the left/right hand presence flags; a frame is active if any spatial feature is
+    non-zero (windows are front zero-padded). A low value flags a *poorly-tracked*
+    gloss (MediaPipe losing the hands), the third low-accuracy cause besides confusion
+    and data scarcity.
+
+    Layout assumption: the frozen 161-d frame (``pose-shoulder-hands-v1``) — spatial
+    ``x,y,z`` triplets then the two presence flags."""
+    arr = np.asarray(x, dtype=np.float64)
+    _b, _t, f = arr.shape
+    spatial = arr[:, :, : f - 2]
+    left = arr[:, :, f - 2]
+    right = arr[:, :, f - 1]
+    active = np.any(spatial != 0.0, axis=2)  # (B, T) real frames
+    any_hand = np.maximum(left, right) > 0.0  # (B, T)
+    out: dict[int, float] = {}
+    for cls in range(n_classes):
+        mask = y == cls
+        denom = int(active[mask].sum())
+        out[cls] = (
+            float((any_hand[mask] & active[mask]).sum() / denom) if denom else 0.0
+        )
+    return out
+
+
+def classify_low_signs(
+    per_gloss: dict[str, dict[str, Any]],
+    confusion: IntArray,
+    glosses: Sequence[str],
+    gate: float = 0.5,
+    signer_floor: int = 8,
+    confuse_frac: float = 0.30,
+    presence_floor: float = 0.60,
+) -> dict[str, dict[str, Any]]:
+    """Classify each below-gate gloss by its **likely cause**, to route it to the right
+    P4 lever (recognition.md §6.7). Pure and deterministic.
+
+    For each gloss with ``top1 < gate``:
+      * **confusable** — its single largest off-diagonal confusion target captures
+        ``>= confuse_frac`` of its samples (→ motion features / temporal model);
+      * **data-starved** — fewer than ``signer_floor`` distinct signers (→ targeted
+        data fetch, P4M6);
+      * **poorly-tracked** — mean hand presence ``< presence_floor`` (→ clip cleaning);
+      * **mixed** — more than one of the above; **diffuse** — none clearly dominant.
+
+    ``per_gloss`` entries are expected to carry ``top1``, ``n``, ``signers`` and
+    ``presence`` (as enriched by :func:`cross_validate`)."""
+    index = {g: i for i, g in enumerate(glosses)}
+    out: dict[str, dict[str, Any]] = {}
+    for gloss, metric in per_gloss.items():
+        if metric["top1"] >= gate:
+            continue
+        i = index[gloss]
+        row = confusion[i]
+        total = int(row.sum()) or 1
+        ranked = sorted(
+            ((glosses[j], int(row[j]) / total) for j in range(len(glosses)) if j != i),
+            key=lambda kv: kv[1],
+            reverse=True,
+        )
+        top_confusions = [(g, frac) for g, frac in ranked[:3] if frac > 0.0]
+        signers = int(metric.get("signers", 0))
+        presence = float(metric.get("presence", 1.0))
+
+        confusable = bool(top_confusions and top_confusions[0][1] >= confuse_frac)
+        starved = signers < signer_floor
+        poorly_tracked = presence < presence_floor
+        flags = [
+            name
+            for name, on in (
+                ("confusable", confusable),
+                ("data-starved", starved),
+                ("poorly-tracked", poorly_tracked),
+            )
+            if on
+        ]
+        cause = flags[0] if len(flags) == 1 else ("mixed" if flags else "diffuse")
+
+        out[gloss] = {
+            "top1": metric["top1"],
+            "n": metric.get("n", int(total)),
+            "signers": signers,
+            "presence": round(presence, 3),
+            "top_confusions": [(g, round(frac, 3)) for g, frac in top_confusions],
+            "cause": cause,
+        }
+    return out
+
+
 def build_sequence_model(
     n_classes: int, feat: int, hidden: int = 64, seed: int = 42
 ) -> Any:  # pragma: no cover - needs torch
@@ -391,6 +514,7 @@ def cross_validate(
 
     correct1 = np.zeros(len(y), dtype=bool)
     correct5 = np.zeros(len(y), dtype=bool)
+    pred1 = np.full(len(y), -1, dtype=np.int64)  # held-out top-1 per sample
 
     for fold, test_mask in enumerate(fold_masks):
         rng = np.random.default_rng(seed + fold)
@@ -436,8 +560,14 @@ def cross_validate(
             probs = torch.softmax(model(xt[test_mask]), dim=1).numpy()
         ranked = np.argsort(probs, axis=1)
         for row, sample in enumerate(np.where(test_mask)[0]):
+            pred1[sample] = int(ranked[row, -1])
             correct1[sample] = bool(ranked[row, -1] == y[sample])
             correct5[sample] = bool(y[sample] in ranked[row, -top5:])
+
+    # Per-gloss diagnostics (P4M2): signer diversity + hand-tracking quality alongside
+    # accuracy, so a low gloss can be tagged confusable / data-starved / poorly-tracked.
+    signers_per_class = distinct_signers_per_class(y, signer_ids, n_classes)
+    presence_per_class = mean_hand_presence_per_class(x_np, y, n_classes)
 
     per_gloss = {}
     for cls, gloss in enumerate(glosses):
@@ -445,7 +575,11 @@ def cross_validate(
         per_gloss[gloss] = {
             "n": int(mask.sum()),
             "top1": float(correct1[mask].mean()) if mask.any() else 0.0,
+            "signers": signers_per_class[cls],
+            "presence": round(presence_per_class[cls], 3),
         }
+
+    confusion = confusion_matrix(np.asarray(y, dtype=np.int64), pred1, n_classes)
     return {
         "cv_top1": float(correct1.mean()),
         "cv_top5": float(correct5.mean()),
@@ -454,4 +588,5 @@ def cross_validate(
         "folds": folds,
         "n_samples": int(len(y)),
         "per_gloss": per_gloss,
+        "confusion": confusion.tolist(),
     }

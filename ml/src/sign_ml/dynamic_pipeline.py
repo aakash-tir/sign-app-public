@@ -415,6 +415,65 @@ def run_crossval(
         print(f"  {gloss:12s} top1={metric['top1']:.2f} (n={metric['n']})")
 
 
+def run_diagnose(
+    cache_dir: Path,
+    seed: int,
+    folds: int,
+    aug: dict[str, float] | None = None,
+    gate: float = 0.5,
+) -> None:  # pragma: no cover - heavy path
+    """P4M2: run the honest signer-disjoint CV and classify every below-``gate`` gloss
+    by likely cause (confusable / data-starved / poorly-tracked) so each low sign is
+    routed to the right P4 accuracy lever. Writes ``diagnosis.json`` (the full
+    confusion matrix + per-gloss signers/presence + the dossier) and prints the table.
+    Run with ``--aug`` to match the shipped model's gate."""
+    from .dynamic_model import classify_low_signs, cross_validate
+
+    x = np.load(cache_dir / "X.npy")
+    y = np.load(cache_dir / "y.npy")
+    glosses: list[str] = json.loads((cache_dir / "glosses.json").read_text())
+
+    signers_path = cache_dir / "signers.npy"
+    if not signers_path.exists():
+        raise SystemExit("diagnose needs signers.npy (the honest gate) — re-extract")
+    signer_ids = [str(s) for s in np.load(signers_path).tolist()]
+
+    report = cross_validate(
+        x, y, glosses, folds=folds, seed=seed, signer_ids=signer_ids, aug=aug
+    )
+    confusion = np.asarray(report["confusion"], dtype=np.int64)
+    dossier = classify_low_signs(report["per_gloss"], confusion, glosses, gate=gate)
+
+    diagnosis = {
+        "cv_top1": report["cv_top1"],
+        "cv_top5": report["cv_top5"],
+        "fold_kind": report["fold_kind"],
+        "gate": gate,
+        "n_below_gate": len(dossier),
+        "per_gloss": report["per_gloss"],
+        "confusion": report["confusion"],
+        "low_signs": dossier,
+    }
+    (cache_dir / "diagnosis.json").write_text(
+        json.dumps(diagnosis, indent=2), encoding="utf-8"
+    )
+
+    print(
+        f"CV [{report['fold_kind']}] top-1 {report['cv_top1']:.3f} | "
+        f"top-5 {report['cv_top5']:.3f}  --  {len(dossier)} glosses below {gate}\n"
+    )
+    header = f"{'gloss':14s}{'top1':>6}{'n':>5}{'sgnr':>6}{'pres':>6}"
+    print(f"{header}  cause / top confusion")
+    for gloss, d in sorted(dossier.items(), key=lambda kv: kv[1]["top1"]):
+        conf = d["top_confusions"]
+        conf_str = f"-> {conf[0][0]} ({conf[0][1]:.0%})" if conf else ""
+        print(
+            f"{gloss:14s}{d['top1']:>6.2f}{d['n']:>5}{d['signers']:>6}"
+            f"{d['presence']:>6.2f}  {d['cause']:<14s}{conf_str}"
+        )
+    print(f"\nWrote {cache_dir / 'diagnosis.json'}")
+
+
 def main() -> None:  # pragma: no cover - CLI
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="stage", required=True)
@@ -489,6 +548,20 @@ def main() -> None:  # pragma: no cover - CLI
         "landmark dropout, time-warp) on top of the baseline jitter",
     )
 
+    dg = sub.add_parser(
+        "diagnose",
+        help="P4M2: honest CV + classify low signs (confusable/starved/tracked)",
+    )
+    dg.add_argument("--cache", type=Path, default=COMBINED_CACHE_DIR)
+    dg.add_argument("--seed", type=int, default=42)
+    dg.add_argument("--folds", type=int, default=5)
+    dg.add_argument("--gate", type=float, default=0.5)
+    dg.add_argument(
+        "--aug",
+        action="store_true",
+        help="match the shipped model's gate (P3M3 augmentation preset)",
+    )
+
     args = parser.parse_args()
     if args.stage == "extract":
         run_extract(
@@ -525,6 +598,14 @@ def main() -> None:  # pragma: no cover - CLI
             args.folds,
             stratified=args.stratified,
             aug=P3M3_AUG if args.aug else None,
+        )
+    elif args.stage == "diagnose":
+        run_diagnose(
+            args.cache,
+            args.seed,
+            args.folds,
+            aug=P3M3_AUG if args.aug else None,
+            gate=args.gate,
         )
     else:
         run_train(args.cache, args.seed, aug=P3M3_AUG if args.aug else None)

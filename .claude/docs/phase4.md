@@ -233,6 +233,16 @@ count correctness. **Acceptance:** a §6.7 table tagging all 18 low signs by cau
 drives which lever each subsequent milestone applies. **Cost:** low. **No on-device or
 spec change.**
 
+**Outcome (2026-06-01, shipped).** Diagnosis ran on the 81-gloss cache (signer-disjoint,
+augmented → CV top-1 0.615; recognition.md §6.7). **Headline: data is *not* the
+bottleneck** — every low sign has **12–39 signers** and acceptable tracking (hand
+presence 0.69–0.83). Cause tally: **3 confusable** (`come`→car 62 %, `sleep`→eat 44 %,
+`nice`→school 37 %), **15 diffuse** (errors spread; under-separated trajectories), **0
+data-starved, 0 poorly-tracked**. **This re-prioritizes the track:** the **modeling
+levers (P4M4 motion features, P4M5 temporal model)** are highest-value and **P4M6
+targeted data is low-value for these specific signs** — keep P4M6 only for any *future*
+new vocabulary, not this tail.
+
 ## P4M3 — Augmentation & loss levers (cheap, no spec change)
 
 **Goal.** Squeeze the low tail with build-time-only changes that don't touch the frame
@@ -364,7 +374,7 @@ high (build-time compute + new stage). **On-device:** unchanged.
 | Milestone | Track | Status | Branch |
 | --- | --- | --- | --- |
 | P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deployed | `milestone/P4M1-sign-search` |
-| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ☐ planned | `milestone/P4M2-diagnose` |
+| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ◐ done, PR pending — 3 confusable / 15 diffuse / 0 data-starved (§6.7) | `milestone/P4M2-diagnose` |
 | P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☐ planned | `milestone/P4M3-aug-loss` |
 | P4M4 — Motion / velocity features (spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
 | P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☐ planned | `milestone/P4M5-temporal-model` |
