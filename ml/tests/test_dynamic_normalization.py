@@ -106,3 +106,58 @@ def test_absent_pose_block_is_zero() -> None:
 
 def test_normalization_id_is_stable() -> None:
     assert DYNAMIC_NORMALIZATION_ID == "pose-shoulder-hands-v1"
+
+
+# --- P4M4: motion (velocity) features --------------------------------------
+
+from sign_ml.dynamic_normalization import (  # noqa: E402
+    MODEL_FEATURE_DIM,
+    add_motion_features,
+    with_motion,
+)
+
+MOTION_FIXTURE = (
+    Path(__file__).resolve().parents[2]
+    / "frontend"
+    / "src"
+    / "recognition"
+    / "fixtures"
+    / "dynamic-motion.golden.json"
+)
+
+
+def test_with_motion_appends_velocity_of_spatial_only() -> None:
+    window = [
+        [0.10, 0.20, 0.30, 1.0, 0.0],  # F=5 -> 3 spatial + 2 presence
+        [0.15, 0.10, 0.30, 1.0, 1.0],
+    ]
+    out = with_motion(window)
+    assert out.shape == (2, 8)  # 5 + (5 - 2) motion
+    np.testing.assert_array_equal(out[:, :5], np.asarray(window))  # originals kept
+    np.testing.assert_array_equal(out[0, 5:], [0.0, 0.0, 0.0])  # first frame velocity 0
+    np.testing.assert_allclose(out[1, 5:], [0.05, -0.10, 0.0])  # spatial diff only
+
+
+def test_with_motion_zeros_velocity_across_inactive_frames() -> None:
+    pad = [0.0, 0.0, 0.0, 0.0, 0.0]
+    out = with_motion([pad, [0.1, 0.2, 0.3, 1.0, 1.0], [0.4, 0.1, 0.3, 1.0, 1.0]])
+    # frame 1 follows padding -> no spurious spike
+    np.testing.assert_array_equal(out[1, 5:], [0.0, 0.0, 0.0])
+    # frame 2 follows a real frame -> real velocity
+    np.testing.assert_allclose(out[2, 5:], [0.3, -0.1, 0.0])
+
+
+def test_add_motion_features_matches_real_frame_dim() -> None:
+    x = np.zeros((2, 30, FRAME_FEATURE_DIM), dtype=np.float64)
+    out = add_motion_features(x)
+    assert out.shape == (2, 30, MODEL_FEATURE_DIM)
+    assert MODEL_FEATURE_DIM == 2 * FRAME_FEATURE_DIM - 2
+
+
+def test_with_motion_matches_golden_fixture() -> None:
+    fixture = json.loads(MOTION_FIXTURE.read_text(encoding="utf-8"))
+    for case in fixture["cases"]:
+        got = with_motion(case["window"])
+        np.testing.assert_allclose(
+            got, np.asarray(case["expected"]), atol=1e-12, err_msg=case["name"]
+        )

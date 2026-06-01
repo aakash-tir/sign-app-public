@@ -22,21 +22,31 @@ from .dynamic_normalization import (
 MODEL_FILENAME = "model.onnx"
 
 
-def build_metadata(glosses: list[str]) -> dict[str, Any]:
+def build_metadata(
+    glosses: list[str],
+    feature_dim: int = FRAME_FEATURE_DIM,
+    features: str | None = None,
+) -> dict[str, Any]:
     """Sidecar the frontend reads to validate + label the model (pure/testable).
 
     Output is raw **logits** (apply softmax at inference); ``window`` × ``featureDim``
-    is the expected input shape after the frozen normalization.
+    is the expected input shape after normalization. ``feature_dim``/``features``
+    default to the **shipped positions-only contract** (161, no motion); a model
+    trained with the P4M4 motion features (ADR-022) passes the larger dim + the
+    motion feature id, which the runtime skew guard then requires.
     """
-    return {
+    metadata: dict[str, Any] = {
         "format": "onnx",
         "modelFile": MODEL_FILENAME,
         "normalization": DYNAMIC_NORMALIZATION_ID,
         "window": WINDOW_SIZE,
-        "featureDim": FRAME_FEATURE_DIM,
+        "featureDim": feature_dim,
         "output": "logits",
         "labels": glosses,
     }
+    if features is not None:
+        metadata["features"] = features
+    return metadata
 
 
 def export_onnx(
@@ -45,6 +55,7 @@ def export_onnx(
     glosses: list[str],
     window: int = WINDOW_SIZE,
     feat: int = FRAME_FEATURE_DIM,
+    features: str | None = None,
 ) -> None:  # pragma: no cover - needs torch
     """Export ``model`` to ``out_dir/model.onnx`` (batch axis dynamic) + metadata."""
     import torch
@@ -63,5 +74,6 @@ def export_onnx(
         dynamo=False,  # legacy TorchScript exporter: robust for GRU, no onnxscript dep
     )
     (out_dir / "metadata.json").write_text(
-        json.dumps(build_metadata(glosses), indent=2), encoding="utf-8"
+        json.dumps(build_metadata(glosses, feat, features), indent=2),
+        encoding="utf-8",
     )

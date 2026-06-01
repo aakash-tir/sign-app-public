@@ -349,25 +349,34 @@ def run_assemble_combined(
 
 
 def run_train(
-    cache_dir: Path, seed: int, aug: dict[str, float] | None = None
+    cache_dir: Path,
+    seed: int,
+    aug: dict[str, float] | None = None,
+    motion: bool = False,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_export import export_onnx
     from .dynamic_model import train_and_eval
+    from .dynamic_normalization import DYNAMIC_FEATURE_ID
 
     x = np.load(cache_dir / "X.npy")
     y = np.load(cache_dir / "y.npy")
     splits = np.load(cache_dir / "splits.npy")
     glosses: list[str] = json.loads((cache_dir / "glosses.json").read_text())
 
+    # Motion features (P4M4) are applied INSIDE train_and_eval, after augmentation,
+    # so the augmentation always sees the frozen 161-d layout (ADR-022).
     model, metrics = train_and_eval(
-        x, y, splits, n_classes=len(glosses), seed=seed, aug=aug
+        x, y, splits, n_classes=len(glosses), seed=seed, aug=aug, motion=motion
     )
     metrics["glosses"] = glosses
     metrics["augmentation"] = aug or "baseline-jitter-only"
+    metrics["motion_features"] = motion
     metrics["num_samples"] = int(x.shape[0])
 
+    feat = x.shape[2] + (x.shape[2] - 2 if motion else 0)
+    features_id = DYNAMIC_FEATURE_ID if motion else None
     out_dir = cache_dir / "onnx"
-    export_onnx(model, out_dir, glosses, x.shape[1], x.shape[2])
+    export_onnx(model, out_dir, glosses, x.shape[1], feat, features=features_id)
     (cache_dir / "metrics.json").write_text(
         json.dumps(metrics, indent=2), encoding="utf-8"
     )
@@ -381,6 +390,7 @@ def run_crossval(
     folds: int,
     stratified: bool = False,
     aug: dict[str, float] | None = None,
+    motion: bool = False,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_model import cross_validate
 
@@ -400,7 +410,14 @@ def run_crossval(
         )
 
     report = cross_validate(
-        x, y, glosses, folds=folds, seed=seed, signer_ids=signer_ids, aug=aug
+        x,
+        y,
+        glosses,
+        folds=folds,
+        seed=seed,
+        signer_ids=signer_ids,
+        aug=aug,
+        motion=motion,
     )
     (cache_dir / "cv_metrics.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
@@ -421,6 +438,7 @@ def run_diagnose(
     folds: int,
     aug: dict[str, float] | None = None,
     gate: float = 0.5,
+    motion: bool = False,
 ) -> None:  # pragma: no cover - heavy path
     """P4M2: run the honest signer-disjoint CV and classify every below-``gate`` gloss
     by likely cause (confusable / data-starved / poorly-tracked) so each low sign is
@@ -439,7 +457,14 @@ def run_diagnose(
     signer_ids = [str(s) for s in np.load(signers_path).tolist()]
 
     report = cross_validate(
-        x, y, glosses, folds=folds, seed=seed, signer_ids=signer_ids, aug=aug
+        x,
+        y,
+        glosses,
+        folds=folds,
+        seed=seed,
+        signer_ids=signer_ids,
+        aug=aug,
+        motion=motion,
     )
     confusion = np.asarray(report["confusion"], dtype=np.int64)
     dossier = classify_low_signs(report["per_gloss"], confusion, glosses, gate=gate)
@@ -529,6 +554,12 @@ def main() -> None:  # pragma: no cover - CLI
         help="train the exported model with the P3M3 landmark-space augmentation "
         "preset (must match the gate measured via `crossval --aug`)",
     )
+    tr.add_argument(
+        "--motion",
+        action="store_true",
+        help="append P4M4 velocity features (default off — regressed the honest gate, "
+        "recognition.md §6.8; kept as an opt-in toolkit)",
+    )
 
     cv = sub.add_parser(
         "crossval", help="signer-disjoint k-fold CV (the honest ship gate, ADR-019)"
@@ -547,6 +578,11 @@ def main() -> None:  # pragma: no cover - CLI
         help="enable the P3M3 landmark-space augmentation preset (rotation, "
         "landmark dropout, time-warp) on top of the baseline jitter",
     )
+    cv.add_argument(
+        "--motion",
+        action="store_true",
+        help="append P4M4 velocity features (default off; see recognition.md §6.8)",
+    )
 
     dg = sub.add_parser(
         "diagnose",
@@ -560,6 +596,11 @@ def main() -> None:  # pragma: no cover - CLI
         "--aug",
         action="store_true",
         help="match the shipped model's gate (P3M3 augmentation preset)",
+    )
+    dg.add_argument(
+        "--motion",
+        action="store_true",
+        help="diagnose the motion model (default off; see recognition.md §6.8)",
     )
 
     args = parser.parse_args()
@@ -598,6 +639,7 @@ def main() -> None:  # pragma: no cover - CLI
             args.folds,
             stratified=args.stratified,
             aug=P3M3_AUG if args.aug else None,
+            motion=args.motion,
         )
     elif args.stage == "diagnose":
         run_diagnose(
@@ -606,9 +648,15 @@ def main() -> None:  # pragma: no cover - CLI
             args.folds,
             aug=P3M3_AUG if args.aug else None,
             gate=args.gate,
+            motion=args.motion,
         )
     else:
-        run_train(args.cache, args.seed, aug=P3M3_AUG if args.aug else None)
+        run_train(
+            args.cache,
+            args.seed,
+            aug=P3M3_AUG if args.aug else None,
+            motion=args.motion,
+        )
 
 
 if __name__ == "__main__":

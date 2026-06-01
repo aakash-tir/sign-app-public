@@ -415,6 +415,39 @@ richer feature (motion) and a whole-sequence reader (attention vs last-timestep)
 meant to fix. Full per-gloss confusion + counts in `models/combined/diagnosis.json`.
 Reproduce: `… diagnose --cache models/combined --aug`.
 
+### 6.8 Motion (velocity) features — tested, did **not** help (P4M4)
+
+The P4M2 diagnosis (§6.7) pointed at **discriminative power**, so P4M4 added **velocity**
+features — per-frame first-difference of the 159 spatial coords, appended to each window
+(161 → 320 dims), the most-cited fix for visually-similar signs. Built as a parity-safe
+**sequence-level transform** (`with_motion` / `withMotion`) with a shared golden fixture
+(`dynamic-motion.golden.json`); per-frame normalization (`pose-shoulder-hands-v1`) is
+unchanged (ADR-022).
+
+**Honest signer-disjoint CV (5-fold, with P3M3 augmentation), motion applied _after_
+augmentation:**
+
+| Model | top-1 | top-5 | glosses ≥ 0.50 |
+| --- | --- | --- | --- |
+| **Positions only (shipped)** | **0.615** | 0.872 | **63 / 81** |
+| + velocity features | 0.594 | 0.862 | 58 / 81 |
+
+**Motion regressed the honest gate (−2.1 pts; 5 more glosses fall below 0.50).** It
+slightly helped the 3 confusable signs (`come` 0.08→0.15, `sleep` 0.12→0.20) but hurt
+many mid-tier signs (`hello` 0.51→0.36, `go` 0.73→0.59) — the signature of **overfitting
+from doubling the input dim** on a 3583-sample set with a tiny 2-layer GRU. (A first run
+scored 0.560 due to an ordering bug — augmentation ran on the motion-appended layout and
+corrupted the presence flags; fixed by deriving motion *after* augmentation, which
+recovered to 0.594 but still below baseline.)
+
+**Decision (owner): do not ship motion.** The shipped model stays the **positions-only
+0.615** 81-gloss GRU; the runtime is unchanged. The motion toolkit is **kept as an opt-in
+tool** (`with_motion`/`withMotion` + golden parity + `train/crossval/diagnose --motion`,
+default off) so **P4M5 can re-test motion together with a better temporal model**
+(attention pooling) — motion may pay off once the model can exploit it and isn't just
+widening an overfit-prone input. Reproduce: `… crossval --cache models/combined --folds 5
+--aug --motion`.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

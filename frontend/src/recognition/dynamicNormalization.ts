@@ -21,6 +21,16 @@ export const POSE_BLOCK_LEN = UPPER_BODY_POSE_INDICES.length * 3 // 33
 export const HAND_BLOCK_LEN = HAND_LANDMARK_COUNT * 3 // 63
 /** pose (33) + left hand (63) + right hand (63) + [leftPresent, rightPresent]. */
 export const FRAME_FEATURE_DIM = POSE_BLOCK_LEN + 2 * HAND_BLOCK_LEN + 2 // 161
+/** Spatial coords only (all but the 2 trailing presence flags). */
+export const SPATIAL_FEATURE_DIM = FRAME_FEATURE_DIM - 2 // 159
+/** Model input after motion features are appended (P4M4): positions + velocity. */
+export const MODEL_FEATURE_DIM = FRAME_FEATURE_DIM + SPATIAL_FEATURE_DIM // 320
+/**
+ * Full model-input feature contract (per-frame normalization + motion). The model
+ * metadata carries this id so the runtime skew guard rejects a no-motion model
+ * (P4M4, ADR-022). Mirror of the Python `DYNAMIC_FEATURE_ID`.
+ */
+export const DYNAMIC_FEATURE_ID = 'pose-shoulder-hands-motion-v1'
 
 /**
  * Normalize the upper-body pose into a translation- and scale-invariant frame,
@@ -98,4 +108,35 @@ export function normalizeFrame(obs: HolisticObservation): number[] {
   const presence = [obs.leftHand ? 1 : 0, obs.rightHand ? 1 : 0]
 
   return [...poseBlock, ...leftBlock, ...rightBlock, ...presence]
+}
+
+/**
+ * Append per-frame **velocity** (first difference of the spatial coords) to a
+ * window of normalized frames, turning each `F`-vector into `2F − 2`
+ * ({@link FRAME_FEATURE_DIM} → {@link MODEL_FEATURE_DIM} for real frames). Motion is
+ * what separates visually-similar signs (recognition.md §6.8); the model sees only
+ * positions otherwise.
+ *
+ * Velocity is computed on the spatial dims only (the 2 trailing presence flags are
+ * carried through, never differenced), is **zero for the first frame**, and is
+ * **zeroed across inactive (all-zero) frames** — front padding and fully-undetected
+ * frames — so the padding→first-real boundary injects no spurious spike. The trainer
+ * and runtime both front-pad to `WINDOW_SIZE` identically, so this is parity-safe.
+ *
+ * MUST stay numerically equivalent to the Python `with_motion`; the shared
+ * `fixtures/dynamic-motion.golden.json` fixture guards parity.
+ */
+export function withMotion(window: readonly number[][]): number[][] {
+  const isActive = (frame: readonly number[]): boolean =>
+    frame.some((v) => v !== 0)
+  return window.map((frame, t) => {
+    const spatialDim = frame.length - 2
+    const prev = window[t - 1]
+    const gated =
+      t > 0 && prev !== undefined && isActive(frame) && isActive(prev)
+    const motion = frame
+      .slice(0, spatialDim)
+      .map((v, i) => (gated ? v - prev![i]! : 0))
+    return [...frame, ...motion]
+  })
 }

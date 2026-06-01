@@ -424,6 +424,42 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ---
 
+## ADR-022 — Motion (velocity) features: explored, kept opt-in (not shipped)
+
+- **Status:** explored, **not shipped** (owner, 2026-06-01). Phase 4 accuracy track /
+  P4M4. Builds on the frozen per-frame normalization (ADR-013) and the P4M2 diagnosis.
+- **Outcome:** Motion features **regressed the honest gate** (0.615 → 0.594; recognition.md
+  §6.8) — overfitting from doubling the input dim on a small set + tiny GRU. The shipped
+  model stays **positions-only**; the runtime is unchanged. The capability below is
+  **retained as an opt-in toolkit** (`with_motion`/`withMotion` + shared golden parity +
+  `--motion` flag, default off) so **P4M5 can re-test motion with a better temporal model
+  (attention)**. The metadata is motion-aware (`featureDim` + optional `features` id) only
+  when a motion model is exported; the default/shipped metadata is the 161-d contract.
+- **Context:** The P4M2 diagnosis showed the 18 low signs are **under-separated**, not
+  data-starved — the GRU sees **positions only** (the frozen 161-d frame), and motion
+  dynamics are the documented discriminator for visually-similar signs (recognition.md
+  §6.7/§6.8). The fix is to add velocity, but the frame feature vector is a **frozen,
+  golden-vector-guarded** contract shared with the TS runtime — changing it risks
+  train/serve skew.
+- **Decision:** Append **per-frame velocity** (first difference of the spatial coords)
+  to each window as a **sequence-level transform** applied identically on both sides
+  (`with_motion` / `withMotion`), turning the model input from **161 → 320** dims
+  (positions + velocity; the 2 presence flags are carried through, never differenced).
+  Velocity is **zero on the first frame and across inactive (all-zero) frames** so the
+  front-padding→first-real boundary injects no spurious spike (both sides front-pad to
+  `WINDOW_SIZE` identically). **Per-frame normalization (`pose-shoulder-hands-v1`) and
+  its golden fixture are unchanged;** a **new feature id `pose-shoulder-hands-motion-v1`**
+  + `featureDim = 320` are recorded in the model metadata, and the runtime skew guard
+  rejects a no-motion model. A **new shared golden fixture** (`dynamic-motion.golden.json`)
+  is the parity contract for `with_motion`.
+- **Consequences:** Build-time feature engineering on the cached landmarks (no
+  re-extraction) + a small runtime transform before inference; the GRU input layer grows
+  but the ONNX stays well within the on-device budget. Motion is on by default for the
+  shipped model; `--no-motion` keeps a positions-only path for comparison. Accuracy
+  delta + re-gate documented in recognition.md §6.8.
+
+---
+
 ## Open questions (non-blocking, revisit at the noted milestone)
 
 | # | Question | Default assumption | Revisit |

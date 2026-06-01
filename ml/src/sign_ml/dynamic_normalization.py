@@ -37,11 +37,57 @@ UPPER_BODY_POSE_INDICES: tuple[int, ...] = (0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 1
 POSE_BLOCK_LEN = len(UPPER_BODY_POSE_INDICES) * 3  # 33
 HAND_BLOCK_LEN = HAND_LANDMARK_COUNT * 3  # 63
 FRAME_FEATURE_DIM = POSE_BLOCK_LEN + 2 * HAND_BLOCK_LEN + 2  # 161
+# Spatial coords only (all but the 2 trailing presence flags); the part velocity
+# is computed over.
+SPATIAL_FEATURE_DIM = FRAME_FEATURE_DIM - 2  # 159
+# Model input after motion features are appended (P4M4): positions + velocity.
+MODEL_FEATURE_DIM = FRAME_FEATURE_DIM + SPATIAL_FEATURE_DIM  # 320
 
 DYNAMIC_NORMALIZATION_ID = "pose-shoulder-hands-v1"
+# Identifies the full model-input feature set (per-frame normalization + motion);
+# the runtime skew guard checks this so a v1 (no-motion) model can't be paired with
+# a motion-feeding runtime (P4M4, ADR-022).
+DYNAMIC_FEATURE_ID = "pose-shoulder-hands-motion-v1"
 WINDOW_SIZE = 30
 
 FloatArray = npt.NDArray[np.float64]
+
+
+def with_motion(window: npt.ArrayLike) -> FloatArray:
+    """Append per-frame **velocity** (first difference of the spatial coords) to a
+    normalized ``(T, FRAME_FEATURE_DIM)`` window → ``(T, MODEL_FEATURE_DIM)``.
+
+    Velocity is the discriminator for visually-similar signs (recognition.md §6.8);
+    the GRU only sees positions otherwise. Mirror of the TS ``withMotion`` — the
+    shared ``dynamic-motion.golden.json`` fixture is the parity contract.
+
+    Details: velocity is computed on the spatial dims only (the 2 presence flags are
+    carried through unchanged, never differenced). It is **zeroed across inactive
+    (all-zero) frames** — front padding and fully-undetected frames — so the
+    padding→first-real-frame boundary doesn't inject a spurious spike, and zero for
+    the first frame. Train and serve both pad front to ``WINDOW_SIZE`` identically, so
+    this is parity-safe."""
+    w = np.asarray(window, dtype=np.float64)
+    if w.ndim != 2:
+        raise ValueError(f"Expected a 2-D (T, F) window, got shape {w.shape}")
+    out: FloatArray = add_motion_features(w[np.newaxis])[0]
+    return out
+
+
+def add_motion_features(x: npt.ArrayLike) -> FloatArray:
+    """Batched :func:`with_motion` over ``(N, T, F)`` windows → ``(N, T, 2F - 2)``."""
+    arr = np.asarray(x, dtype=np.float64)
+    if arr.ndim != 3:
+        raise ValueError(f"Expected (N, T, F) windows, got shape {arr.shape}")
+    spatial_dim = arr.shape[2] - 2  # all but the 2 trailing presence flags
+    spatial = arr[:, :, :spatial_dim]
+    motion = np.zeros_like(spatial)
+    motion[:, 1:, :] = spatial[:, 1:, :] - spatial[:, :-1, :]
+    active = np.any(arr != 0.0, axis=2)  # padding / fully-undetected frames are all 0
+    gate = np.zeros(active.shape, dtype=bool)
+    gate[:, 1:] = active[:, 1:] & active[:, :-1]
+    motion[~gate] = 0.0
+    return np.concatenate([arr, motion], axis=2)
 
 
 def normalize_pose(pose: npt.ArrayLike) -> FloatArray:

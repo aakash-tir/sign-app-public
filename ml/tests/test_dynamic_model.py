@@ -23,7 +23,6 @@ from sign_ml.dynamic_model import (
 )
 from sign_ml.dynamic_normalization import (
     DYNAMIC_NORMALIZATION_ID,
-    FRAME_FEATURE_DIM,
     WINDOW_SIZE,
 )
 
@@ -247,12 +246,26 @@ def test_signer_folds_deterministic_with_seed() -> None:
 
 
 def test_build_metadata_carries_skew_guard() -> None:
+    from sign_ml.dynamic_normalization import FRAME_FEATURE_DIM
+
+    # Default = the shipped positions-only contract (no motion).
     md = build_metadata(["yes", "no"])
     assert md["format"] == "onnx"
     assert md["normalization"] == DYNAMIC_NORMALIZATION_ID
     assert md["window"] == WINDOW_SIZE
     assert md["featureDim"] == FRAME_FEATURE_DIM
+    assert "features" not in md  # only present for a motion model
     assert md["labels"] == ["yes", "no"]
+
+
+def test_build_metadata_motion_contract() -> None:
+    from sign_ml.dynamic_normalization import DYNAMIC_FEATURE_ID, MODEL_FEATURE_DIM
+
+    md = build_metadata(
+        ["a"], feature_dim=MODEL_FEATURE_DIM, features=DYNAMIC_FEATURE_ID
+    )
+    assert md["featureDim"] == MODEL_FEATURE_DIM
+    assert md["features"] == DYNAMIC_FEATURE_ID
 
 
 def test_train_and_eval_runs_on_tiny_data() -> None:
@@ -270,6 +283,38 @@ def test_train_and_eval_runs_on_tiny_data() -> None:
     assert 0.0 <= metrics["top1"] <= 1.0
     assert metrics["n_test"] >= 1 and metrics["n_val"] >= 1
     assert model is not None
+
+
+def test_train_and_eval_motion_grows_feat() -> None:
+    pytest.importorskip("torch")
+    from sign_ml.dynamic_model import train_and_eval
+
+    rng = np.random.default_rng(0)
+    n, window, feat, classes = 24, 8, 6, 3  # feat 6 -> 6 + (6-2) = 10 with motion
+    x = rng.standard_normal((n, window, feat))
+    y = rng.integers(0, classes, n).astype(np.int64)
+    splits = np.array(["train"] * n, dtype=np.str_)
+    model, metrics = train_and_eval(
+        x, y, splits, n_classes=classes, seed=0, epochs=3, batch_size=8, motion=True
+    )
+    assert 0.0 <= metrics["top1"] <= 1.0
+    # the GRU's input layer was built for the motion-augmented feature width
+    assert model.gru.input_size == 2 * feat - 2
+
+
+def test_cross_validate_motion_runs() -> None:
+    pytest.importorskip("torch")
+    from sign_ml.dynamic_model import cross_validate
+
+    rng = np.random.default_rng(1)
+    n, window, feat, classes = 30, 8, 6, 3
+    x = rng.standard_normal((n, window, feat))
+    y = rng.integers(0, classes, n).astype(np.int64)
+    report = cross_validate(
+        x, y, ["a", "b", "c"], folds=3, seed=0, epochs=2, motion=True
+    )
+    assert 0.0 <= report["cv_top1"] <= 1.0
+    assert len(report["confusion"]) == classes
 
 
 def test_export_onnx_writes_files(tmp_path: Path) -> None:

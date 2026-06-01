@@ -290,6 +290,16 @@ missing-landmark velocity = 0). **Acceptance:** honest CV re-run + re-gate; the
 TS↔Python golden vectors match to tolerance. **On-device:** frame is larger but model
 stays tiny; verify ONNX ≤ budget. **Cost:** medium (parity work).
 
+**Outcome (2026-06-01, shipped — negative result).** Built the parity-safe motion
+toolkit (`with_motion`/`withMotion` + shared golden), but on the honest gate **motion
+regressed accuracy: 0.615 → 0.594** (63 → 58 glosses ≥ 0.50) — overfitting from doubling
+the input dim on a 3583-sample set + tiny GRU (recognition.md §6.8). **Owner decision: do
+not ship motion.** The shipped model stays positions-only (0.615); the runtime is
+unchanged. The toolkit is **kept opt-in** (`--motion`, default off) so **P4M5 can re-test
+motion + attention together**. A real ordering bug was found and fixed along the way
+(augmentation must run before motion is derived). ADR-022 updated to "explored, not
+shipped."
+
 ## P4M5 — Temporal model upgrade (attention pooling; optional two-stream)
 
 **Goal.** Stop discarding mid-sign motion. Build on the best feature set from P4M3/P4M4.
@@ -374,9 +384,9 @@ high (build-time compute + new stage). **On-device:** unchanged.
 | Milestone | Track | Status | Branch |
 | --- | --- | --- | --- |
 | P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deployed | `milestone/P4M1-sign-search` |
-| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ◐ done, PR pending — 3 confusable / 15 diffuse / 0 data-starved (§6.7) | `milestone/P4M2-diagnose` |
+| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ☑ merged [#27](https://github.com/aakash-tir/sign-app/pull/27) — 3 confusable / 15 diffuse / 0 data-starved (§6.7) | `milestone/P4M2-diagnose` |
 | P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☐ planned | `milestone/P4M3-aug-loss` |
-| P4M4 — Motion / velocity features (spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
+| P4M4 — Motion / velocity features (spec v2) | accuracy | ◐ done, PR pending — **negative result** (0.615→0.594), toolkit kept opt-in, not shipped (§6.8) | `milestone/P4M4-motion-features` |
 | P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☐ planned | `milestone/P4M5-temporal-model` |
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ planned | `milestone/P4M6-targeted-data` |
 | P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☐ planned | `milestone/P4M7-runtime-confidence` |

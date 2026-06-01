@@ -19,18 +19,20 @@ from .dynamic_normalization import (
     FRAME_FEATURE_DIM,
     POSE_LANDMARK_COUNT,
     normalize_frame,
+    with_motion,
 )
 
 Point = list[float]
 
-FIXTURE_PATH = (
+_FIXTURE_DIR = (
     Path(__file__).resolve().parents[3]
     / "frontend"
     / "src"
     / "recognition"
     / "fixtures"
-    / "dynamic-normalization.golden.json"
 )
+FIXTURE_PATH = _FIXTURE_DIR / "dynamic-normalization.golden.json"
+MOTION_FIXTURE_PATH = _FIXTURE_DIR / "dynamic-motion.golden.json"
 
 
 def _pose() -> list[Point]:
@@ -100,10 +102,59 @@ def build_fixture() -> dict[str, Any]:
     }
 
 
+def _motion_case(name: str, window: list[list[float]]) -> dict[str, Any]:
+    return {
+        "name": name,
+        "window": window,
+        "expected": [[float(v) for v in row] for row in with_motion(window)],
+    }
+
+
+def build_motion_fixture() -> dict[str, Any]:
+    """Golden vectors for the P4M4 ``withMotion`` sequence transform (small synthetic
+    frames, ``F = 5`` = 3 spatial + 2 presence flags, so the fixture is readable).
+    Covers: a normal sequence, a front-padded sequence (motion must stay zero across
+    the padding→first-real boundary), and a fully-undetected (all-zero) frame."""
+    pad = [0.0, 0.0, 0.0, 0.0, 0.0]  # padding / undetected frame (all zero)
+    cases = [
+        _motion_case(
+            "normal",
+            [
+                [0.10, 0.20, 0.30, 1.0, 0.0],
+                [0.15, 0.10, 0.30, 1.0, 1.0],
+                [0.05, 0.40, 0.20, 0.0, 1.0],
+            ],
+        ),
+        _motion_case(
+            "front_padded",
+            [pad, pad, [0.10, 0.20, 0.30, 1.0, 1.0], [0.40, 0.10, 0.30, 1.0, 1.0]],
+        ),
+        _motion_case(
+            "gap_frame",
+            [[0.10, 0.20, 0.30, 1.0, 1.0], pad, [0.40, 0.10, 0.30, 1.0, 1.0]],
+        ),
+    ]
+    return {
+        "description": (
+            "Golden vectors for the P4M4 withMotion sequence transform (shared "
+            "TS<->Python parity). expected = withMotion(window); appends per-frame "
+            "velocity of the spatial dims (all but the 2 presence flags), zeroed for "
+            "the first frame and across inactive (all-zero) frames. F_in -> 2*F_in-2."
+        ),
+        "cases": cases,
+    }
+
+
 def main() -> None:
     fixture = build_fixture()
     FIXTURE_PATH.write_text(json.dumps(fixture, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {len(fixture['cases'])} cases -> {FIXTURE_PATH}")
+
+    motion = build_motion_fixture()
+    MOTION_FIXTURE_PATH.write_text(
+        json.dumps(motion, indent=2) + "\n", encoding="utf-8"
+    )
+    print(f"Wrote {len(motion['cases'])} cases -> {MOTION_FIXTURE_PATH}")
 
 
 if __name__ == "__main__":

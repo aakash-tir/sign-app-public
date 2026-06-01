@@ -19,6 +19,8 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
+from .dynamic_normalization import add_motion_features
+
 FloatArray = npt.NDArray[np.float64]
 IntArray = npt.NDArray[np.int64]
 BoolArray = npt.NDArray[np.bool_]
@@ -402,23 +404,34 @@ def train_and_eval(
     patience: int = 20,
     augment: bool = True,
     aug: dict[str, Any] | None = None,
+    motion: bool = False,
 ) -> tuple[Any, dict[str, Any]]:  # pragma: no cover - needs torch
     """Train the GRU with early stopping on val loss; report top-1/top-5 on test.
 
     ``aug`` passes the P3M3 landmark-space preset (rotation / per-joint dropout /
     time-warp) through to :func:`augment_sequences` so the exported model is trained
-    with the **same** augmentation the honest gate measures (``crossval --aug``)."""
+    with the **same** augmentation the honest gate measures (``crossval --aug``).
+
+    ``motion`` appends velocity features (P4M4, ADR-022). It is applied **after**
+    augmentation so the augmentation always operates on the frozen 161-d layout
+    (presence flags last); the model input dim grows to ``2F - 2`` accordingly."""
     import torch
     from torch import nn
 
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     x_np = np.asarray(x, dtype=np.float64)
-    xt = torch.tensor(x_np.astype(np.float32))
+
+    def prep(arr: FloatArray) -> Any:
+        out = add_motion_features(arr) if motion else arr
+        return torch.tensor(np.asarray(out, dtype=np.float32))
+
+    feat = x_np.shape[2] + (x_np.shape[2] - 2 if motion else 0)
     yt = torch.tensor(np.asarray(y, dtype=np.int64))
     train, val, test = resolve_splits(splits, seed)
+    xt_val, xt_test = prep(x_np[val]), prep(x_np[test])
 
-    model = build_sequence_model(n_classes, xt.shape[2], seed=seed)
+    model = build_sequence_model(n_classes, feat, seed=seed)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     loss_fn = nn.CrossEntropyLoss()
 
@@ -439,13 +452,13 @@ def train_and_eval(
                 else x_np[batch]
             )
             optimizer.zero_grad()
-            loss = loss_fn(model(torch.tensor(xb.astype(np.float32))), yt[batch])
+            loss = loss_fn(model(prep(xb)), yt[batch])
             loss.backward()
             optimizer.step()
 
         model.eval()
         with torch.no_grad():
-            val_loss = float(loss_fn(model(xt[val]), yt[val]).item())
+            val_loss = float(loss_fn(model(xt_val), yt[val]).item())
         if val_loss < best_val:
             best_val, best_state, bad_epochs = (
                 val_loss,
@@ -460,7 +473,7 @@ def train_and_eval(
     model.load_state_dict(best_state)
     model.eval()
     with torch.no_grad():
-        logits = model(xt[test])
+        logits = model(xt_test)
         probs = torch.softmax(logits, dim=1).numpy().astype(np.float64)
 
     metrics: dict[str, Any] = {
@@ -488,6 +501,7 @@ def cross_validate(
     val_frac: float = 0.15,
     signer_ids: Sequence[str | None] | None = None,
     aug: dict[str, Any] | None = None,
+    motion: bool = False,
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
     """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
     test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
@@ -495,12 +509,17 @@ def cross_validate(
 
     When ``signer_ids`` is given, folds are **signer-disjoint** (the honest gate,
     ADR-019); otherwise they fall back to stratified-clip folds (reporting only).
-    """
+    ``motion`` appends velocity after augmentation (P4M4, ADR-022)."""
     import torch
     from torch import nn
 
     x_np = np.asarray(x, dtype=np.float64)
-    xt = torch.tensor(x_np.astype(np.float32))
+
+    def prep(arr: FloatArray) -> Any:
+        out = add_motion_features(arr) if motion else arr
+        return torch.tensor(np.asarray(out, dtype=np.float32))
+
+    feat = x_np.shape[2] + (x_np.shape[2] - 2 if motion else 0)
     yt = torch.tensor(np.asarray(y, dtype=np.int64))
     n_classes = len(glosses)
     top5 = min(5, n_classes)
@@ -524,9 +543,10 @@ def cross_validate(
         val_idx, train_idx = pool[:n_val], pool[n_val:]
 
         torch.manual_seed(seed + fold)
-        model = build_sequence_model(n_classes, x_np.shape[2], seed=seed + fold)
+        model = build_sequence_model(n_classes, feat, seed=seed + fold)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
         loss_fn = nn.CrossEntropyLoss()
+        xt_val = prep(x_np[val_idx])
         best_val = float("inf")
         best_state = copy.deepcopy(model.state_dict())
         bad_epochs = 0
@@ -537,12 +557,12 @@ def cross_validate(
                 batch = order[start : start + batch_size]
                 xb = augment_sequences(x_np[batch], rng, **(aug or {}))
                 optimizer.zero_grad()
-                loss = loss_fn(model(torch.tensor(xb.astype(np.float32))), yt[batch])
+                loss = loss_fn(model(prep(xb)), yt[batch])
                 loss.backward()
                 optimizer.step()
             model.eval()
             with torch.no_grad():
-                val_loss = float(loss_fn(model(xt[val_idx]), yt[val_idx]).item())
+                val_loss = float(loss_fn(model(xt_val), yt[val_idx]).item())
             if val_loss < best_val:
                 best_val, best_state, bad_epochs = (
                     val_loss,
@@ -557,7 +577,7 @@ def cross_validate(
         model.load_state_dict(best_state)
         model.eval()
         with torch.no_grad():
-            probs = torch.softmax(model(xt[test_mask]), dim=1).numpy()
+            probs = torch.softmax(model(prep(x_np[test_mask])), dim=1).numpy()
         ranked = np.argsort(probs, axis=1)
         for row, sample in enumerate(np.where(test_mask)[0]):
             pred1[sample] = int(ranked[row, -1])

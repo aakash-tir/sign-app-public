@@ -174,7 +174,8 @@ arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
 | Milestone | Track | Status | Branch |
 | --- | --- | --- | --- |
 | P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deployed (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
-| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ◐ done, PR pending — **3 confusable / 15 diffuse / 0 data-starved** (recognition.md §6.7) | `milestone/P4M2-diagnose` |
+| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ☑ merged [#27](https://github.com/aakash-tir/sign-app/pull/27) — **3 confusable / 15 diffuse / 0 data-starved** (recognition.md §6.7) | `milestone/P4M2-diagnose` |
+| P4M4 — Motion / velocity features (frame spec v2) | accuracy | ◐ done, PR pending — **negative result** (0.615→0.594); motion kept opt-in, **not shipped** (§6.8) | `milestone/P4M4-motion-features` |
 | P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☐ planned | `milestone/P4M3-aug-loss` |
 | P4M4 — Motion / velocity features (frame spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
 | P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☐ planned | `milestone/P4M5-temporal-model` |
@@ -184,6 +185,21 @@ arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
 
 ## Log
 
+- **2026-06-01** — **P4M4: motion (velocity) features — tested, NOT shipped** (branch
+  `milestone/P4M4-motion-features`). Built a parity-safe motion toolkit:
+  `with_motion`/`withMotion` (append per-frame velocity of the 159 spatial dims, gated so
+  padding boundaries don't spike) mirrored on both sides with a shared
+  `dynamic-motion.golden.json`; per-frame normalization unchanged; metadata gains an
+  optional `features` id + larger `featureDim` only for a motion model (ADR-022). **Honest
+  signer-disjoint CV: motion 0.594 vs positions-only 0.615 (−2.1 pts; 63→58 glosses ≥
+  0.50)** — overfitting from doubling the input dim on 3583 samples + tiny GRU
+  (recognition.md §6.8). Caught + fixed a real ordering bug (augmentation ran on the
+  motion-appended layout, corrupting presence flags; first run 0.560 → 0.594 after
+  deriving motion AFTER augmentation). **Owner decision: do not ship** — shipped model
+  stays positions-only 0.615, runtime reverted to 161-d (bundled model untouched). Motion
+  kept **opt-in** (`--motion`, default off) for P4M5 to re-test with attention. ml 89
+  pytest / frontend 173 vitest + 18 playwright; all gates green. Also folded the P4M2
+  "merged #27" tracker tidy. **Next: PR + merge, STOP for P4M5 go-ahead.**
 - **2026-06-01** — **P4M2: diagnose the 18 low signs** (branch `milestone/P4M2-diagnose`).
   Added pure, testable diagnostics to `dynamic_model.py` (`confusion_matrix`,
   `distinct_signers_per_class`, `mean_hand_presence_per_class` tracking proxy,
