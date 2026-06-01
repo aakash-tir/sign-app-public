@@ -46,7 +46,9 @@ is in [`docs/milestones.md`](docs/milestones.md).
   needs a further MS-ASL download pass for new glosses** — this pass reinforced the
   existing 24. Extraction is now resumable + hang-proof (per-clip cache, worker
   recycle, per-clip timeout + quarantine).
-- **✅ P3M2c vocab50 (~50-sign push) — DONE (branch `milestone/P3M2c-vocab50`, PR pending).**
+- **✅ P3M2c vocab50 (~50-sign push) — MERGED + DEPLOYED** ([PR #25](https://github.com/aakash-tir/sign-app/pull/25),
+  squash `cada2e8`; auto-deploys to Cloudflare on push to `main`). **Deploy-verified:**
+  live `model.onnx` sha256 `491d35c0…0ff1a2` == local (315,381 bytes, HTTP 200).
   Registered **57 new glosses** (`PHASE3B_GLOSSES`/`vocab50`, after a read-only
   coverage pre-screen), the owner ran the MS-ASL fetch (3 throttle-cooldown retry
   passes; an ffmpeg-on-PATH fix was needed — yt-dlp's partial-download gate ignores
@@ -160,7 +162,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | --- | --- | --- | --- |
 | P3M1 — Honest accuracy measurement (signer-disjoint gate) | accuracy eval | ☑ merged [#21](https://github.com/aakash-tir/sign-app/pull/21) | `milestone/P3M1-honest-eval` |
 | P3M2 — Add reviewed datasets + retrain → ~50 signs | data | ◐ part 1 (ingest) ☑ merged [#22](https://github.com/aakash-tir/sign-app/pull/22); part 2 (MS-ASL fetch + combined retrain + re-gate) ☑ **merged** [#24](https://github.com/aakash-tir/sign-app/pull/24) (squash `0851c1a`). 24-gloss model, honest CV 0.719; ~50 signs needs a further download pass | `milestone/P3M2-download-hardening` |
-| P3M2c — vocab50 (~50-sign push) | data | ◐ done, **PR pending**: 81-gloss model (3583 samples / 163 signers), honest CV 0.615 w/ aug, **63 signs ship** (20 + 43 new) | `milestone/P3M2c-vocab50` |
+| P3M2c — vocab50 (~50-sign push) | data | ☑ merged [#25](https://github.com/aakash-tir/sign-app/pull/25) + **deployed**: 81-gloss model (3583 samples / 163 signers), honest CV 0.615 w/ aug, **63 signs ship** (20 + 43 new) | `milestone/P3M2c-vocab50` |
 | P3M3 — Expanded landmark-space augmentation | augmentation | ☑ merged [#23](https://github.com/aakash-tir/sign-app/pull/23) | `milestone/P3M3-augmentation` |
 
 ## Log
@@ -181,7 +183,9 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   ship** — all 20 from P3M2 (no demotions; `drink`/`happy` recovered by aug) + 43 new
   incl. `thank you` (0.63). Bundled 81-class ONNX (315 KB) + 63 reference clips;
   `SHIPPED_GLOSSES` 20→63 both sides; tests updated (vocab 63, bank 87). recognition.md
-  §6.6. **Gates + PR + deploy verify pending.**
+  §6.6. **Merged** [#25](https://github.com/aakash-tir/sign-app/pull/25) (squash `cada2e8`);
+  both CI lanes + Cloudflare build green; **deploy-verified** (live `model.onnx` sha256
+  `491d35c0…0ff1a2` == local, 315,381 bytes). **Phase 3 complete.**
 - **2026-05-28** — **P3M2 part 2: combined MS-ASL ∪ WLASL retrain + honest re-gate**
   (branch `milestone/P3M2-download-hardening`). Fetched the last `want`/`yes` MS-ASL
   clips (cookies.txt auth via "Get cookies.txt LOCALLY" — Chrome ABE blocks

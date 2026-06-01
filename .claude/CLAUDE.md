@@ -54,22 +54,24 @@ and the secrets/credentials policy.
 ## Status
 
 **Phase 1 (M0–M7) and Phase 2 (depth & polish) are both complete and deployed** —
-the PWA is live on Cloudflare with 24 fingerspelling letters + 20 dynamic signs,
-per-finger overlay option, a persistent shared camera, a redesigned UI, and offline
-in-app sign references. See [`progress.md`](progress.md); Phase 2 detail in
-[`docs/phase2.md`](docs/phase2.md).
+the PWA is live on Cloudflare with 24 fingerspelling letters + 63 dynamic signs (grown
+from 20 in Phase 3), per-finger overlay option, a persistent shared camera, a redesigned
+UI, and offline in-app sign references. See [`progress.md`](progress.md); Phase 2 detail
+in [`docs/phase2.md`](docs/phase2.md).
 
-**🚧 Phase 3 (accuracy & vocabulary depth) — P3M1, P3M2, P3M3 merged; P3M2c (vocab50)
-done, PR pending.** The dynamic recognizer was grown to an **81-gloss MS-ASL ∪ WLASL
+**✅ Phase 3 (accuracy & vocabulary depth) — P3M1, P3M2, P3M3, and P3M2c (vocab50) all
+merged + deployed.** The dynamic recognizer was grown to an **81-gloss MS-ASL ∪ WLASL
 model** (P3M2c: 3583 samples / 163 signers) trained with P3M3 augmentation — honest
 signer-disjoint CV **top-1 0.615**. The honest ≥ 0.50 gate ships **63 dynamic signs**
 (up from 20: all 20 retained + 43 new incl. `thank you`), alongside 24 fingerspelling
 letters. ONNX 315 KB. Detail: [`docs/recognition.md`](docs/recognition.md) §6.6.
 
-**▶ Active next task: land P3M2c — run all gates (ml + frontend), open the PR for
-`milestone/P3M2c-vocab50`, squash-merge, and verify the live Cloudflare deploy** (compare
-live `model.onnx` sha256 to local; check content, not status codes). MS-ASL fetch
-mechanics + the ffmpeg-on-PATH fix are in memory `msasl-download-setup`.
+P3M2c merged via [PR #25](https://github.com/aakash-tir/sign-app/pull/25) (squash
+`cada2e8`); auto-deployed to Cloudflare and **deploy-verified** (live `model.onnx`
+sha256 `491d35c0…0ff1a2` matches local, 315,381 bytes). MS-ASL fetch mechanics + the
+ffmpeg-on-PATH fix are in memory `msasl-download-setup`.
+
+**▶ No active task — Phase 3 is complete.**
 
 **Parked for the future** (no work in progress): real multi-sign Learn sentences
 beyond the shipped drill (ADR-012); continuous-sign data for sentence content.
