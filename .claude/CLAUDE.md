@@ -72,15 +72,15 @@ P3M2c merged via [PR #25](https://github.com/aakash-tir/sign-app/pull/25) (squas
 sha256 `491d35c0…0ff1a2` matches local, 315,381 bytes). MS-ASL fetch mechanics + the
 ffmpeg-on-PATH fix are in memory `msasl-download-setup`.
 
-**🚧 Phase 4 (discovery & navigation) kicked off — P4M1 (sign search tab) planned.**
+**✅ Phase 4 (discovery & navigation) — P4M1 (sign search tab) merged + deploying.**
 Plan in [`docs/phase4.md`](docs/phase4.md): a new **Search** tab where the learner
 types a sign; if it's one of the 63 shipped dynamic signs (exact + synonym + case-
 insensitive match) the app shows its reference animation + a camera that recognizes
 that sign, else "not in the system yet". **Dynamic-signs-only, no model/data work** —
-reuses `useDynamicSignRecognition` + `SignReferencePlayer`. Branch
-`milestone/P4M1-sign-search`. **Implemented; all frontend gates green (169 vitest / 18
-playwright). ▶ Active next task: open the PR for `milestone/P4M1-sign-search` and
-squash-merge.**
+reuses `useDynamicSignRecognition` + a shared `DynamicSignStage` + `SignReferencePlayer`
+(ADR-021, FR-19). Merged via [PR #26](https://github.com/aakash-tir/sign-app/pull/26)
+(squash `60176e0`); 169 vitest / 18 playwright. **▶ No active task — verify the live
+Search tab once the Cloudflare deploy finishes.**
 
 **Parked for the future** (no work in progress): real multi-sign Learn sentences
 beyond the shipped drill (ADR-012); continuous-sign data for sentence content;

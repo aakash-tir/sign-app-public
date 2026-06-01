@@ -169,7 +169,7 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 | Milestone | Theme | Status | Branch |
 | --- | --- | --- | --- |
-| P4M1 — Sign search tab | discovery | ◐ implemented, gates green, **PR pending** (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
+| P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deploying (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
 
 ## Log
 
@@ -183,7 +183,9 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
   stage; not-found: "isn't in the system yet") + CSS; `Search` nav link + `/search`
   route. FR-19 + ADR-021 recorded. Tests: +`signSearch.test.ts`, +`SearchView.test.tsx`,
   +`e2e/search.spec.ts`. **All frontend gates green: prettier / eslint / tsc / 169
-  vitest / 18 playwright** (+14 unit, +3 e2e); no `ml/` changes. **Next: PR + merge.**
+  vitest / 18 playwright** (+14 unit, +3 e2e); no `ml/` changes. **Merged**
+  [#26](https://github.com/aakash-tir/sign-app/pull/26) (squash `60176e0`); all three
+  CI checks (Frontend, ML, Cloudflare build) green; auto-deploying to Cloudflare.
 - **2026-06-01** — **Phase 4 kicked off: P4M1 sign search tab** (branch
   `milestone/P4M1-sign-search`). Authored [`docs/phase4.md`](docs/phase4.md). New
   **Search** tab: type a sign → if it's one of the 63 shipped dynamic signs (exact +
