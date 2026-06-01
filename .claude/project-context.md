@@ -171,10 +171,13 @@ Precise algorithm and edge cases are specified in
 | FR-16 | Redesigned, accessible UI: WCAG-AA contrast, clear hierarchy, responsive, no broken-looking empty states. *(P2M3)* |
 | FR-17 | In-app sign reference rendered from landmark data — no external sites; works offline. *(P2M4)* |
 | FR-18 | New datasets ingest through a canonical normalization layer (canonical labels, fixed window, signer-disjoint splits) before training. *(P2M5)* |
+| | **Phase 4 (discovery & navigation — see [`docs/phase4.md`](docs/phase4.md)):** |
+| FR-19 | A **Search** tab lets the user look up a sign to learn: an exact + synonym + case-insensitive match against the shipped dynamic signs shows its reference animation + a camera that recognizes that sign; an unmatched term reports it isn't in the system yet. *(P4M1, ADR-021)* |
 
 These IDs are referenced from the milestone acceptance criteria in
-[`docs/milestones.md`](docs/milestones.md) (phase 1) and
-[`docs/phase2.md`](docs/phase2.md) (phase 2).
+[`docs/milestones.md`](docs/milestones.md) (phase 1),
+[`docs/phase2.md`](docs/phase2.md) (phase 2), and [`docs/phase4.md`](docs/phase4.md)
+(phase 4).
 
 ## 7. Non-goals (initial scope)
 

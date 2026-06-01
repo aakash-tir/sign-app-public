@@ -17,6 +17,7 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 | [`docs/milestones.md`](docs/milestones.md) | **Phase 1 milestone plan** — M0–M7 (complete), branches, acceptance criteria, tests. |
 | [`docs/phase2.md`](docs/phase2.md) | **Phase 2 plan** — depth & polish milestones (P2M1–P2M5) after M0–M7. |
 | [`docs/phase3.md`](docs/phase3.md) | **Phase 3 plan** — accuracy & vocabulary depth (P3M1–P3M3): honest eval, reviewed-dataset expansion toward ~50 signs, landmark-space augmentation. |
+| [`docs/phase4.md`](docs/phase4.md) | **Phase 4 plan** — discovery & navigation (P4M1): a Sign **search** tab over the 63 shipped dynamic signs. |
 | [`docs/decisions.md`](docs/decisions.md) | **Decision log (ADRs)** + open questions. |
 | [`docs/hosting.md`](docs/hosting.md) | **Hosting** — what Cloudflare Pages is and how we deploy. |
 | [`progress.md`](progress.md) | **Live status** — which milestone we're on, what's done. |
@@ -71,7 +72,16 @@ P3M2c merged via [PR #25](https://github.com/aakash-tir/sign-app/pull/25) (squas
 sha256 `491d35c0…0ff1a2` matches local, 315,381 bytes). MS-ASL fetch mechanics + the
 ffmpeg-on-PATH fix are in memory `msasl-download-setup`.
 
-**▶ No active task — Phase 3 is complete.**
+**🚧 Phase 4 (discovery & navigation) kicked off — P4M1 (sign search tab) planned.**
+Plan in [`docs/phase4.md`](docs/phase4.md): a new **Search** tab where the learner
+types a sign; if it's one of the 63 shipped dynamic signs (exact + synonym + case-
+insensitive match) the app shows its reference animation + a camera that recognizes
+that sign, else "not in the system yet". **Dynamic-signs-only, no model/data work** —
+reuses `useDynamicSignRecognition` + `SignReferencePlayer`. Branch
+`milestone/P4M1-sign-search`. **Implemented; all frontend gates green (169 vitest / 18
+playwright). ▶ Active next task: open the PR for `milestone/P4M1-sign-search` and
+squash-merge.**
 
 **Parked for the future** (no work in progress): real multi-sign Learn sentences
-beyond the shipped drill (ADR-012); continuous-sign data for sentence content.
+beyond the shipped drill (ADR-012); continuous-sign data for sentence content;
+fingerspelling/spell-unknown-word search fallback + fuzzy ranking (P4M1 deferrals).

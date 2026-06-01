@@ -398,6 +398,32 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ---
 
+## ADR-021 — Sign search resolves against the shipped dynamic vocabulary only
+
+- **Status:** accepted (owner, 2026-06-01). Phase 4 / P4M1 (FR-19). Builds on ADR-017
+  (in-app reference from landmarks) + the M6.3 dynamic recognizer.
+- **Context:** With 63 dynamic signs now shipped, a single dropdown is a poor way to
+  reach a specific sign. The feature: type a sign → if it exists, show how to sign it +
+  a camera that recognizes it; else say it isn't in the system yet. Two scope forks:
+  (a) what counts as "in the database" — dynamic signs, fingerspelling letters, or both;
+  (b) how a query matches — exact, synonym-aware, or fuzzy.
+- **Decision:** Resolve search against the **shipped dynamic signs only**
+  (`SHIPPED_GLOSSES`), matched by **normalize-then-synonym lookup** (lowercase, collapse
+  whitespace, map common synonyms onto a shipped gloss, then exact membership). A match
+  reuses the existing `SignReferencePlayer` (ADR-017) + `useDynamicSignRecognition`
+  (M6.3) with the target locked to the matched gloss; a miss shows a plain
+  "not in the system yet" message. **No model or data work.**
+- **Consequences:** Zero recognition/ML cost — every shipped gloss already has a
+  reference clip + recognizer + acceptance. Fingerspelling letters (static MLP, text
+  hints, no animation) and inexact variants (`walking`, typos) report not-found. The
+  frontend `SIGN_SYNONYMS` map mirrors the ingest layer's `canonical_label` synonyms so
+  both speak one vocabulary; an invariant test asserts every synonym target is shipped.
+- **Deferred (explicit):** fingerspelling-letter search + spell-an-unknown-word
+  fallback (would reuse the Learn spell flow), and fuzzy/typo-tolerant ranking with
+  autocomplete suggestions. Natural P4 follow-ups if the owner wants them.
+
+---
+
 ## Open questions (non-blocking, revisit at the noted milestone)
 
 | # | Question | Default assumption | Revisit |

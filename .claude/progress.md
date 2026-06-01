@@ -165,8 +165,38 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 | P3M2c — vocab50 (~50-sign push) | data | ☑ merged [#25](https://github.com/aakash-tir/sign-app/pull/25) + **deployed**: 81-gloss model (3583 samples / 163 signers), honest CV 0.615 w/ aug, **63 signs ship** (20 + 43 new) | `milestone/P3M2c-vocab50` |
 | P3M3 — Expanded landmark-space augmentation | augmentation | ☑ merged [#23](https://github.com/aakash-tir/sign-app/pull/23) | `milestone/P3M3-augmentation` |
 
+## Phase 4 checklist (see [`docs/phase4.md`](docs/phase4.md))
+
+| Milestone | Theme | Status | Branch |
+| --- | --- | --- | --- |
+| P4M1 — Sign search tab | discovery | ◐ implemented, gates green, **PR pending** (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
+
 ## Log
 
+- **2026-06-01** — **P4M1 implemented** (branch `milestone/P4M1-sign-search`). Built the
+  Search tab end to end: pure `matchSign` (`domain/signSearch.ts`, normalize +
+  synonym + exact, framework-free) + `SIGN_SYNONYMS` map (`content/signSynonyms.ts`,
+  every target asserted shipped); extracted the camera/overlay/controls/prediction/
+  acceptance block into a reusable `recognition/DynamicSignStage` and rewired
+  `DynamicSignView` onto it (behavior identical, dropdown passed as `targetControl`);
+  new `modes/search/SearchView` (search box → found: reference animation + locked-target
+  stage; not-found: "isn't in the system yet") + CSS; `Search` nav link + `/search`
+  route. FR-19 + ADR-021 recorded. Tests: +`signSearch.test.ts`, +`SearchView.test.tsx`,
+  +`e2e/search.spec.ts`. **All frontend gates green: prettier / eslint / tsc / 169
+  vitest / 18 playwright** (+14 unit, +3 e2e); no `ml/` changes. **Next: PR + merge.**
+- **2026-06-01** — **Phase 4 kicked off: P4M1 sign search tab** (branch
+  `milestone/P4M1-sign-search`). Authored [`docs/phase4.md`](docs/phase4.md). New
+  **Search** tab: type a sign → if it's one of the 63 shipped dynamic signs (exact +
+  synonym + case-insensitive match) show its reference animation + a camera that
+  recognizes that specific sign; else "not in the system yet". Owner-confirmed scope:
+  **dynamic signs only** (reuses the P2M4 `SignReferencePlayer` + M6.3
+  `useDynamicSignRecognition`; **no model/data work**) and **exact+synonym** matching
+  (mirrors the ingest `canonical_label` synonym idea). Plan: pure `matchSign`
+  (`src/domain/signSearch.ts`) + `SIGN_SYNONYMS` map + `SearchView` + nav/route +
+  extract a shared `DynamicSignStage`; tests = vitest (matcher + view) + a
+  `frontend/e2e/search.spec.ts`. ADR-021 + FR-19 to record on implementation.
+  Fingerspelling/spell-unknown fallback + fuzzy ranking explicitly deferred.
+  **Next: implement per the plan.**
 - **2026-05-31** — **P3M2c: vocab50 ~50-sign push** (branch `milestone/P3M2c-vocab50`).
   Pre-screened + registered **57 new everyday glosses** (`PHASE3B_GLOSSES` + `vocab50`
   in `wlasl.py`, wired into `msasl_download`/`dynamic_pipeline`). Owner ran the MS-ASL
