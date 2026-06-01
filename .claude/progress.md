@@ -167,12 +167,38 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Phase 4 checklist (see [`docs/phase4.md`](docs/phase4.md))
 
-| Milestone | Theme | Status | Branch |
+Two tracks: **discovery** (P4M1, shipped) + **accuracy** (P4M2–P4M8, lifting the 18
+dynamic signs below the honest 0.50 gate). Honest signer-disjoint CV (ADR-019) is the
+arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
+
+| Milestone | Track | Status | Branch |
 | --- | --- | --- | --- |
-| P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deploying (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
+| P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deployed (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
+| P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ☐ planned | `milestone/P4M2-diagnose` |
+| P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☐ planned | `milestone/P4M3-aug-loss` |
+| P4M4 — Motion / velocity features (frame spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
+| P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☐ planned | `milestone/P4M5-temporal-model` |
+| P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ planned | `milestone/P4M6-targeted-data` |
+| P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☐ planned | `milestone/P4M7-runtime-confidence` |
+| P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ planned | `milestone/P4M8-ssl-pretrain` |
 
 ## Log
 
+- **2026-06-01** — **Phase 4 accuracy track planned (P4M2–P4M8)** — owner asked to take
+  on the full menu from the "improve low-accuracy signs" research. Goal: lift the **18
+  dynamic signs below the honest 0.50 gate** (`come` 0.08 … `mother` 0.49) over the bar
+  + raise aggregate honest top-1 (baseline **0.615**, **63/81** ship), **without
+  bloating the on-device model** (ONNX ≤ ~1.5 MB). Detailed plan in
+  [`docs/phase4.md`](docs/phase4.md): **P4M2** diagnose (confusion matrix + per-gloss
+  signer counts → classify each low sign confusable / data-starved / poorly-tracked,
+  recognition.md §6.7) → **P4M3** mirroring (paired L/R+pose swap) + class-weighted/focal
+  loss → **P4M4** motion/velocity features (frame spec **v2**, regenerate golden vectors
+  both sides) → **P4M5** temporal attention pooling / BiGRU (optional two-stream) →
+  **P4M6** targeted per-gloss MS-ASL fetch (owner-gated, the proven +15-pt lever) →
+  **P4M7** runtime per-sign thresholds + calibration + multi-window voting (no retrain,
+  independent) → **P4M8** self-supervised masked-pose pretraining (big swing). Cross-
+  cutting: honest signer-disjoint CV is the arbiter; normalization parity sacred; never
+  silently demote. ADR-022…026 to record per milestone. **Next: start P4M2 (diagnose).**
 - **2026-06-01** — **P4M1 implemented** (branch `milestone/P4M1-sign-search`). Built the
   Search tab end to end: pure `matchSign` (`domain/signSearch.ts`, normalize +
   synonym + exact, framework-free) + `SIGN_SYNONYMS` map (`content/signSynonyms.ts`,
