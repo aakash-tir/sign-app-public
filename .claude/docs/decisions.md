@@ -484,6 +484,31 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ---
 
+## ADR-025 — Runtime confidence: per-sign thresholds + temperature + window voting
+
+- **Status:** accepted + **shipped** (owner, 2026-06-02). Phase 4 accuracy track / P4M7.
+  Refines the M6.4 per-sign `accepts` valve; no retrain.
+- **Context:** Acceptance ("Good — that's X!") used a **global 0.5** probability bar, so a
+  learner performing a weak sign correctly was often never accepted; the model is also
+  over-confident (raw softmax), and single-window decisions are jittery. The honest gate
+  can't measure felt UX, so these are validated by tests + reasoning.
+- **Decision:** (1) **Per-sign acceptance thresholds** = 25th percentile of each sign's
+  calibrated true-class probability on the honest held-out folds, clamped to
+  `[0.15, 0.5]` — **capped at 0.5 so acceptance is never stricter than before** (weak
+  signs only get *more* forgiving). (2) **Temperature scaling** — one scalar `T` fit by
+  held-out NLL (shipped `T = 1.60`), applied in `softmax(logits, T)` for honest displayed
+  confidence. (3) **Multi-window voting** — average the last 3 windows' probability
+  vectors before deciding. Thresholds + temperature ride in `metadata.json`; voting is
+  pure runtime.
+- **Consequences:** More genuine attempts at weak signs get accepted; confidence numbers
+  are honest; borderline signs are steadier. **No model/normalization/spec change** (same
+  ONNX, `featureDim` 161); fully backward-compatible (absent metadata → `T = 1`, global
+  0.5). The ship gate (which signs are in `SHIPPED_GLOSSES`) is unchanged — it stays the
+  honest CV top-1 ≥ 0.50; only the **runtime acceptance** bar is per-sign. Detail:
+  recognition.md §6.10.
+
+---
+
 ## Open questions (non-blocking, revisit at the noted milestone)
 
 | # | Question | Default assumption | Revisit |

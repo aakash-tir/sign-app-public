@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
+  acceptThresholdFor,
   accepts,
   assertMetadataCompatible,
+  averageProbs,
   softmax,
   topPrediction,
 } from './dynamicClassifier'
@@ -26,6 +28,44 @@ function validMetadata(
     ...overrides,
   }
 }
+
+describe('softmax temperature (P4M7)', () => {
+  it('T>1 softens (less peaky) and preserves order + sum', () => {
+    const sharp = softmax([1, 2, 3])
+    const soft = softmax([1, 2, 3], 2)
+    expect(soft.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 10)
+    // same ranking, but the top prob is lower (less confident) when softened
+    expect(soft[2]!).toBeGreaterThan(soft[1]!)
+    expect(soft[2]!).toBeLessThan(sharp[2]!)
+  })
+
+  it('non-positive temperature falls back to plain softmax', () => {
+    expect(softmax([1, 2, 3], 0)).toEqual(softmax([1, 2, 3]))
+  })
+})
+
+describe('averageProbs (multi-window voting, P4M7)', () => {
+  it('element-wise means the vectors', () => {
+    expect(
+      averageProbs([
+        [0.2, 0.8],
+        [0.4, 0.6],
+      ]),
+    ).toEqual([expect.closeTo(0.3, 10), expect.closeTo(0.7, 10)])
+  })
+  it('returns [] for no buffers and the vector itself for one', () => {
+    expect(averageProbs([])).toEqual([])
+    expect(averageProbs([[0.1, 0.9]])).toEqual([0.1, 0.9])
+  })
+})
+
+describe('acceptThresholdFor (per-sign acceptance, P4M7)', () => {
+  it('uses the per-sign threshold when present, else the fallback', () => {
+    expect(acceptThresholdFor({ come: 0.2 }, 'come', 0.5)).toBe(0.2)
+    expect(acceptThresholdFor({ come: 0.2 }, 'father', 0.5)).toBe(0.5)
+    expect(acceptThresholdFor(undefined, 'father', 0.5)).toBe(0.5)
+  })
+})
 
 describe('softmax', () => {
   it('sums to 1 and is order-preserving', () => {

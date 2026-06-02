@@ -62,9 +62,11 @@ async function loadOnnxDynamicClassifier(
     `${base}/${metadata.modelFile}`,
   )
   const labels = metadata.labels
+  const temperature = metadata.temperature ?? 1 // P4M7 confidence calibration
 
   return {
     labels,
+    acceptThresholds: metadata.acceptThresholds,
     async classify(sequence) {
       const input = new ort.Tensor(
         'float32',
@@ -73,7 +75,7 @@ async function loadOnnxDynamicClassifier(
       )
       const outputs = await session.run({ [INPUT_NAME]: input })
       const logits = Array.from(outputs[OUTPUT_NAME]!.data as Float32Array)
-      const probs = softmax(logits)
+      const probs = softmax(logits, temperature)
       const top = topPrediction(probs, labels)
       return { label: top.label, confidence: top.confidence, probs }
     },

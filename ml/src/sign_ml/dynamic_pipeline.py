@@ -449,6 +449,63 @@ def run_crossval(
         print(f"  {gloss:12s} top1={metric['top1']:.2f} (n={metric['n']})")
 
 
+def run_calibrate(
+    cache_dir: Path,
+    seed: int,
+    folds: int,
+    aug: dict[str, float] | None = None,
+    motion: bool = False,
+    pooling: str = "attention",
+    bidirectional: bool = True,
+) -> None:  # pragma: no cover - heavy path
+    """P4M7: fit runtime confidence calibration on the honest held-out folds and merge
+    it into the exported model metadata — a softmax ``temperature`` (honest confidence)
+    and per-sign ``acceptThresholds`` (a more forgiving acceptance bar for weak signs,
+    never stricter than the global 0.5). Defaults to the shipped arch
+    (bidirectional + attention)."""
+    from .dynamic_model import cross_validate
+
+    x = np.load(cache_dir / "X.npy")
+    y = np.load(cache_dir / "y.npy")
+    glosses: list[str] = json.loads((cache_dir / "glosses.json").read_text())
+    signers_path = cache_dir / "signers.npy"
+    if not signers_path.exists():
+        raise SystemExit("calibrate needs signers.npy (the honest gate) — re-extract")
+    signer_ids = [str(s) for s in np.load(signers_path).tolist()]
+
+    report = cross_validate(
+        x,
+        y,
+        glosses,
+        folds=folds,
+        seed=seed,
+        signer_ids=signer_ids,
+        aug=aug,
+        motion=motion,
+        pooling=pooling,
+        bidirectional=bidirectional,
+        calibrate=True,
+    )
+    cal = report["calibration"]
+
+    meta_path = cache_dir / "onnx" / "metadata.json"
+    metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+    metadata["temperature"] = cal["temperature"]
+    metadata["acceptThresholds"] = cal["accept_thresholds"]
+    meta_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+
+    thr = cal["accept_thresholds"]
+    lowered = sorted((v, g) for g, v in thr.items() if v < 0.5)
+    print(
+        f"Calibrated [{report['fold_kind']}] top-1 {report['cv_top1']:.3f}: "
+        f"temperature={cal['temperature']:.2f}, "
+        f"{len(lowered)} signs get a sub-0.5 acceptance bar"
+    )
+    for v, g in lowered[:15]:
+        print(f"  {g:12s} accept>={v:.2f}")
+    print(f"Wrote calibration into {meta_path}")
+
+
 def run_diagnose(
     cache_dir: Path,
     seed: int,
@@ -623,6 +680,21 @@ def main() -> None:  # pragma: no cover - CLI
         help="run the GRU both directions (P4M5)",
     )
 
+    cal = sub.add_parser(
+        "calibrate",
+        help="P4M7: fit per-sign acceptance thresholds + confidence temperature "
+        "into the model metadata (defaults to the shipped BiGRU+attention arch)",
+    )
+    cal.add_argument("--cache", type=Path, default=COMBINED_CACHE_DIR)
+    cal.add_argument("--seed", type=int, default=42)
+    cal.add_argument("--folds", type=int, default=5)
+    cal.add_argument("--aug", action="store_true")
+    cal.add_argument("--motion", action="store_true")
+    cal.add_argument(
+        "--pooling", choices=("last", "mean", "attention"), default="attention"
+    )
+    cal.add_argument("--no-bidirectional", dest="bidirectional", action="store_false")
+
     dg = sub.add_parser(
         "diagnose",
         help="P4M2: honest CV + classify low signs (confusable/starved/tracked)",
@@ -677,6 +749,16 @@ def main() -> None:  # pragma: no cover - CLI
             args.seed,
             args.folds,
             stratified=args.stratified,
+            aug=P3M3_AUG if args.aug else None,
+            motion=args.motion,
+            pooling=args.pooling,
+            bidirectional=args.bidirectional,
+        )
+    elif args.stage == "calibrate":
+        run_calibrate(
+            args.cache,
+            args.seed,
+            args.folds,
             aug=P3M3_AUG if args.aug else None,
             motion=args.motion,
             pooling=args.pooling,

@@ -481,6 +481,31 @@ bundled; 9 new WLASL-derived reference clips added, `hungry.json` removed. Repro
 `… crossval --cache models/combined --folds 5 --aug --pooling attention --bidirectional`
 → `train … --aug --pooling attention --bidirectional`.
 
+### 6.10 Runtime confidence: per-sign thresholds + calibration + voting (P4M7)
+
+P4M7 improves the **felt** recognition experience without retraining (the honest
+accuracy gate doesn't measure these — they're UX/robustness, validated by tests +
+reasoning):
+
+- **Per-sign acceptance thresholds.** The prompt's "Good — that's X!" used a global
+  `accepts` bar of 0.5. Now each sign has its own bar = the **25th percentile of its
+  (calibrated) true-class probability** on the honest held-out folds, clamped to
+  `[0.15, 0.5]`. Capped at 0.5 so acceptance is **never stricter** than before — weak
+  signs just get a more forgiving bar (the "That's what I did" valve handles the rest).
+  Fit by `fit_per_sign_thresholds`; **69/81 signs get a sub-0.5 bar** (the weakest floored
+  at 0.15).
+- **Confidence calibration (temperature).** A single softmax **temperature T = 1.60**
+  (fit by NLL on the held-out folds) softens the over-confident BiGRU so the displayed
+  `%` is honest. Applied in `softmax(logits, T)` at inference.
+- **Multi-window temporal voting.** `useDynamicSignRecognition` averages the **last 3**
+  inference windows' probability vectors (`averageProbs`) before deciding the prediction
+  + acceptance, so a borderline sign isn't decided on one noisy window.
+
+All three are **carried in the model `metadata.json`** (`temperature`, `acceptThresholds`)
+or are pure runtime logic; **no model/normalization change** (same ONNX, `featureDim` 161),
+and everything is backward-compatible (absent metadata → T = 1, global 0.5 bar). Fit with
+`… calibrate --cache models/combined --aug --pooling attention`.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

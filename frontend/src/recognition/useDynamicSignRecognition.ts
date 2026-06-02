@@ -7,13 +7,19 @@ import { getOverlayColorMode } from './overlayColorMode'
 import { normalizeFrame } from './dynamicNormalization'
 import { FrameWindow, shouldSampleFrame } from './frameWindow'
 import { LabelStabilizer } from './debounce'
-import { accepts } from './dynamicClassifier'
+import {
+  acceptThresholdFor,
+  accepts,
+  averageProbs,
+  topPrediction,
+} from './dynamicClassifier'
 import type { HolisticDetector } from './dynamicTypes'
 import type { DynamicClassifier, DynamicPrediction } from './dynamicClassifier'
 
 const STABILIZER_FRAMES = 2 // agreeing classifications before a label is "stable"
 const INFER_INTERVAL_MS = 250 // throttle async inference (ONNX runs are not free)
-const ACCEPT_THRESHOLD = 0.5 // per-sign acceptance probability for the prompt
+const ACCEPT_THRESHOLD = 0.5 // default acceptance bar (per-sign override via metadata)
+const VOTE_WINDOWS = 3 // average the last N inference windows (P4M7 temporal voting)
 
 export interface UseDynamicSignRecognition {
   videoRef: React.RefCallback<HTMLVideoElement>
@@ -49,6 +55,7 @@ export function useDynamicSignRecognition(): UseDynamicSignRecognition {
   const classifierRef = useRef<DynamicClassifier | null>(null)
   const windowRef = useRef(new FrameWindow())
   const stabilizerRef = useRef(new LabelStabilizer(STABILIZER_FRAMES))
+  const probsBufferRef = useRef<number[][]>([]) // recent windows for temporal voting
   const rafRef = useRef<number | null>(null)
   const lastSampleRef = useRef<number | null>(null)
   const lastInferRef = useRef<number>(0)
@@ -162,16 +169,31 @@ export function useDynamicSignRecognition(): UseDynamicSignRecognition {
               classifier
                 .classify(sequence)
                 .then((pred) => {
-                  stabilizerRef.current.push(pred.label)
-                  setPrediction(pred)
+                  // Multi-window voting (P4M7): average the last few windows so a
+                  // borderline sign isn't decided on one noisy window.
+                  const buf = probsBufferRef.current
+                  buf.push(pred.probs)
+                  if (buf.length > VOTE_WINDOWS) buf.shift()
+                  const voted = averageProbs(buf)
+                  const top = topPrediction(voted, classifier.labels)
+                  stabilizerRef.current.push(top.label)
+                  setPrediction({
+                    label: top.label,
+                    confidence: top.confidence,
+                    probs: voted,
+                  })
                   const tgt = targetRef.current
                   setAccepted(
                     tgt
                       ? accepts(
-                          pred.probs,
+                          voted,
                           classifier.labels,
                           tgt,
-                          ACCEPT_THRESHOLD,
+                          acceptThresholdFor(
+                            classifier.acceptThresholds,
+                            tgt,
+                            ACCEPT_THRESHOLD,
+                          ),
                         )
                       : false,
                   )
@@ -208,6 +230,7 @@ export function useDynamicSignRecognition(): UseDynamicSignRecognition {
   const resetTransient = useCallback(() => {
     windowRef.current.reset()
     stabilizerRef.current.reset()
+    probsBufferRef.current = []
     lastSampleRef.current = null
     setPrediction(null)
     setAccepted(false)

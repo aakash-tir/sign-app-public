@@ -180,11 +180,22 @@ arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
 | P4M4 — Motion / velocity features (frame spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
 | P4M5 — Temporal model upgrade (attention pooling) | accuracy | ◐ done, PR pending — **BiGRU + attention: honest CV 0.615→0.687 (+7.2), 63→71 ship** (§6.9) | `milestone/P4M5-temporal-model` |
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ planned | `milestone/P4M6-targeted-data` |
-| P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☐ planned | `milestone/P4M7-runtime-confidence` |
+| P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ◐ done, PR pending — per-sign accept bars (69 sub-0.5) + temperature 1.6 + 3-window voting; no retrain (§6.10) | `milestone/P4M7-runtime-confidence` |
 | P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ planned | `milestone/P4M8-ssl-pretrain` |
 
 ## Log
 
+- **2026-06-02** — **P4M7: runtime confidence levers (no retrain)** (branch
+  `milestone/P4M7-runtime-confidence`). Three UX/robustness improvements, validated by
+  tests (the honest gate doesn't measure felt UX): **(1) per-sign acceptance thresholds**
+  — `fit_per_sign_thresholds` (25th pct of calibrated true-class prob, clamped [0.15,0.5],
+  **capped at 0.5 so never stricter**); **69/81 signs get a sub-0.5 bar**. **(2) confidence
+  calibration** — `fit_temperature` → **T=1.60** softens the over-confident BiGRU;
+  `softmax(logits, T)`. **(3) multi-window voting** — `useDynamicSignRecognition` averages
+  the last 3 windows (`averageProbs`). Thresholds + temperature ride in `metadata.json`
+  (model ONNX unchanged, featureDim 161); fully backward-compatible. New `calibrate` CLI +
+  `cross_validate(calibrate=True)`. ADR-025; recognition.md §6.10. ml 96 pytest / frontend
+  105+ vitest; all gates green. **Next: full gates + PR + merge + deploy-verify, STOP.**
 - **2026-06-02** — **P4M5: temporal model — BiGRU + attention pooling (the win)** (branch
   `milestone/P4M5-temporal-model`). `build_sequence_model` gained `pooling={last,mean,
   attention}` (learned, **padding-masked** weighted sum over real frames) + optional

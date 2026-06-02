@@ -38,6 +38,63 @@ def top_k_accuracy(y_true: IntArray, probs: FloatArray, k: int) -> float:
     return float(np.mean(hits))
 
 
+def _softmax_np(logits: FloatArray) -> FloatArray:
+    """Row-wise numerically-stable softmax (no torch)."""
+    z = logits - logits.max(axis=1, keepdims=True)
+    e = np.exp(z)
+    out: FloatArray = e / e.sum(axis=1, keepdims=True)
+    return out
+
+
+def fit_temperature(
+    logits: FloatArray, y: IntArray, t_grid: FloatArray | None = None
+) -> float:
+    """Fit a single softmax **temperature** ``T > 0`` that minimizes held-out NLL
+    (calibration via grid search — no torch). ``T > 1`` softens an over-confident model
+    so the displayed confidence is honest (P4M7, ADR-025). Returns 1.0 if it can't
+    improve on no scaling."""
+    lg = np.asarray(logits, dtype=np.float64)
+    yy = np.asarray(y, dtype=np.int64)
+    if lg.shape[0] == 0:
+        return 1.0
+    grid = (
+        np.round(np.arange(0.5, 5.01, 0.1), 2) if t_grid is None else np.asarray(t_grid)
+    )
+    rows = np.arange(lg.shape[0])
+
+    def nll(temp: float) -> float:
+        z = lg / temp
+        z = z - z.max(axis=1, keepdims=True)
+        logp = z - np.log(np.exp(z).sum(axis=1, keepdims=True))
+        return float(-logp[rows, yy].mean())
+
+    return float(min(grid, key=nll))
+
+
+def fit_per_sign_thresholds(
+    true_probs: FloatArray,
+    y: IntArray,
+    glosses: Sequence[str],
+    percentile: float = 25.0,
+    floor: float = 0.15,
+    cap: float = 0.5,
+) -> dict[str, float]:
+    """Per-gloss **acceptance threshold** = a low ``percentile`` of the (calibrated)
+    true-class probability over genuine held-out attempts, clamped to ``[floor, cap]``.
+
+    Capped at the current global 0.5 so acceptance is **never stricter** than before —
+    weak signs simply get a more forgiving bar (the "That's what I did" valve handles
+    the rest). P4M7 / ADR-025."""
+    tp = np.asarray(true_probs, dtype=np.float64)
+    yy = np.asarray(y, dtype=np.int64)
+    out: dict[str, float] = {}
+    for cls, gloss in enumerate(glosses):
+        vals = tp[yy == cls]
+        thr = float(np.percentile(vals, percentile)) if vals.size else cap
+        out[gloss] = float(min(cap, max(floor, thr)))
+    return out
+
+
 def resolve_splits(
     splits: npt.NDArray[np.str_],
     seed: int = 42,
@@ -543,6 +600,7 @@ def cross_validate(
     motion: bool = False,
     pooling: str = "last",
     bidirectional: bool = False,
+    calibrate: bool = False,
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
     """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
     test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
@@ -575,6 +633,8 @@ def cross_validate(
     correct1 = np.zeros(len(y), dtype=bool)
     correct5 = np.zeros(len(y), dtype=bool)
     pred1 = np.full(len(y), -1, dtype=np.int64)  # held-out top-1 per sample
+    # Held-out logits per sample, for calibration (P4M7); only filled when requested.
+    logits_all = np.zeros((len(y), n_classes), dtype=np.float64) if calibrate else None
 
     for fold, test_mask in enumerate(fold_masks):
         rng = np.random.default_rng(seed + fold)
@@ -624,9 +684,13 @@ def cross_validate(
         model.load_state_dict(best_state)
         model.eval()
         with torch.no_grad():
-            probs = torch.softmax(model(prep(x_np[test_mask])), dim=1).numpy()
+            raw = model(prep(x_np[test_mask])).numpy()
+        probs = _softmax_np(raw.astype(np.float64))
+        test_idx = np.where(test_mask)[0]
+        if logits_all is not None:
+            logits_all[test_idx] = raw
         ranked = np.argsort(probs, axis=1)
-        for row, sample in enumerate(np.where(test_mask)[0]):
+        for row, sample in enumerate(test_idx):
             pred1[sample] = int(ranked[row, -1])
             correct1[sample] = bool(ranked[row, -1] == y[sample])
             correct5[sample] = bool(y[sample] in ranked[row, -top5:])
@@ -647,7 +711,7 @@ def cross_validate(
         }
 
     confusion = confusion_matrix(np.asarray(y, dtype=np.int64), pred1, n_classes)
-    return {
+    report: dict[str, Any] = {
         "cv_top1": float(correct1.mean()),
         "cv_top5": float(correct5.mean()),
         "fold_kind": fold_kind,
@@ -660,3 +724,15 @@ def cross_validate(
         "per_gloss": per_gloss,
         "confusion": confusion.tolist(),
     }
+    if logits_all is not None:
+        # Calibrate on the pooled held-out logits (P4M7, ADR-025): a softmax temperature
+        # for honest confidence + per-sign accept thresholds on the scaled probs.
+        yi = np.asarray(y, dtype=np.int64)
+        temperature = fit_temperature(logits_all, yi)
+        scaled = _softmax_np(logits_all / temperature)
+        true_probs = scaled[np.arange(len(yi)), yi]
+        report["calibration"] = {
+            "temperature": temperature,
+            "accept_thresholds": fit_per_sign_thresholds(true_probs, yi, glosses),
+        }
+    return report

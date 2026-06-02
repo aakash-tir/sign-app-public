@@ -13,6 +13,8 @@ from sign_ml.dynamic_model import (
     confusion_matrix,
     distinct_signers_per_class,
     drop_landmarks,
+    fit_per_sign_thresholds,
+    fit_temperature,
     mean_hand_presence_per_class,
     resolve_splits,
     rotate_xy,
@@ -243,6 +245,43 @@ def test_signer_folds_deterministic_with_seed() -> None:
     b = signer_folds(signers, 3, seed=5)
     for ma, mb in zip(a, b, strict=True):
         np.testing.assert_array_equal(ma, mb)
+
+
+def test_fit_per_sign_thresholds_percentile_and_clamp() -> None:
+    glosses = ["weak", "strong", "mid"]
+    # weak: low true-class probs -> threshold floored; strong: high -> capped at 0.5.
+    y = np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
+    true_probs = np.array(
+        [0.05, 0.10, 0.20, 0.30, 0.8, 0.9, 0.95, 0.99, 0.3, 0.4, 0.5, 0.6],
+        dtype=np.float64,
+    )
+    thr = fit_per_sign_thresholds(true_probs, y, glosses, percentile=25.0)
+    assert thr["weak"] == pytest.approx(0.15)  # 25th pct ~0.0875 -> floored to 0.15
+    assert thr["strong"] == 0.5  # high probs -> capped at the global 0.5
+    assert 0.15 <= thr["mid"] <= 0.5
+    # never stricter than the old global bar
+    assert all(v <= 0.5 for v in thr.values())
+
+
+def test_fit_per_sign_thresholds_missing_class_defaults_to_cap() -> None:
+    thr = fit_per_sign_thresholds(
+        np.array([0.9, 0.8]), np.array([0, 0]), ["a", "b"], cap=0.5
+    )
+    assert thr["b"] == 0.5  # no samples for 'b' -> cap
+
+
+def test_fit_temperature_softens_overconfident_logits() -> None:
+    # Model always confidently predicts class 0, but is only right 60% of the time —
+    # confidently miscalibrated, so softening (T > 1) lowers held-out NLL.
+    logits = np.zeros((200, 3), dtype=np.float64)
+    logits[:, 0] = 6.0
+    idx = np.arange(200)
+    y = np.where(idx % 5 < 3, 0, 1).astype(np.int64)  # 60% class 0, 40% class 1
+    assert fit_temperature(logits, y) > 1.0
+
+
+def test_fit_temperature_empty() -> None:
+    assert fit_temperature(np.zeros((0, 3)), np.array([], dtype=np.int64)) == 1.0
 
 
 def test_build_metadata_carries_skew_guard() -> None:
