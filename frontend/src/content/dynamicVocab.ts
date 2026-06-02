@@ -75,9 +75,20 @@ export const SHIPPED_GLOSSES: readonly string[] = [
   'day',
   'big',
   'hot',
-  'hungry',
   'tired',
   'black',
+  // P4M5 (temporal model): a bidirectional GRU + attention pooling lifted the honest
+  // signer-disjoint CV 0.615 → 0.687. Re-gated at ≥ 0.50: 9 new signs clear it; `hungry`
+  // is demoted (0.33 on the stronger model). recognition.md §6.9.
+  'money',
+  'woman',
+  'girl',
+  'man',
+  'car',
+  'good',
+  'run',
+  'nice',
+  'who',
 ]
 
 /** Filter a model's labels to the shipped set, preserving the model's order. */

@@ -448,6 +448,39 @@ default off) so **P4M5 can re-test motion together with a better temporal model*
 widening an overfit-prone input. Reproduce: `… crossval --cache models/combined --folds 5
 --aug --motion`.
 
+### 6.9 Temporal model: BiGRU + attention pooling — the win (P4M5)
+
+The P4M2 diagnosis said the low signs are **under-separated**, and the original model
+compressed the whole sign into the GRU's **last timestep**. P4M5 lets the model read the
+**whole trajectory**: `build_sequence_model` gained `pooling={last,mean,attention}` (a
+learned, **padding-masked** weighted sum over the real frames) + an optional
+**bidirectional** GRU. Honest signer-disjoint CV (5-fold, with P3M3 augmentation),
+positions-only:
+
+| Model | top-1 | top-5 |
+| --- | --- | --- |
+| Last-timestep (previous shipped) | 0.615 | 0.872 |
+| Attention pooling | 0.656 | 0.878 |
+| Attention + motion (P4M4) | 0.635 | 0.868 |
+| **Bidirectional + attention (shipped)** | **0.687** | **0.895** |
+
+**+7.2 points top-1** over the last-timestep baseline — the biggest single gain since the
+P3M2 data jump — from architecture alone, **no new data**. Motion features still drag
+(0.635 < 0.656), reconfirming §6.8: not shipped. The win is the **bidirectional GRU +
+masked attention pooling**, positions-only. The model I/O contract is unchanged (same
+30×161 input, 81 logits) so the **runtime is untouched**; the export round-trips through
+onnxruntime cleanly (verified) and the ONNX is **690 KB** (was 315 KB — bidirectional
+doubles the GRU output; well within the on-device budget).
+
+**Re-gate (≥ 0.50, owner-confirmed): 71 of 81 glosses ship** (up from 63). **+9 promoted**
+(`money`, `woman`, `girl`, `man`, `car`, `good`, `run`, `nice`, `who`) and **`hungry`
+demoted** (0.33 honestly on the stronger model — documented, not silent). The 10 still
+below: `dog` 0.33, `hungry` 0.33, `stop` 0.33, `sleep` 0.36, `mother` 0.45, `before` 0.46,
+`come` 0.46, `tall` 0.46, `small` 0.46, `white` 0.48. New 81-class BiGRU+attention ONNX
+bundled; 9 new WLASL-derived reference clips added, `hungry.json` removed. Reproduce:
+`… crossval --cache models/combined --folds 5 --aug --pooling attention --bidirectional`
+→ `train … --aug --pooling attention --bidirectional`.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

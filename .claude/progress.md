@@ -178,13 +178,27 @@ arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
 | P4M4 — Motion / velocity features (frame spec v2) | accuracy | ◐ done, PR pending — **negative result** (0.615→0.594); motion kept opt-in, **not shipped** (§6.8) | `milestone/P4M4-motion-features` |
 | P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☐ planned | `milestone/P4M3-aug-loss` |
 | P4M4 — Motion / velocity features (frame spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
-| P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☐ planned | `milestone/P4M5-temporal-model` |
+| P4M5 — Temporal model upgrade (attention pooling) | accuracy | ◐ done, PR pending — **BiGRU + attention: honest CV 0.615→0.687 (+7.2), 63→71 ship** (§6.9) | `milestone/P4M5-temporal-model` |
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ planned | `milestone/P4M6-targeted-data` |
 | P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☐ planned | `milestone/P4M7-runtime-confidence` |
 | P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ planned | `milestone/P4M8-ssl-pretrain` |
 
 ## Log
 
+- **2026-06-02** — **P4M5: temporal model — BiGRU + attention pooling (the win)** (branch
+  `milestone/P4M5-temporal-model`). `build_sequence_model` gained `pooling={last,mean,
+  attention}` (learned, **padding-masked** weighted sum over real frames) + optional
+  `bidirectional`; threaded through train/crossval + CLI (`--pooling`/`--bidirectional`),
+  default `last` unchanged. **Honest signer-disjoint CV sweep (positions, aug):** attention
+  0.656, attention+motion 0.635, **BiGRU+attention 0.687** vs last-timestep baseline 0.615
+  — **+7.2 pts**, biggest gain since P3M2's data jump, architecture-only. Motion still
+  drags (reconfirms §6.8). **Re-gate ≥ 0.50: 71/81 ship (was 63)** — +9 promoted (money,
+  woman, girl, man, car, good, run, nice, who), `hungry` demoted (0.33, documented).
+  **No runtime/spec change** (same 30×161→81 I/O, featureDim 161); new BiGRU+attention
+  ONNX **690 KB** (was 315) — verified to load+infer in onnxruntime, within budget;
+  9 new reference clips bundled, `hungry.json` removed. ADR-024; recognition.md §6.9. ml
+  92 pytest / frontend 173 vitest + 18 playwright; all gates green. **Next: PR + merge +
+  deploy-verify, STOP for P4M6/P4M7 go-ahead.**
 - **2026-06-01** — **P4M4: motion (velocity) features — tested, NOT shipped** (branch
   `milestone/P4M4-motion-features`). Built a parity-safe motion toolkit:
   `with_motion`/`withMotion` (append per-frame velocity of the 159 spatial dims, gated so

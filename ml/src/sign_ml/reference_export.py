@@ -96,9 +96,19 @@ SHIPPED_GLOSSES: tuple[str, ...] = (
     "day",
     "big",
     "hot",
-    "hungry",
     "tired",
     "black",
+    # P4M5 (temporal model): BiGRU + attention pooling re-gate (>=0.50) — 9 new signs
+    # clear it; `hungry` demoted. Keep in sync with frontend dynamicVocab.ts.
+    "money",
+    "woman",
+    "girl",
+    "man",
+    "car",
+    "good",
+    "run",
+    "nice",
+    "who",
 )
 
 

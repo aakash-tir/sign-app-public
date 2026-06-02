@@ -353,6 +353,8 @@ def run_train(
     seed: int,
     aug: dict[str, float] | None = None,
     motion: bool = False,
+    pooling: str = "last",
+    bidirectional: bool = False,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_export import export_onnx
     from .dynamic_model import train_and_eval
@@ -366,11 +368,21 @@ def run_train(
     # Motion features (P4M4) are applied INSIDE train_and_eval, after augmentation,
     # so the augmentation always sees the frozen 161-d layout (ADR-022).
     model, metrics = train_and_eval(
-        x, y, splits, n_classes=len(glosses), seed=seed, aug=aug, motion=motion
+        x,
+        y,
+        splits,
+        n_classes=len(glosses),
+        seed=seed,
+        aug=aug,
+        motion=motion,
+        pooling=pooling,
+        bidirectional=bidirectional,
     )
     metrics["glosses"] = glosses
     metrics["augmentation"] = aug or "baseline-jitter-only"
     metrics["motion_features"] = motion
+    metrics["pooling"] = pooling
+    metrics["bidirectional"] = bidirectional
     metrics["num_samples"] = int(x.shape[0])
 
     feat = x.shape[2] + (x.shape[2] - 2 if motion else 0)
@@ -391,6 +403,8 @@ def run_crossval(
     stratified: bool = False,
     aug: dict[str, float] | None = None,
     motion: bool = False,
+    pooling: str = "last",
+    bidirectional: bool = False,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_model import cross_validate
 
@@ -418,6 +432,8 @@ def run_crossval(
         signer_ids=signer_ids,
         aug=aug,
         motion=motion,
+        pooling=pooling,
+        bidirectional=bidirectional,
     )
     (cache_dir / "cv_metrics.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
@@ -425,7 +441,8 @@ def run_crossval(
     print(
         f"CV [{report['fold_kind']}] "
         f"top-1 {report['cv_top1']:.3f} | top-5 {report['cv_top5']:.3f} "
-        f"({report['folds']}-fold, n={report['n_samples']})"
+        f"({report['folds']}-fold, n={report['n_samples']}) "
+        f"pooling={pooling} bidir={bidirectional} motion={motion}"
     )
     ranked = sorted(report["per_gloss"].items(), key=lambda kv: kv[1]["top1"])
     for gloss, metric in ranked:
@@ -560,6 +577,17 @@ def main() -> None:  # pragma: no cover - CLI
         help="append P4M4 velocity features (default off — regressed the honest gate, "
         "recognition.md §6.8; kept as an opt-in toolkit)",
     )
+    tr.add_argument(
+        "--pooling",
+        choices=("last", "mean", "attention"),
+        default="last",
+        help="how to reduce the GRU output sequence (P4M5; default last-timestep)",
+    )
+    tr.add_argument(
+        "--bidirectional",
+        action="store_true",
+        help="run the GRU both directions (P4M5)",
+    )
 
     cv = sub.add_parser(
         "crossval", help="signer-disjoint k-fold CV (the honest ship gate, ADR-019)"
@@ -582,6 +610,17 @@ def main() -> None:  # pragma: no cover - CLI
         "--motion",
         action="store_true",
         help="append P4M4 velocity features (default off; see recognition.md §6.8)",
+    )
+    cv.add_argument(
+        "--pooling",
+        choices=("last", "mean", "attention"),
+        default="last",
+        help="how to reduce the GRU output sequence (P4M5; default last-timestep)",
+    )
+    cv.add_argument(
+        "--bidirectional",
+        action="store_true",
+        help="run the GRU both directions (P4M5)",
     )
 
     dg = sub.add_parser(
@@ -640,6 +679,8 @@ def main() -> None:  # pragma: no cover - CLI
             stratified=args.stratified,
             aug=P3M3_AUG if args.aug else None,
             motion=args.motion,
+            pooling=args.pooling,
+            bidirectional=args.bidirectional,
         )
     elif args.stage == "diagnose":
         run_diagnose(
@@ -656,6 +697,8 @@ def main() -> None:  # pragma: no cover - CLI
             args.seed,
             aug=P3M3_AUG if args.aug else None,
             motion=args.motion,
+            pooling=args.pooling,
+            bidirectional=args.bidirectional,
         )
 
 

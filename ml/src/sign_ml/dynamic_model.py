@@ -360,34 +360,69 @@ def classify_low_signs(
 
 
 def build_sequence_model(
-    n_classes: int, feat: int, hidden: int = 64, seed: int = 42
+    n_classes: int,
+    feat: int,
+    hidden: int = 64,
+    seed: int = 42,
+    pooling: str = "last",
+    bidirectional: bool = False,
 ) -> Any:  # pragma: no cover - needs torch
-    """A 2-layer GRU classifier reading the last-timestep state (logits output)."""
+    """A 2-layer GRU classifier (logits output).
+
+    ``pooling`` chooses how the GRU output sequence is reduced before the head:
+
+    * ``"last"`` — the final timestep (the original M6 design; front-padding puts the
+      real frames at the end, so this summarizes the whole sign);
+    * ``"mean"`` — average over the **real** (non-padding) frames;
+    * ``"attention"`` — a learned weighted sum over the real frames (P4M5), so
+      discriminative mid-sign motion isn't compressed into one state.
+
+    ``mean``/``attention`` **mask front-padding frames** (an all-zero input frame is
+    padding) so the warm-up region doesn't dilute the pooled context. ``bidirectional``
+    runs the GRU both ways (output dim ``2*hidden``)."""
     import torch
     from torch import nn
 
     torch.manual_seed(seed)
+    dirs = 2 if bidirectional else 1
+    out_dim = hidden * dirs
 
     class GRUClassifier(nn.Module):  # type: ignore[misc]
         def __init__(self) -> None:
             super().__init__()
+            self.pooling = pooling
             self.gru = nn.GRU(
                 input_size=feat,
                 hidden_size=hidden,
                 num_layers=2,
                 batch_first=True,
                 dropout=0.3,
+                bidirectional=bidirectional,
             )
+            self.attn = nn.Linear(out_dim, 1) if pooling == "attention" else None
             self.head = nn.Sequential(
-                nn.Linear(hidden, 64),
+                nn.Linear(out_dim, 64),
                 nn.ReLU(),
                 nn.Dropout(0.3),
                 nn.Linear(64, n_classes),
             )
 
         def forward(self, x: Any) -> Any:
-            out, _ = self.gru(x)
-            return self.head(out[:, -1, :])
+            out, _ = self.gru(x)  # (B, T, out_dim)
+            if self.pooling == "last":
+                return self.head(out[:, -1, :])
+            # Real frames = any non-zero input feature (front padding is all-zero).
+            real = (x.abs().sum(dim=2) > 0).float()  # (B, T)
+            if self.pooling == "mean":
+                denom = real.sum(dim=1, keepdim=True).clamp(min=1.0)
+                ctx = (out * real.unsqueeze(-1)).sum(dim=1) / denom
+            else:  # attention
+                assert self.attn is not None
+                scores = self.attn(out).squeeze(-1)  # (B, T)
+                scores = scores.masked_fill(real == 0, -1e9)
+                weights = torch.softmax(scores, dim=1).unsqueeze(-1)  # (B, T, 1)
+                ctx = (out * weights).sum(dim=1)
+            return self.head(ctx)
 
     return GRUClassifier()
 
@@ -405,6 +440,8 @@ def train_and_eval(
     augment: bool = True,
     aug: dict[str, Any] | None = None,
     motion: bool = False,
+    pooling: str = "last",
+    bidirectional: bool = False,
 ) -> tuple[Any, dict[str, Any]]:  # pragma: no cover - needs torch
     """Train the GRU with early stopping on val loss; report top-1/top-5 on test.
 
@@ -431,7 +468,9 @@ def train_and_eval(
     train, val, test = resolve_splits(splits, seed)
     xt_val, xt_test = prep(x_np[val]), prep(x_np[test])
 
-    model = build_sequence_model(n_classes, feat, seed=seed)
+    model = build_sequence_model(
+        n_classes, feat, seed=seed, pooling=pooling, bidirectional=bidirectional
+    )
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     loss_fn = nn.CrossEntropyLoss()
 
@@ -502,6 +541,8 @@ def cross_validate(
     signer_ids: Sequence[str | None] | None = None,
     aug: dict[str, Any] | None = None,
     motion: bool = False,
+    pooling: str = "last",
+    bidirectional: bool = False,
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
     """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
     test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
@@ -543,7 +584,13 @@ def cross_validate(
         val_idx, train_idx = pool[:n_val], pool[n_val:]
 
         torch.manual_seed(seed + fold)
-        model = build_sequence_model(n_classes, feat, seed=seed + fold)
+        model = build_sequence_model(
+            n_classes,
+            feat,
+            seed=seed + fold,
+            pooling=pooling,
+            bidirectional=bidirectional,
+        )
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
         loss_fn = nn.CrossEntropyLoss()
         xt_val = prep(x_np[val_idx])
@@ -605,6 +652,9 @@ def cross_validate(
         "cv_top5": float(correct5.mean()),
         "fold_kind": fold_kind,
         "aug": aug or {},
+        "motion": motion,
+        "pooling": pooling,
+        "bidirectional": bidirectional,
         "folds": folds,
         "n_samples": int(len(y)),
         "per_gloss": per_gloss,

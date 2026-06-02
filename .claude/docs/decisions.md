@@ -460,6 +460,30 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ---
 
+## ADR-024 — Temporal model: bidirectional GRU + masked attention pooling
+
+- **Status:** accepted + **shipped** (owner, 2026-06-02). Phase 4 accuracy track / P4M5.
+  Supersedes the M6 last-timestep read; builds on the P4M2 diagnosis.
+- **Context:** The shipped GRU classified from its **last timestep**, compressing the
+  whole sign into one state — and the P4M2 diagnosis found the low signs are
+  **under-separated** (errors spread, not data-starved). The fix is to let the model read
+  the **entire trajectory**.
+- **Decision:** Reduce the GRU output sequence with **learned attention pooling** (a
+  weighted sum over timesteps) instead of the last timestep, and run the GRU
+  **bidirectionally**. Pooling **masks front-padding frames** (an all-zero input frame is
+  padding) so the warm-up region can't dilute the context — train and serve front-pad
+  identically, so this is parity-safe. `pooling={last,mean,attention}` + `bidirectional`
+  are options on `build_sequence_model` (default `last` = the old behavior); the shipped
+  model is `attention` + `bidirectional`, **positions-only** (motion stays off, §6.8).
+- **Consequences:** Honest signer-disjoint CV **0.615 → 0.687** (+7.2 pts), **71/81 signs
+  ship** (was 63; +9 promoted, `hungry` demoted at 0.33 — documented). **No runtime/spec
+  change** — same 30×161 input → 81 logits, `featureDim` 161, normalization id unchanged;
+  only the model graph changed. ONNX grows 315 KB → **690 KB** (bidirectional doubles the
+  GRU output dim) — within the ≤ ~1.5 MB on-device budget; verified to load + infer in
+  onnxruntime. Detail: recognition.md §6.9.
+
+---
+
 ## Open questions (non-blocking, revisit at the noted milestone)
 
 | # | Question | Default assumption | Revisit |

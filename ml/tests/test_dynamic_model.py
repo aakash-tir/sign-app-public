@@ -317,6 +317,66 @@ def test_cross_validate_motion_runs() -> None:
     assert len(report["confusion"]) == classes
 
 
+def test_build_sequence_model_pooling_modes_forward() -> None:
+    pytest.importorskip("torch")
+    import torch
+
+    from sign_ml.dynamic_model import build_sequence_model
+
+    x = torch.zeros(2, 8, 6, dtype=torch.float32)
+    x[:, -3:, :] = 1.0  # 3 real frames at the end, rest front-padding
+    for pooling in ("last", "mean", "attention"):
+        model = build_sequence_model(3, feat=6, seed=0, pooling=pooling)
+        model.eval()
+        assert model(x).shape == (2, 3)
+    # bidirectional doubles the GRU output dim feeding the head
+    bi = build_sequence_model(
+        3, feat=6, seed=0, pooling="attention", bidirectional=True
+    )
+    bi.eval()
+    assert bi(x).shape == (2, 3)
+    assert bi.attn.in_features == 2 * 64
+
+
+def test_attention_pooling_handles_all_padding_row_without_nan() -> None:
+    pytest.importorskip("torch")
+    import torch
+
+    from sign_ml.dynamic_model import build_sequence_model
+
+    model = build_sequence_model(3, feat=6, seed=0, pooling="attention")
+    model.eval()
+    # One row is entirely padding (all zero) — masking must not produce NaN logits.
+    x = torch.zeros(2, 8, 6, dtype=torch.float32)
+    x[0, -2:, :] = 1.0  # row 0 has 2 real frames; row 1 is all padding
+    with torch.no_grad():
+        out = model(x)
+    assert out.shape == (2, 3)
+    assert torch.isfinite(out).all()
+
+
+def test_train_and_eval_attention_runs() -> None:
+    pytest.importorskip("torch")
+    from sign_ml.dynamic_model import train_and_eval
+
+    rng = np.random.default_rng(3)
+    n, window, feat, classes = 24, 8, 6, 3
+    x = rng.standard_normal((n, window, feat))
+    y = rng.integers(0, classes, n).astype(np.int64)
+    splits = np.array(["train"] * n, dtype=np.str_)
+    _model, metrics = train_and_eval(
+        x,
+        y,
+        splits,
+        n_classes=classes,
+        seed=0,
+        epochs=3,
+        batch_size=8,
+        pooling="attention",
+    )
+    assert 0.0 <= metrics["top1"] <= 1.0
+
+
 def test_export_onnx_writes_files(tmp_path: Path) -> None:
     pytest.importorskip("torch")
     from sign_ml.dynamic_export import export_onnx

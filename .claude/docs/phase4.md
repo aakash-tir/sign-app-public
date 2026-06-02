@@ -387,7 +387,7 @@ high (build-time compute + new stage). **On-device:** unchanged.
 | P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ☑ merged [#27](https://github.com/aakash-tir/sign-app/pull/27) — 3 confusable / 15 diffuse / 0 data-starved (§6.7) | `milestone/P4M2-diagnose` |
 | P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☐ planned | `milestone/P4M3-aug-loss` |
 | P4M4 — Motion / velocity features (spec v2) | accuracy | ◐ done, PR pending — **negative result** (0.615→0.594), toolkit kept opt-in, not shipped (§6.8) | `milestone/P4M4-motion-features` |
-| P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☐ planned | `milestone/P4M5-temporal-model` |
+| P4M5 — Temporal model upgrade (attention pooling) | accuracy | ◐ done, PR pending — **BiGRU+attention 0.615→0.687, 71 ship** (§6.9) | `milestone/P4M5-temporal-model` |
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ planned | `milestone/P4M6-targeted-data` |
 | P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☐ planned | `milestone/P4M7-runtime-confidence` |
 | P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ planned | `milestone/P4M8-ssl-pretrain` |

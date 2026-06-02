@@ -3,8 +3,8 @@ import { SHIPPED_GLOSSES, shippedLabels } from './dynamicVocab'
 
 describe('shippedLabels', () => {
   it('drops glosses held back by the accuracy gate', () => {
-    // `good` and `come` stay below the honest 0.50 gate on the 81-gloss model.
-    const modelLabels = ['drink', 'good', 'help', 'come', 'family']
+    // `come` and `mother` stay below the honest 0.50 gate (P4M5 BiGRU+attention model).
+    const modelLabels = ['drink', 'come', 'help', 'mother', 'family']
     expect(shippedLabels(modelLabels)).toEqual(['drink', 'help', 'family'])
   })
 
@@ -16,19 +16,17 @@ describe('shippedLabels', () => {
     ])
   })
 
-  it('ships the 63 glosses that clear the honest signer-disjoint gate (P3M2c)', () => {
-    expect(SHIPPED_GLOSSES).toHaveLength(63)
-    expect(SHIPPED_GLOSSES).toContain('like') // P3M2 promotion on MS-ASL ∪ WLASL
-    expect(SHIPPED_GLOSSES).toContain('bad')
-    expect(SHIPPED_GLOSSES).toContain('happy')
-    expect(SHIPPED_GLOSSES).toContain('thank you') // P3M2c: finally clears (0.63)
-    expect(SHIPPED_GLOSSES).toContain('teacher') // P3M2c new sign
-    expect(SHIPPED_GLOSSES).toContain('water')
-    expect(SHIPPED_GLOSSES).not.toContain('good') // still below the honest gate
-    expect(SHIPPED_GLOSSES).not.toContain('before')
-    expect(SHIPPED_GLOSSES).not.toContain('tall')
-    expect(SHIPPED_GLOSSES).not.toContain('come') // 0.08 — hard/confusable
-    expect(SHIPPED_GLOSSES).not.toContain('mother') // 0.49 — near miss
+  it('ships the 71 glosses that clear the honest signer-disjoint gate (P4M5)', () => {
+    // BiGRU + attention pooling lifted honest CV 0.615 → 0.687; re-gate at ≥ 0.50.
+    expect(SHIPPED_GLOSSES).toHaveLength(71)
+    expect(SHIPPED_GLOSSES).toContain('thank you') // retained from P3M2c
+    expect(SHIPPED_GLOSSES).toContain('good') // P4M5 promotion (was below the gate)
+    expect(SHIPPED_GLOSSES).toContain('woman') // P4M5 new sign
+    expect(SHIPPED_GLOSSES).toContain('money')
+    expect(SHIPPED_GLOSSES).not.toContain('hungry') // P4M5 demotion (0.33 honestly)
+    expect(SHIPPED_GLOSSES).not.toContain('come') // still below (0.46)
+    expect(SHIPPED_GLOSSES).not.toContain('mother') // still below (0.45)
+    expect(SHIPPED_GLOSSES).not.toContain('sleep')
   })
 
   it('has no duplicate glosses', () => {
