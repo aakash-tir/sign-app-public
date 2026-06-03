@@ -167,21 +167,25 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 ## Phase 4 checklist (see [`docs/phase4.md`](docs/phase4.md))
 
-Two tracks: **discovery** (P4M1, shipped) + **accuracy** (P4M2–P4M8, lifting the 18
-dynamic signs below the honest 0.50 gate). Honest signer-disjoint CV (ADR-019) is the
-arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
+Two tracks: **discovery** (P4M1, shipped) + **accuracy** (P4M2–P4M8). **Accuracy track
+paused 2026-06-02** after the big win: the dynamic recognizer went **0.615 → 0.687 honest
+top-1, 63 → 71 signs**, plus per-sign calibrated acceptance — all live. The win was the
+**temporal-model upgrade (P4M5)**; the cheap data/loss tweaks (P4M4 motion, P4M3
+mirror/class-weight) each proved they don't help on top of it (kept as opt-in tooling),
+matching the P4M2 diagnosis ("data not the bottleneck"). Remaining: P4M6 (low-value),
+P4M8 (the big SSL swing) — owner to decide later. Honest signer-disjoint CV (ADR-019) is
+the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 
 | Milestone | Track | Status | Branch |
 | --- | --- | --- | --- |
 | P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deployed (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
 | P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ☑ merged [#27](https://github.com/aakash-tir/sign-app/pull/27) — **3 confusable / 15 diffuse / 0 data-starved** (recognition.md §6.7) | `milestone/P4M2-diagnose` |
-| P4M4 — Motion / velocity features (frame spec v2) | accuracy | ◐ done, PR pending — **negative result** (0.615→0.594); motion kept opt-in, **not shipped** (§6.8) | `milestone/P4M4-motion-features` |
-| P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ◐ done, PR pending — **negative** (mirror 0.669 / cw 0.674 / both 0.661 < 0.687); mirroring proven parity-correct, kept opt-in (§6.11) | `milestone/P4M3-aug-loss` |
-| P4M4 — Motion / velocity features (frame spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
-| P4M5 — Temporal model upgrade (attention pooling) | accuracy | ◐ done, PR pending — **BiGRU + attention: honest CV 0.615→0.687 (+7.2), 63→71 ship** (§6.9) | `milestone/P4M5-temporal-model` |
-| P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ planned | `milestone/P4M6-targeted-data` |
-| P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ◐ done, PR pending — per-sign accept bars (69 sub-0.5) + temperature 1.6 + 3-window voting; no retrain (§6.10) | `milestone/P4M7-runtime-confidence` |
-| P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ planned | `milestone/P4M8-ssl-pretrain` |
+| P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☑ merged [#31](https://github.com/aakash-tir/sign-app/pull/31) — **negative** (mirror 0.669 / cw 0.674 / both 0.661 < 0.687); mirroring proven parity-correct, kept opt-in (§6.11) | `milestone/P4M3-aug-loss` |
+| P4M4 — Motion / velocity features (frame spec v2) | accuracy | ☑ merged [#28](https://github.com/aakash-tir/sign-app/pull/28) — **negative** (0.615→0.594); motion kept opt-in, **not shipped** (§6.8) | `milestone/P4M4-motion-features` |
+| P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☑ merged [#29](https://github.com/aakash-tir/sign-app/pull/29) + deployed — **BiGRU + attention: honest CV 0.615→0.687 (+7.2), 63→71 ship** (§6.9) | `milestone/P4M5-temporal-model` |
+| P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ not started (low-value — data not the bottleneck per P4M2) | `milestone/P4M6-targeted-data` |
+| P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☑ merged [#30](https://github.com/aakash-tir/sign-app/pull/30) + deployed — per-sign accept bars (69 sub-0.5) + temperature 1.6 + 3-window voting; no retrain (§6.10) | `milestone/P4M7-runtime-confidence` |
+| P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ not started — **track paused** (owner, 2026-06-02) | `milestone/P4M8-ssl-pretrain` |
 
 ## Log
 

@@ -54,44 +54,42 @@ and the secrets/credentials policy.
 
 ## Status
 
-**Phase 1 (M0–M7) and Phase 2 (depth & polish) are both complete and deployed** —
-the PWA is live on Cloudflare with 24 fingerspelling letters + 63 dynamic signs (grown
-from 20 in Phase 3), per-finger overlay option, a persistent shared camera, a redesigned
-UI, and offline in-app sign references. See [`progress.md`](progress.md); Phase 2 detail
-in [`docs/phase2.md`](docs/phase2.md).
+**Phases 1–4 are complete/paused and deployed** — the PWA is live on Cloudflare with
+**24 fingerspelling letters + 71 dynamic signs**, a per-finger overlay option, a
+persistent shared camera, a redesigned UI, offline in-app sign references, and a **Search
+tab**. See [`progress.md`](progress.md); Phase 2 detail in [`docs/phase2.md`](docs/phase2.md).
 
-**✅ Phase 3 (accuracy & vocabulary depth) — P3M1, P3M2, P3M3, and P3M2c (vocab50) all
-merged + deployed.** The dynamic recognizer was grown to an **81-gloss MS-ASL ∪ WLASL
-model** (P3M2c: 3583 samples / 163 signers) trained with P3M3 augmentation — honest
-signer-disjoint CV **top-1 0.615**. The honest ≥ 0.50 gate ships **63 dynamic signs**
-(up from 20: all 20 retained + 43 new incl. `thank you`), alongside 24 fingerspelling
-letters. ONNX 315 KB. Detail: [`docs/recognition.md`](docs/recognition.md) §6.6.
+**✅ Phase 3 (accuracy & vocabulary depth) — all merged + deployed.** Grew the dynamic
+recognizer to an **81-gloss MS-ASL ∪ WLASL model** (3583 samples / 163 signers); the
+honest ≥ 0.50 gate shipped 63 signs at honest top-1 0.615. *(Superseded by Phase 4 —
+now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-setup`.
 
-P3M2c merged via [PR #25](https://github.com/aakash-tir/sign-app/pull/25) (squash
-`cada2e8`); auto-deployed to Cloudflare and **deploy-verified** (live `model.onnx`
-sha256 `491d35c0…0ff1a2` matches local, 315,381 bytes). MS-ASL fetch mechanics + the
-ffmpeg-on-PATH fix are in memory `msasl-download-setup`.
+**✅ Phase 4 — discovery shipped; accuracy track substantially done and PAUSED
+(2026-06-02).** Detail in [`docs/phase4.md`](docs/phase4.md); §6.7–6.11 in
+[`docs/recognition.md`](docs/recognition.md).
 
-**✅ Phase 4 (discovery & navigation) — P4M1 (sign search tab) merged + deploying.**
-Plan in [`docs/phase4.md`](docs/phase4.md): a new **Search** tab where the learner
-types a sign; if it's one of the 63 shipped dynamic signs (exact + synonym + case-
-insensitive match) the app shows its reference animation + a camera that recognizes
-that sign, else "not in the system yet". **Dynamic-signs-only, no model/data work** —
-reuses `useDynamicSignRecognition` + a shared `DynamicSignStage` + `SignReferencePlayer`
-(ADR-021, FR-19). Merged via [PR #26](https://github.com/aakash-tir/sign-app/pull/26)
-(squash `60176e0`); 169 vitest / 18 playwright; deploy-verified live.
+- **Discovery — P4M1 Search tab** ([#26](https://github.com/aakash-tir/sign-app/pull/26)):
+  type a sign → reference animation + a camera that recognizes it, else "not in the system
+  yet". Exact + synonym match over the shipped signs; reuses `DynamicSignStage` +
+  `SignReferencePlayer` (ADR-021, FR-19).
+- **Accuracy track (P4M2–P4M7).** **The recognizer went 0.615 → 0.687 honest top-1, 63 →
+  71 shipped signs, plus per-sign calibrated acceptance — all live.**
+  - **P4M5 — the win** ([#29](https://github.com/aakash-tir/sign-app/pull/29)):
+    **bidirectional GRU + masked attention pooling** (read the whole sign, not just the
+    last timestep) → **0.687**, 71 signs. ONNX 690 KB. ADR-024, §6.9.
+  - **P4M7 — runtime confidence** ([#30](https://github.com/aakash-tir/sign-app/pull/30)):
+    per-sign acceptance thresholds + temperature calibration (T=1.6) + 3-window voting; no
+    retrain. ADR-025, §6.10.
+  - **P4M2 diagnose** ([#27](https://github.com/aakash-tir/sign-app/pull/27)): the 18 low
+    signs are **under-separated, not data-starved** — which is why the modeling lever
+    (P4M5) won and the cheap data/loss tweaks didn't. §6.7.
+  - **P4M4 motion** ([#28](https://github.com/aakash-tir/sign-app/pull/28)) and **P4M3
+    mirroring + class-weighted loss** ([#31](https://github.com/aakash-tir/sign-app/pull/31)):
+    both **tested, honest-negative, not shipped** — kept as opt-in tooling. (P4M3 notably
+    *proved* mirroring is parity-correct, refuting the P3M3 deferral.) ADR-022/023, §6.8/6.11.
 
-**🚧 Phase 4 accuracy track (P4M2–P4M8) planned — starting now.** Detailed plan in
-[`docs/phase4.md`](docs/phase4.md): lift the **18 dynamic signs below the honest 0.50
-gate** over the bar + raise aggregate honest top-1 (baseline 0.615, 63/81 ship),
-**without bloating the on-device model** (ONNX ≤ ~1.5 MB). Sequence: **P4M2** diagnose →
-**P4M3** mirroring + class-weighted loss → **P4M4** motion features (frame spec v2) →
-**P4M5** temporal attention pooling → **P4M6** targeted data (owner-gated) → **P4M7**
-runtime per-sign thresholds (no retrain) → **P4M8** self-supervised pretraining. Honest
-signer-disjoint CV (ADR-019) is the arbiter; ADR-022…026 to record per milestone.
-**▶ Active next task: implement P4M2 (diagnose — confusion matrix + per-gloss signer
-counts) on `milestone/P4M2-diagnose`.**
-
-**Parked for the future** (no work in progress): real multi-sign Learn sentences
-beyond the shipped drill (ADR-012); continuous-sign data for sentence content;
-fingerspelling/spell-unknown-word search fallback + fuzzy ranking (P4M1 deferrals).
+**▶ No active task — accuracy track paused; owner to decide whether to take the P4M8
+(self-supervised pretraining) big swing later.** Remaining/parked: **P4M8** SSL pretrain
+(the last big lever, uncertain payoff at this data scale); **P4M6** targeted data
+(low-value — data isn't the bottleneck); real multi-sign Learn sentences (ADR-012);
+fingerspelling/spell-unknown search fallback + fuzzy ranking (P4M1 deferrals).
