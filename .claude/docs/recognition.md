@@ -506,6 +506,41 @@ or are pure runtime logic; **no model/normalization change** (same ONNX, `featur
 and everything is backward-compatible (absent metadata → T = 1, global 0.5 bar). Fit with
 `… calibrate --cache models/combined --aug --pooling attention`.
 
+### 6.11 Mirroring + class-weighted loss — tested, did **not** help (P4M3)
+
+P4M3 targeted the 10 remaining below-gate signs with two cheap, build-time levers on top
+of the shipped BiGRU+attention model (§6.9):
+
+- **Horizontal mirroring** — a **parity-correct, train-only** augmentation
+  (`mirror_frames`). The P3M3 deferral assumed mirroring was skew-prone under the
+  handedness-collapsing hand normalization; it isn't. Because the hand normalization is
+  handedness-**canonical** (it x-flips Left hands to the Right shape), a mirror of a
+  normalized frame is **exact**: swap the L/R pose pairs + negate `x`, **swap the two hand
+  blocks with no internal change**, swap presence flags. A unit test proves
+  `mirror_frames(normalize(frame)) == normalize(flipped capture)`.
+- **Class-weighted loss** — inverse-frequency weighted cross-entropy to lift the hard/low-n
+  classes (`class_weights`).
+
+**Honest signer-disjoint CV (BiGRU+attention, aug):**
+
+| Config | top-1 | signs ≥ 0.50 |
+| --- | --- | --- |
+| **Baseline (shipped, §6.9)** | **0.687** | **71** |
+| + mirror | 0.669 | — |
+| + class-weight | 0.674 | 71 (churned) |
+| + mirror + class-weight | 0.661 | — |
+
+**All three regress.** Class-weight is the most interesting: it keeps the same **71**-sign
+count but only **reshuffles the tail** — it promotes the genuinely-hard signs (`come`
+0.46→0.54, `before` 0.46→0.66, `dog`/`sleep`/`tall`) while **demoting six
+currently-shipped signs** (`good` 0.41→0.39, `white`, `money`, `woman`, `man`, `girl`) at
+a lower overall accuracy. Mirroring likely adds label-inconsistent examples for signs whose
+*side* carries meaning. **Decision (owner): do not ship** — the shipped model stays the
+0.687 / 71-sign BiGRU+attention. Both levers are **kept as opt-in, tested tooling**
+(`crossval/train --mirror`, `--class-weight`, default off) for future use (e.g. on a larger
+dataset). Reproduce: `… crossval … --pooling attention --bidirectional --mirror
+--class-weight`.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

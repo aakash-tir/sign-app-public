@@ -53,6 +53,54 @@ WINDOW_SIZE = 30
 FloatArray = npt.NDArray[np.float64]
 
 
+# Mirror permutation over the UPPER_BODY_POSE_INDICES *positions* (not raw indices):
+# swap the subject's left/right pairs (eyes, ears, shoulders, elbows, wrists) under a
+# horizontal flip; the nose (position 0) is centered. UPPER_BODY_POSE_INDICES order is
+# (nose, eyeL, eyeR, earL, earR, shL, shR, elbL, elbR, wrL, wrR).
+_POSE_MIRROR_PERM: tuple[int, ...] = (0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9)
+
+
+def mirror_frames(x: npt.ArrayLike) -> FloatArray:
+    """Horizontally mirror normalized **161-d** frames — parity-correct, **train-only**
+    augmentation (P4M3, refines the ADR-020 deferral). Works on ``(F,)``, ``(T, F)`` or
+    ``(B, T, F)``.
+
+    Equivalent to normalizing a left-right-flipped capture, derived exactly:
+
+    * **pose** — swap the subject's left/right landmark pairs (``_POSE_MIRROR_PERM``)
+      and negate ``x``;
+    * **hands** — **swap the left and right hand blocks** with *no* internal change: the
+      hand normalization is handedness-canonical (it x-flips Left hands to the Right
+      shape), so a mirrored left hand normalizes exactly to the original right block and
+      vice versa;
+    * **presence flags** — swap ``[leftPresent, rightPresent]``.
+
+    Mirroring is its own inverse (involution). Never applied at serve — the runtime does
+    not mirror — so there is no golden-fixture/parity contract to maintain."""
+    arr = np.asarray(x, dtype=np.float64)
+    if arr.shape[-1] != FRAME_FEATURE_DIM:
+        raise ValueError(
+            f"mirror_frames expects {FRAME_FEATURE_DIM}-d frames, got {arr.shape}"
+        )
+    n_pose = len(UPPER_BODY_POSE_INDICES)
+    lead = arr.shape[:-1]
+    pose = arr[..., :POSE_BLOCK_LEN].reshape(*lead, n_pose, 3)
+    pose = pose[..., list(_POSE_MIRROR_PERM), :].copy()
+    pose[..., 0] *= -1.0
+    pose_flat = pose.reshape(*lead, POSE_BLOCK_LEN)
+    l0 = POSE_BLOCK_LEN
+    r0 = POSE_BLOCK_LEN + HAND_BLOCK_LEN
+    left_block = arr[..., l0:r0]
+    right_block = arr[..., r0 : r0 + HAND_BLOCK_LEN]
+    left_present = arr[..., -2:-1]
+    right_present = arr[..., -1:]
+    # mirrored layout: [pose' | old-right | old-left | rightPresent, leftPresent]
+    out: FloatArray = np.concatenate(
+        [pose_flat, right_block, left_block, right_present, left_present], axis=-1
+    )
+    return out
+
+
 def with_motion(window: npt.ArrayLike) -> FloatArray:
     """Append per-frame **velocity** (first difference of the spatial coords) to a
     normalized ``(T, FRAME_FEATURE_DIM)`` window → ``(T, MODEL_FEATURE_DIM)``.

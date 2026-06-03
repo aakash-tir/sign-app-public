@@ -19,7 +19,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from .dynamic_normalization import add_motion_features
+from .dynamic_normalization import FRAME_FEATURE_DIM, add_motion_features, mirror_frames
 
 FloatArray = npt.NDArray[np.float64]
 IntArray = npt.NDArray[np.int64]
@@ -44,6 +44,19 @@ def _softmax_np(logits: FloatArray) -> FloatArray:
     e = np.exp(z)
     out: FloatArray = e / e.sum(axis=1, keepdims=True)
     return out
+
+
+def class_weights(y_train: IntArray, n_classes: int) -> FloatArray:
+    """Inverse-frequency class weights (normalized to mean 1) for a weighted
+    cross-entropy — lifts the low-``n``/hard classes so the loss isn't dominated by the
+    common ones (P4M3). Classes absent from ``y_train`` get weight 1."""
+    counts = np.bincount(
+        np.asarray(y_train, dtype=np.int64), minlength=n_classes
+    ).astype(np.float64)
+    counts[counts == 0] = 1.0
+    w: FloatArray = counts.sum() / (n_classes * counts)
+    w *= n_classes / w.sum()  # mean weight == 1
+    return w
 
 
 def fit_temperature(
@@ -214,6 +227,7 @@ def augment_sequences(
     landmark_dropout: float = 0.0,
     rotation_deg: float = 0.0,
     time_warp_rate: float = 0.0,
+    mirror_prob: float = 0.0,
 ) -> FloatArray:
     """Augment a batch of ``(B, T, F)`` windows — the main lever for the tiny
     curated dataset. The **last two** features are hand-presence flags, left
@@ -229,6 +243,12 @@ def augment_sequences(
     out = np.asarray(x, dtype=np.float64).copy()
     b, t, f = out.shape
     spatial = f - 2
+    # P4M3: per-sample horizontal mirror (train-only; 161-d layout). Geometric, so do it
+    # before the spatial jitter below.
+    if mirror_prob > 0.0 and f == FRAME_FEATURE_DIM:
+        sel = np.asarray(rng.random(b)) < mirror_prob
+        if bool(np.any(sel)):
+            out[sel] = mirror_frames(out[sel])
     out[:, :, :spatial] *= rng.uniform(scale_range[0], scale_range[1], size=(b, 1, 1))
     out[:, :, :spatial] += rng.normal(0.0, noise_std, size=(b, t, spatial))
     if rotation_deg > 0.0:
@@ -499,6 +519,7 @@ def train_and_eval(
     motion: bool = False,
     pooling: str = "last",
     bidirectional: bool = False,
+    class_weight: bool = False,
 ) -> tuple[Any, dict[str, Any]]:  # pragma: no cover - needs torch
     """Train the GRU with early stopping on val loss; report top-1/top-5 on test.
 
@@ -529,7 +550,12 @@ def train_and_eval(
         n_classes, feat, seed=seed, pooling=pooling, bidirectional=bidirectional
     )
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
-    loss_fn = nn.CrossEntropyLoss()
+    weight = (
+        torch.tensor(class_weights(y[train], n_classes).astype(np.float32))
+        if class_weight
+        else None
+    )
+    loss_fn = nn.CrossEntropyLoss(weight=weight)
 
     train_idx = np.where(train)[0]
     best_val = float("inf")
@@ -601,6 +627,7 @@ def cross_validate(
     pooling: str = "last",
     bidirectional: bool = False,
     calibrate: bool = False,
+    class_weight: bool = False,
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
     """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
     test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
@@ -652,7 +679,12 @@ def cross_validate(
             bidirectional=bidirectional,
         )
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
-        loss_fn = nn.CrossEntropyLoss()
+        weight = (
+            torch.tensor(class_weights(y[train_idx], n_classes).astype(np.float32))
+            if class_weight
+            else None
+        )
+        loss_fn = nn.CrossEntropyLoss(weight=weight)
         xt_val = prep(x_np[val_idx])
         best_val = float("inf")
         best_state = copy.deepcopy(model.state_dict())
@@ -719,6 +751,7 @@ def cross_validate(
         "motion": motion,
         "pooling": pooling,
         "bidirectional": bidirectional,
+        "class_weight": class_weight,
         "folds": folds,
         "n_samples": int(len(y)),
         "per_gloss": per_gloss,

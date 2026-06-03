@@ -9,6 +9,7 @@ import pytest
 from sign_ml.dynamic_export import build_metadata
 from sign_ml.dynamic_model import (
     augment_sequences,
+    class_weights,
     classify_low_signs,
     confusion_matrix,
     distinct_signers_per_class,
@@ -245,6 +246,87 @@ def test_signer_folds_deterministic_with_seed() -> None:
     b = signer_folds(signers, 3, seed=5)
     for ma, mb in zip(a, b, strict=True):
         np.testing.assert_array_equal(ma, mb)
+
+
+def test_class_weights_inverse_frequency_mean_one() -> None:
+    # class 0 appears 3x, class 1 once -> class 1 weighted higher; mean weight == 1.
+    w = class_weights(np.array([0, 0, 0, 1], dtype=np.int64), n_classes=2)
+    assert w[1] > w[0]
+    assert w.mean() == pytest.approx(1.0)
+
+
+def test_class_weights_unseen_class_gets_weight() -> None:
+    w = class_weights(np.array([0, 0], dtype=np.int64), n_classes=3)
+    assert np.all(w > 0) and w.shape == (3,)
+
+
+def test_mirror_frames_is_an_involution() -> None:
+    from sign_ml.dynamic_normalization import FRAME_FEATURE_DIM, mirror_frames
+
+    rng = np.random.default_rng(0)
+    frames = rng.standard_normal((4, FRAME_FEATURE_DIM))
+    np.testing.assert_allclose(mirror_frames(mirror_frames(frames)), frames)
+
+
+def test_mirror_frame_equals_normalizing_a_flipped_capture() -> None:
+    # The strong contract: mirroring a normalized frame == normalizing the horizontally
+    # flipped raw capture (so the augmentation produces *real* frames, P4M3).
+    from sign_ml.dynamic_normalization import (
+        POSE_LANDMARK_COUNT,
+        mirror_frames,
+        normalize_frame,
+    )
+
+    rng = np.random.default_rng(1)
+    pose = rng.uniform(0, 1, (POSE_LANDMARK_COUNT, 3))
+    pose[11] = [0.6, 0.5, 0.0]  # left shoulder
+    pose[12] = [0.4, 0.5, 0.0]  # right shoulder
+    left = rng.uniform(0, 1, (21, 3))
+    right = rng.uniform(0, 1, (21, 3))
+
+    frame = normalize_frame(pose, left, right)
+
+    # Horizontally flip the raw capture: negate x everywhere, swap subject L/R pose
+    # pairs, and swap which hand MediaPipe reports as left vs right (each x-negated).
+    def flip_x(a: np.ndarray) -> np.ndarray:
+        b = np.asarray(a, dtype=np.float64).copy()
+        b[:, 0] *= -1.0
+        return b
+
+    pose_f = flip_x(pose)
+    for a, b in [(2, 5), (7, 8), (11, 12), (13, 14), (15, 16)]:
+        pose_f[[a, b]] = pose_f[[b, a]]
+    # flipped capture: new left-hand detection = flipped old right (and vice versa)
+    frame_flipped = normalize_frame(pose_f, flip_x(right), flip_x(left))
+
+    np.testing.assert_allclose(mirror_frames(frame), frame_flipped, atol=1e-9)
+
+
+def test_augment_mirror_only_on_full_frame_and_keeps_dim() -> None:
+    from sign_ml.dynamic_normalization import FRAME_FEATURE_DIM
+
+    rng = np.random.default_rng(2)
+    x = rng.standard_normal((6, 5, FRAME_FEATURE_DIM))
+    out = augment_sequences(
+        x,
+        rng,
+        noise_std=0.0,
+        scale_range=(1.0, 1.0),
+        frame_dropout=0.0,
+        mirror_prob=1.0,
+    )
+    assert out.shape == x.shape  # every sample mirrored, shape preserved
+    # a non-161 frame is left unmirrored (guarded) — no crash, shape preserved
+    small = rng.standard_normal((3, 4, 6))
+    out2 = augment_sequences(
+        small,
+        rng,
+        noise_std=0.0,
+        scale_range=(1.0, 1.0),
+        frame_dropout=0.0,
+        mirror_prob=1.0,
+    )
+    assert out2.shape == small.shape
 
 
 def test_fit_per_sign_thresholds_percentile_and_clamp() -> None:

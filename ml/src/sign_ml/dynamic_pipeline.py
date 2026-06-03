@@ -355,6 +355,7 @@ def run_train(
     motion: bool = False,
     pooling: str = "last",
     bidirectional: bool = False,
+    class_weight: bool = False,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_export import export_onnx
     from .dynamic_model import train_and_eval
@@ -377,12 +378,14 @@ def run_train(
         motion=motion,
         pooling=pooling,
         bidirectional=bidirectional,
+        class_weight=class_weight,
     )
     metrics["glosses"] = glosses
     metrics["augmentation"] = aug or "baseline-jitter-only"
     metrics["motion_features"] = motion
     metrics["pooling"] = pooling
     metrics["bidirectional"] = bidirectional
+    metrics["class_weight"] = class_weight
     metrics["num_samples"] = int(x.shape[0])
 
     feat = x.shape[2] + (x.shape[2] - 2 if motion else 0)
@@ -405,6 +408,7 @@ def run_crossval(
     motion: bool = False,
     pooling: str = "last",
     bidirectional: bool = False,
+    class_weight: bool = False,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_model import cross_validate
 
@@ -434,6 +438,7 @@ def run_crossval(
         motion=motion,
         pooling=pooling,
         bidirectional=bidirectional,
+        class_weight=class_weight,
     )
     (cache_dir / "cv_metrics.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
@@ -442,7 +447,8 @@ def run_crossval(
         f"CV [{report['fold_kind']}] "
         f"top-1 {report['cv_top1']:.3f} | top-5 {report['cv_top5']:.3f} "
         f"({report['folds']}-fold, n={report['n_samples']}) "
-        f"pooling={pooling} bidir={bidirectional} motion={motion}"
+        f"pooling={pooling} bidir={bidirectional} motion={motion} "
+        f"cw={class_weight} mirror={'mirror_prob' in (aug or {})}"
     )
     ranked = sorted(report["per_gloss"].items(), key=lambda kv: kv[1]["top1"])
     for gloss, metric in ranked:
@@ -645,6 +651,17 @@ def main() -> None:  # pragma: no cover - CLI
         action="store_true",
         help="run the GRU both directions (P4M5)",
     )
+    tr.add_argument(
+        "--mirror",
+        action="store_true",
+        help="horizontal-mirror augmentation, p=0.5 (P4M3, train-only)",
+    )
+    tr.add_argument(
+        "--class-weight",
+        dest="class_weight",
+        action="store_true",
+        help="inverse-frequency class-weighted loss (P4M3)",
+    )
 
     cv = sub.add_parser(
         "crossval", help="signer-disjoint k-fold CV (the honest ship gate, ADR-019)"
@@ -678,6 +695,17 @@ def main() -> None:  # pragma: no cover - CLI
         "--bidirectional",
         action="store_true",
         help="run the GRU both directions (P4M5)",
+    )
+    cv.add_argument(
+        "--mirror",
+        action="store_true",
+        help="horizontal-mirror augmentation, p=0.5 (P4M3, train-only)",
+    )
+    cv.add_argument(
+        "--class-weight",
+        dest="class_weight",
+        action="store_true",
+        help="inverse-frequency class-weighted loss (P4M3)",
     )
 
     cal = sub.add_parser(
@@ -744,15 +772,19 @@ def main() -> None:  # pragma: no cover - CLI
             seed=args.seed,
         )
     elif args.stage == "crossval":
+        aug = dict(P3M3_AUG) if args.aug else {}
+        if args.mirror:
+            aug["mirror_prob"] = 0.5
         run_crossval(
             args.cache,
             args.seed,
             args.folds,
             stratified=args.stratified,
-            aug=P3M3_AUG if args.aug else None,
+            aug=aug or None,
             motion=args.motion,
             pooling=args.pooling,
             bidirectional=args.bidirectional,
+            class_weight=args.class_weight,
         )
     elif args.stage == "calibrate":
         run_calibrate(
@@ -774,13 +806,17 @@ def main() -> None:  # pragma: no cover - CLI
             motion=args.motion,
         )
     else:
+        aug = dict(P3M3_AUG) if args.aug else {}
+        if args.mirror:
+            aug["mirror_prob"] = 0.5
         run_train(
             args.cache,
             args.seed,
-            aug=P3M3_AUG if args.aug else None,
+            aug=aug or None,
             motion=args.motion,
             pooling=args.pooling,
             bidirectional=args.bidirectional,
+            class_weight=args.class_weight,
         )
 
 

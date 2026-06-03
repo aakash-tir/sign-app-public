@@ -460,6 +460,28 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ---
 
+## ADR-023 — Mirroring + class-weighted loss: feasible/tested, not shipped
+
+- **Status:** explored, **not shipped** (owner, 2026-06-02). Phase 4 / P4M3. Resolves the
+  ADR-020 mirroring deferral.
+- **Context:** P3M3 deferred horizontal mirroring assuming it was skew-prone under the
+  handedness-collapsing hand normalization. P4M3 targeted the 10 remaining below-gate
+  signs with mirroring + class-weighted loss.
+- **Finding:** Mirroring **is** feasible and parity-correct — derived exactly: because the
+  hand normalization is handedness-**canonical**, a mirror of a normalized frame is
+  pose-pair-swap + negate-x, **swap the two hand blocks (no internal change)**, swap
+  presence (unit-test-proven against normalizing a flipped capture). But on the honest
+  signer-disjoint gate **neither lever helps**: mirror 0.669, class-weight 0.674,
+  both 0.661 — all below the shipped **0.687** (recognition.md §6.11). Class-weight only
+  *reshuffles* the tail (same 71-sign count; promotes the hardest signs but demotes 6
+  currently-shipped ones at lower aggregate). Mirroring likely adds label-inconsistent
+  examples for side-meaningful signs.
+- **Decision:** Do **not** ship; the model stays the P4M5 BiGRU+attention (0.687, 71
+  signs). Both are **kept as opt-in, tested tooling** (`--mirror`, `--class-weight`,
+  default off) for future use on a larger/more-imbalanced dataset. No model/runtime change.
+
+---
+
 ## ADR-024 — Temporal model: bidirectional GRU + masked attention pooling
 
 - **Status:** accepted + **shipped** (owner, 2026-06-02). Phase 4 accuracy track / P4M5.

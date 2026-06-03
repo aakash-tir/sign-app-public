@@ -176,7 +176,7 @@ arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
 | P4M1 — Sign search tab | discovery | ☑ merged [#26](https://github.com/aakash-tir/sign-app/pull/26) + deployed (169 vitest / 18 playwright) | `milestone/P4M1-sign-search` |
 | P4M2 — Diagnose low signs (confusion + diversity) | accuracy | ☑ merged [#27](https://github.com/aakash-tir/sign-app/pull/27) — **3 confusable / 15 diffuse / 0 data-starved** (recognition.md §6.7) | `milestone/P4M2-diagnose` |
 | P4M4 — Motion / velocity features (frame spec v2) | accuracy | ◐ done, PR pending — **negative result** (0.615→0.594); motion kept opt-in, **not shipped** (§6.8) | `milestone/P4M4-motion-features` |
-| P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ☐ planned | `milestone/P4M3-aug-loss` |
+| P4M3 — Augmentation + loss levers (mirroring, class weight) | accuracy | ◐ done, PR pending — **negative** (mirror 0.669 / cw 0.674 / both 0.661 < 0.687); mirroring proven parity-correct, kept opt-in (§6.11) | `milestone/P4M3-aug-loss` |
 | P4M4 — Motion / velocity features (frame spec v2) | accuracy | ☐ planned | `milestone/P4M4-motion-features` |
 | P4M5 — Temporal model upgrade (attention pooling) | accuracy | ◐ done, PR pending — **BiGRU + attention: honest CV 0.615→0.687 (+7.2), 63→71 ship** (§6.9) | `milestone/P4M5-temporal-model` |
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ planned | `milestone/P4M6-targeted-data` |
@@ -185,6 +185,18 @@ arbiter for every accuracy milestone; on-device ONNX budget ≤ ~1.5 MB.
 
 ## Log
 
+- **2026-06-02** — **P4M3: mirroring + class-weighted loss — tested, NOT shipped** (branch
+  `milestone/P4M3-aug-loss`). Two cheap levers for the 10 below-gate signs.
+  **Mirroring proven feasible** (refutes the P3M3 deferral): because the hand
+  normalization is handedness-canonical, a mirror of a normalized frame is exact —
+  pose-pair-swap + negate-x, **swap hand blocks (no internal change)**, swap presence;
+  a unit test proves `mirror_frames(normalize) == normalize(flipped capture)`. Added
+  `class_weights` (inverse-freq weighted CE). **Honest CV: mirror 0.669 / class-weight
+  0.674 / both 0.661 — all below the shipped 0.687.** Class-weight only reshuffles the
+  tail (same 71-sign count; promotes the hardest signs but demotes 6 currently-shipped at
+  lower aggregate). **Owner decision: do not ship** — model stays 0.687/71. Both kept
+  opt-in (`--mirror`/`--class-weight`, default off). No model/runtime/frontend change.
+  ADR-023; recognition.md §6.11. ml 101 pytest; gates green. **Next: PR + merge, STOP.**
 - **2026-06-02** — **P4M7: runtime confidence levers (no retrain)** (branch
   `milestone/P4M7-runtime-confidence`). Three UX/robustness improvements, validated by
   tests (the honest gate doesn't measure felt UX): **(1) per-sign acceptance thresholds**
