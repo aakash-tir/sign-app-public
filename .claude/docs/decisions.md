@@ -421,6 +421,18 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 - **Deferred (explicit):** fingerspelling-letter search + spell-an-unknown-word
   fallback (would reuse the Learn spell flow), and fuzzy/typo-tolerant ranking with
   autocomplete suggestions. Natural P4 follow-ups if the owner wants them.
+- **Update (P4M9, 2026-06-15):** the two deferrals above are now **resolved**, still
+  with **no model/data work**. (1) **Typo- + morphology-tolerant matching** —
+  `matchSign` now also resolves a morphological **stem** (`walking` → `walk`,
+  `books` → `book`) as a confident `found`, and surfaces **"did you mean…"
+  suggestions** (Levenshtein ≤ 1–2 by length + prefix match over the shipped glosses
+  and synonym keys, deduped, top 3) for a near miss. (2) **Fingerspelling fallback**
+  — a true miss that is a single alphabetic word whose letters are all in the static
+  model (the ASL alphabet **minus J/Z**) offers a **spell-it-out** stage that reuses
+  the unified recognizer in letter mode (new pure `fingerspellLetters` +
+  `FingerspellStage`). Exact/synonym behaviour and the "not in the system yet"
+  message are unchanged for genuinely-absent terms. Still **deferred:** multi-word
+  fingerspelling and ranked autocomplete-as-you-type.
 
 ---
 

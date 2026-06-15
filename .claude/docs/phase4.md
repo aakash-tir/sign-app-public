@@ -392,6 +392,7 @@ high (build-time compute + new stage). **On-device:** unchanged.
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ not started (low-value — data not the bottleneck per P4M2) | `milestone/P4M6-targeted-data` |
 | P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☑ merged [#30](https://github.com/aakash-tir/sign-app/pull/30) + deployed — per-sign bars (69 sub-0.5) + temp 1.6 + 3-window voting (§6.10) | `milestone/P4M7-runtime-confidence` |
 | P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ not started — **track paused** (owner, 2026-06-02); the remaining big-swing lever | `milestone/P4M8-ssl-pretrain` |
+| P4M9 — Search UX: stem + fuzzy suggestions + fingerspell fallback | discovery | ◐ implemented (resolves the P4M1 deferrals; no model/data work) | `milestone/P4M9-search-ux` |
 
 Legend: ☐ planned · ◐ in progress / scoping · ☑ merged.
 

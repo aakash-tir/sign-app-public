@@ -186,9 +186,25 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ not started (low-value — data not the bottleneck per P4M2) | `milestone/P4M6-targeted-data` |
 | P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☑ merged [#30](https://github.com/aakash-tir/sign-app/pull/30) + deployed — per-sign accept bars (69 sub-0.5) + temperature 1.6 + 3-window voting; no retrain (§6.10) | `milestone/P4M7-runtime-confidence` |
 | P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ not started — **track paused** (owner, 2026-06-02) | `milestone/P4M8-ssl-pretrain` |
+| P4M9 — Search UX (stem + fuzzy + fingerspell fallback) | discovery | ◐ implemented, gates green locally; resolves the P4M1 deferrals (no model/data work) | `milestone/P4M9-search-ux` |
 
 ## Log
 
+- **2026-06-15** — **P4M9: search UX — stem + fuzzy suggestions + fingerspell fallback**
+  (branch `milestone/P4M9-search-ux`). Resolves the two P4M1 deferrals (ADR-021 update),
+  **frontend-only, no model/data work**. `domain/signSearch.ts` gained pure
+  `editDistance` + `fuzzySuggestions` + morphological **stemming**: `matchSign` now
+  resolves a stem (`walking`→`walk`, `books`→`book`) as `found`, and returns
+  `{ status: 'suggestions', suggestions }` (Levenshtein ≤1–2 by length + prefix, over
+  shipped glosses ∪ synonym keys, deduped, top 3) on a near miss. New pure
+  `domain/fingerspell.ts` (`fingerspellLetters`/`canFingerspell`) + reusable
+  `recognition/FingerspellStage` (unified recognizer in letter mode) power a **spell-it-out
+  fallback** for a true miss that's a single word in the static alphabet (A–Y, no J/Z).
+  `SearchView` rewired: "did you mean…" chips (click = fresh search) + "Fingerspell
+  '<word>' instead" on a spellable miss. Tests: +`fingerspell.test.ts`, expanded
+  `signSearch.test.ts` (stem/suggestions/editDistance/fuzzy), `SearchView.test.tsx`
+  (suggestions + fingerspell offer), +2 `e2e/search.spec.ts`. tsc/eslint/prettier green;
+  targeted vitest 30/30. **Next: full gates (CPU-free) + PR + merge.**
 - **2026-06-02** — **P4M3: mirroring + class-weighted loss — tested, NOT shipped** (branch
   `milestone/P4M3-aug-loss`). Two cheap levers for the 10 below-gate signs.
   **Mirroring proven feasible** (refutes the P3M3 deferral): because the hand
