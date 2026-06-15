@@ -2,13 +2,13 @@
  * Dynamic-sign glosses the app **prompts** (see `.claude/docs/recognition.md` §6.6).
  *
  * The model is trained on **81 glosses** (MS-ASL ∪ WLASL, P3M2c vocab50 push:
- * 3583 samples / 163 signers) with the P3M3 landmark-space augmentation.
+ * 3583 samples / 163 signers) with the P3M3 landmark-space augmentation, a
+ * bidirectional GRU + attention pooling (P4M5), and a label-smoothing loss (P4M10).
  * Membership here is decided by the **honest signer-disjoint** gate (per-gloss
- * top-1 ≥ 0.50, ADR-019) on that combined data: **63 glosses clear it**. All 20
- * from P3M2 still pass (no demotions); `thank you` (0.63) finally clears after
- * being held back since M6; 18 hard/confusable glosses stay known-but-unshipped
- * and serve as negatives. Recognition misses are absorbed by the "That's what I
- * did" valve (ADR-007).
+ * top-1 ≥ 0.50, ADR-019): **79 glosses ship** at aggregate honest top-1 0.732;
+ * only `dog` and `stop` stay known-but-unshipped (genuinely below the bar) and
+ * serve as negatives. Recognition misses are absorbed by the "That's what I did"
+ * valve (ADR-007).
  */
 export const SHIPPED_GLOSSES: readonly string[] = [
   'drink',
@@ -89,6 +89,19 @@ export const SHIPPED_GLOSSES: readonly string[] = [
   'run',
   'nice',
   'who',
+  // P4M10 (label smoothing): a label-smoothing loss (factor 0.15) lifted the honest
+  // signer-disjoint CV 0.687 → 0.732. Re-gated at ≥ 0.50: 8 new signs clear it
+  // (`hungry` recovers, 0.33 → ≥ 0.50). No sign is demoted (incumbents `need`/`thank
+  // you` dip within noise and are retained, per the no-demote-on-noise precedent).
+  // recognition.md §6.12.
+  'hungry',
+  'sleep',
+  'mother',
+  'before',
+  'come',
+  'tall',
+  'small',
+  'white',
 ]
 
 /** Filter a model's labels to the shipped set, preserving the model's order. */

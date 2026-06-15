@@ -543,6 +543,29 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ---
 
+## ADR-027 — Label-smoothing loss: shipped (the P4M10 win)
+
+- **Status:** accepted + **shipped** (owner, 2026-06-15). Phase 4 accuracy track / P4M10.
+  Builds on the P4M5 BiGRU+attention model and the P4M2 diagnosis.
+- **Context:** The P4M2 diagnosis found the below-gate signs are **under-separated**, not
+  data-starved. The P4M3/P4M4 cheap levers (mirroring, class weight, motion) all regressed
+  the honest gate. The remaining cheap, capacity-free lever not yet tried was **label
+  smoothing** — softening the one-hot target so the loss stops driving logits to extremes,
+  a standard regulariser for diffuse/over-confident classifiers.
+- **Decision:** Train the shipped model with a **label-smoothing factor of 0.15** (a sweep
+  over {0.05, 0.10, 0.15} on the honest signer-disjoint gate picked 0.15 — best aggregate
+  **and** top-5). Threaded through `cross_validate`/`train_and_eval`/`run_calibrate` and the
+  CLI (`--label-smoothing`, default 0.0 = unchanged). The model is re-calibrated (P4M7) under
+  the same loss.
+- **Consequences:** Honest signer-disjoint CV **0.687 → 0.732** (+4.5 pts), **71 → 79 signs
+  ship** (+8 promoted incl. `hungry`, which P4M5 had demoted; **no demotions** — incumbents
+  `need`/`thank you` dip within noise and are retained per the P2M5b no-demote-on-noise
+  precedent). **No runtime/spec/size change** — loss-only build-time change; same ONNX graph,
+  161-d contract, normalization id, `onnxruntime-web` runtime. The two cheap levers that
+  failed (P4M3) stay opt-in tooling; this one ships. Detail: recognition.md §6.12.
+
+---
+
 ## Open questions (non-blocking, revisit at the noted milestone)
 
 | # | Question | Default assumption | Revisit |

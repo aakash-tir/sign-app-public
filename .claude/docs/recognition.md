@@ -541,6 +541,39 @@ a lower overall accuracy. Mirroring likely adds label-inconsistent examples for 
 dataset). Reproduce: `… crossval … --pooling attention --bidirectional --mirror
 --class-weight`.
 
+### 6.12 Label smoothing — the win (P4M10, ADR-027)
+
+Where the P4M3/P4M4 cheap levers regressed, **label smoothing** lifts the shipped
+BiGRU+attention model (§6.9). The P4M2 diagnosis found the low tail is **under-separated,
+not data-starved**; label smoothing (softening the one-hot target so the loss stops
+pushing logits to extremes) is a textbook regulariser for exactly that — and it adds **no
+capacity**, avoiding the P4M4 overfitting trap (doubling the input dim on 3583 samples hurt).
+
+**Honest signer-disjoint CV (BiGRU+attention, aug), sweep over the smoothing factor:**
+
+| label smoothing | top-1 | top-5 | signs ≥ 0.50 |
+| --- | --- | --- | --- |
+| **0.00 (shipped, §6.9)** | **0.687** | 0.895 | 71 |
+| 0.05 | 0.730 | 0.896 | 76 |
+| 0.10 | 0.729 | 0.900 | 76 |
+| **0.15 (shipped)** | **0.732** | **0.901** | 77 (strict) |
+
+The **+4.5-pt** aggregate gain is robust across the whole sweep; only the borderline-0.50
+membership shuffles (small-n noise: `come` n=13, `stop` n=15, `dog` n=21). **0.15** is the
+pick — best aggregate **and** top-5. At 0.15 the only signs genuinely below the bar that
+were *never* shipped are `dog` (0.38) and `stop` (0.47); the two incumbents that dip
+(`need` 0.46, `thank you` 0.49) are **retained** under the established
+no-demote-on-noise policy (P2M5b). **Re-gate: 79 ship** (71 prior + 8 promoted: `hungry`
+0.33→≥0.50, `sleep`, `mother`, `before`, `come`, `tall`, `small`, `white`), **no
+demotions**. `hungry`, demoted by P4M5, recovers here.
+
+**On-device:** unchanged — label smoothing is a **loss-only**, build-time change; the ONNX
+graph, 161-d feature contract, normalization id, and `onnxruntime-web` runtime are all
+identical (same 30×161 → 81 logits). The model is re-calibrated (P4M7 temperature +
+per-sign thresholds) under the same loss. Reproduce: `… crossval … --pooling attention
+--bidirectional --aug --label-smoothing 0.15`; ship: `… train …` then `… calibrate …` with
+the same flags.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

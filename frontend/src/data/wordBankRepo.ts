@@ -34,22 +34,24 @@ export class WordBankRepo {
   /** Seed the bank with the given ids (as need-practice) if it is empty. */
   async ensureSeeded(ids: string[]): Promise<void> {
     if ((await this.db.progress.count()) > 0) return
-    for (const id of ids) {
-      await this.putWord({ id, gloss: id })
-    }
+    // Batched: two bulk writes instead of a round-trip per id (mount-path perf).
+    await this.db.words.bulkPut(ids.map((id) => ({ id, gloss: id })))
+    await this.db.progress.bulkPut(ids.map((id) => newWordProgress(id)))
   }
 
   /**
    * Ensure each id exists in the bank (adding any missing as need-practice),
    * without the empty-bank guard — used to add the dynamic-sign vocabulary to
-   * banks that were already seeded with letters.
+   * banks that were already seeded with letters. Batched (one bulk read + one
+   * bulk write of only the missing ids) so a large vocabulary doesn't stall the
+   * Learn/Practice mount with a round-trip per id.
    */
   async ensurePresent(ids: string[]): Promise<void> {
-    for (const id of ids) {
-      if (!(await this.db.progress.get(id))) {
-        await this.putWord({ id, gloss: id })
-      }
-    }
+    const existing = await this.db.progress.bulkGet(ids)
+    const missing = ids.filter((_, i) => existing[i] === undefined)
+    if (missing.length === 0) return
+    await this.db.words.bulkPut(missing.map((id) => ({ id, gloss: id })))
+    await this.db.progress.bulkPut(missing.map((id) => newWordProgress(id)))
   }
 
   async getProgress(wordId: string): Promise<WordProgress | undefined> {

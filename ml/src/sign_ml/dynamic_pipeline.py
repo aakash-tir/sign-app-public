@@ -356,6 +356,7 @@ def run_train(
     pooling: str = "last",
     bidirectional: bool = False,
     class_weight: bool = False,
+    label_smoothing: float = 0.0,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_export import export_onnx
     from .dynamic_model import train_and_eval
@@ -379,6 +380,7 @@ def run_train(
         pooling=pooling,
         bidirectional=bidirectional,
         class_weight=class_weight,
+        label_smoothing=label_smoothing,
     )
     metrics["glosses"] = glosses
     metrics["augmentation"] = aug or "baseline-jitter-only"
@@ -386,6 +388,7 @@ def run_train(
     metrics["pooling"] = pooling
     metrics["bidirectional"] = bidirectional
     metrics["class_weight"] = class_weight
+    metrics["label_smoothing"] = label_smoothing
     metrics["num_samples"] = int(x.shape[0])
 
     feat = x.shape[2] + (x.shape[2] - 2 if motion else 0)
@@ -409,6 +412,7 @@ def run_crossval(
     pooling: str = "last",
     bidirectional: bool = False,
     class_weight: bool = False,
+    label_smoothing: float = 0.0,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_model import cross_validate
 
@@ -439,6 +443,7 @@ def run_crossval(
         pooling=pooling,
         bidirectional=bidirectional,
         class_weight=class_weight,
+        label_smoothing=label_smoothing,
     )
     (cache_dir / "cv_metrics.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
@@ -448,7 +453,8 @@ def run_crossval(
         f"top-1 {report['cv_top1']:.3f} | top-5 {report['cv_top5']:.3f} "
         f"({report['folds']}-fold, n={report['n_samples']}) "
         f"pooling={pooling} bidir={bidirectional} motion={motion} "
-        f"cw={class_weight} mirror={'mirror_prob' in (aug or {})}"
+        f"cw={class_weight} ls={label_smoothing} "
+        f"mirror={'mirror_prob' in (aug or {})}"
     )
     ranked = sorted(report["per_gloss"].items(), key=lambda kv: kv[1]["top1"])
     for gloss, metric in ranked:
@@ -463,6 +469,7 @@ def run_calibrate(
     motion: bool = False,
     pooling: str = "attention",
     bidirectional: bool = True,
+    label_smoothing: float = 0.0,
 ) -> None:  # pragma: no cover - heavy path
     """P4M7: fit runtime confidence calibration on the honest held-out folds and merge
     it into the exported model metadata — a softmax ``temperature`` (honest confidence)
@@ -491,6 +498,7 @@ def run_calibrate(
         pooling=pooling,
         bidirectional=bidirectional,
         calibrate=True,
+        label_smoothing=label_smoothing,
     )
     cal = report["calibration"]
 
@@ -662,6 +670,13 @@ def main() -> None:  # pragma: no cover - CLI
         action="store_true",
         help="inverse-frequency class-weighted loss (P4M3)",
     )
+    tr.add_argument(
+        "--label-smoothing",
+        dest="label_smoothing",
+        type=float,
+        default=0.0,
+        help="label-smoothing factor for the loss (P4M10)",
+    )
 
     cv = sub.add_parser(
         "crossval", help="signer-disjoint k-fold CV (the honest ship gate, ADR-019)"
@@ -707,6 +722,14 @@ def main() -> None:  # pragma: no cover - CLI
         action="store_true",
         help="inverse-frequency class-weighted loss (P4M3)",
     )
+    cv.add_argument(
+        "--label-smoothing",
+        dest="label_smoothing",
+        type=float,
+        default=0.0,
+        help="label-smoothing factor for the loss (P4M10; regularizes the "
+        "under-separated tail without adding capacity)",
+    )
 
     cal = sub.add_parser(
         "calibrate",
@@ -722,6 +745,13 @@ def main() -> None:  # pragma: no cover - CLI
         "--pooling", choices=("last", "mean", "attention"), default="attention"
     )
     cal.add_argument("--no-bidirectional", dest="bidirectional", action="store_false")
+    cal.add_argument(
+        "--label-smoothing",
+        dest="label_smoothing",
+        type=float,
+        default=0.0,
+        help="match the shipped model's loss (P4M10)",
+    )
 
     dg = sub.add_parser(
         "diagnose",
@@ -785,6 +815,7 @@ def main() -> None:  # pragma: no cover - CLI
             pooling=args.pooling,
             bidirectional=args.bidirectional,
             class_weight=args.class_weight,
+            label_smoothing=args.label_smoothing,
         )
     elif args.stage == "calibrate":
         run_calibrate(
@@ -795,6 +826,7 @@ def main() -> None:  # pragma: no cover - CLI
             motion=args.motion,
             pooling=args.pooling,
             bidirectional=args.bidirectional,
+            label_smoothing=args.label_smoothing,
         )
     elif args.stage == "diagnose":
         run_diagnose(
@@ -817,6 +849,7 @@ def main() -> None:  # pragma: no cover - CLI
             pooling=args.pooling,
             bidirectional=args.bidirectional,
             class_weight=args.class_weight,
+            label_smoothing=args.label_smoothing,
         )
 
 

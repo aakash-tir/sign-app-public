@@ -186,10 +186,26 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ not started (low-value — data not the bottleneck per P4M2) | `milestone/P4M6-targeted-data` |
 | P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☑ merged [#30](https://github.com/aakash-tir/sign-app/pull/30) + deployed — per-sign accept bars (69 sub-0.5) + temperature 1.6 + 3-window voting; no retrain (§6.10) | `milestone/P4M7-runtime-confidence` |
 | P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ not started — **track paused** (owner, 2026-06-02) | `milestone/P4M8-ssl-pretrain` |
-| P4M9 — Search UX (stem + fuzzy + fingerspell fallback) | discovery | ◐ implemented, gates green locally; resolves the P4M1 deferrals (no model/data work) | `milestone/P4M9-search-ux` |
+| P4M9 — Search UX (stem + fuzzy + fingerspell fallback) | discovery | ☑ merged [#33](https://github.com/aakash-tir/sign-app/pull/33) + deployed; resolves the P4M1 deferrals (no model/data work) | `milestone/P4M9-search-ux` |
+| P4M10 — Label-smoothing loss | accuracy | ◐ implemented — honest CV **0.687 → 0.732**, 71 → **79 signs**, no demotions (§6.12, ADR-027) | `milestone/P4M10-label-smoothing` |
 
 ## Log
 
+- **2026-06-15** — **P4M10: label-smoothing loss — the accuracy win** (branch
+  `milestone/P4M10-label-smoothing`, ADR-027). Where the P4M3/P4M4 cheap levers regressed,
+  **label smoothing** lifts the shipped BiGRU+attention model — the capacity-free regulariser
+  the P4M2 "under-separated tail" diagnosis pointed at. Added a `--label-smoothing` knob
+  threaded through `cross_validate`/`train_and_eval`/`run_calibrate` + CLI (default 0.0).
+  Honest signer-disjoint sweep: 0.05→0.730, 0.10→0.729, **0.15→0.732** (best aggregate +
+  top-5); baseline reproduced exactly at **0.687**. **Re-gate at 0.15: 0.687 → 0.732 (+4.5),
+  71 → 79 signs, NO demotions** — +8 promoted (`hungry` recovers from its P4M5 demotion,
+  +`sleep`/`mother`/`before`/`come`/`tall`/`small`/`white`); only `dog` (0.38) + `stop` (0.47)
+  stay unshipped; incumbents `need`/`thank you` dip within noise and are retained
+  (no-demote-on-noise, P2M5b). **No runtime/spec/size change** — loss-only; same ONNX graph,
+  161-d contract, `onnxruntime-web`; re-calibrated (P4M7) under the same loss. Retrained +
+  re-calibrated + re-bundled ONNX/metadata + 8 new reference clips; `SHIPPED_GLOSSES` 71→79
+  both sides; tests updated (vocab 79, bank 103). recognition.md §6.12. **Next: full gates +
+  PR + merge + deploy-verify.**
 - **2026-06-15** — **P4M9: search UX — stem + fuzzy suggestions + fingerspell fallback**
   (branch `milestone/P4M9-search-ux`). Resolves the two P4M1 deferrals (ADR-021 update),
   **frontend-only, no model/data work**. `domain/signSearch.ts` gained pure

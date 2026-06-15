@@ -520,6 +520,7 @@ def train_and_eval(
     pooling: str = "last",
     bidirectional: bool = False,
     class_weight: bool = False,
+    label_smoothing: float = 0.0,
 ) -> tuple[Any, dict[str, Any]]:  # pragma: no cover - needs torch
     """Train the GRU with early stopping on val loss; report top-1/top-5 on test.
 
@@ -555,7 +556,7 @@ def train_and_eval(
         if class_weight
         else None
     )
-    loss_fn = nn.CrossEntropyLoss(weight=weight)
+    loss_fn = nn.CrossEntropyLoss(weight=weight, label_smoothing=label_smoothing)
 
     train_idx = np.where(train)[0]
     best_val = float("inf")
@@ -628,6 +629,7 @@ def cross_validate(
     bidirectional: bool = False,
     calibrate: bool = False,
     class_weight: bool = False,
+    label_smoothing: float = 0.0,
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
     """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
     test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
@@ -684,7 +686,7 @@ def cross_validate(
             if class_weight
             else None
         )
-        loss_fn = nn.CrossEntropyLoss(weight=weight)
+        loss_fn = nn.CrossEntropyLoss(weight=weight, label_smoothing=label_smoothing)
         xt_val = prep(x_np[val_idx])
         best_val = float("inf")
         best_state = copy.deepcopy(model.state_dict())
@@ -752,6 +754,7 @@ def cross_validate(
         "pooling": pooling,
         "bidirectional": bidirectional,
         "class_weight": class_weight,
+        "label_smoothing": label_smoothing,
         "folds": folds,
         "n_samples": int(len(y)),
         "per_gloss": per_gloss,

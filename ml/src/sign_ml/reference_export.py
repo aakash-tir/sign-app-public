@@ -109,6 +109,16 @@ SHIPPED_GLOSSES: tuple[str, ...] = (
     "run",
     "nice",
     "who",
+    # P4M10 (label smoothing): 8 new signs cleared the honest >=0.50 gate on the
+    # label-smoothed model (CV 0.687 -> 0.732). No demotions.
+    "hungry",
+    "sleep",
+    "mother",
+    "before",
+    "come",
+    "tall",
+    "small",
+    "white",
 )
 
 
