@@ -45,6 +45,7 @@ That's the whole story. The rest is detail.
 | [`machine-learning.md`](machine-learning.md) | What is actually going on in the ML. Why landmarks instead of raw video, what models we use (a tiny MLP for letters; a GRU for words), what datasets, how training works, what accuracy we measured, and the honest caveats. |
 | [`runtime.md`](runtime.md) | How the app works in the browser. Camera lifecycle, the recognition loop frame-by-frame, the "buckets" + word-selection algorithm, how progress is stored in IndexedDB, and the two modes (Learn and Practice). |
 | [`deployment.md`](deployment.md) | How the app gets from the repo onto the internet. Vite, the PWA service worker, offline caching, and Cloudflare Workers — written for someone newer to web hosting. |
+| [`sign-language-accuracy.xlsx`](sign-language-accuracy.xlsx) | **Per-word accuracy report** (Excel). Every trained sign with its honest accuracy, colour-coded (🟩 ≥70% · 🟨 50–70% · 🟥 <50%), marking deployed vs attempted-but-below-gate. Extensible — see its "How to update" sheet, or regenerate with [`tools/generate_accuracy_report.py`](../tools/generate_accuracy_report.py). |
 
 ## Where this docs set fits
 
@@ -67,17 +68,18 @@ Pointers if you want them:
 
 ## Current state at a glance
 
-Phases 1 and 2 are done; the app is live at
-`https://sign-app.aakashtirathdas.workers.dev`. Phase 3 (accuracy + vocabulary
-depth) is in progress.
+Phases 1–4 are done; the app is live at
+`https://sign-app.aakashtirathdas.workers.dev`.
 
 What ships today:
 
 - 24 static fingerspelling letters (the alphabet minus the two motion letters
   J and Z).
-- 20 dynamic word-level signs (e.g. `family`, `sorry`, `please`, `help`,
-  `walk`, `cold`).
+- **79 dynamic word-level signs** (honest signer-disjoint top-1 **73.2%**; the
+  full per-word breakdown is in
+  [`sign-language-accuracy.xlsx`](sign-language-accuracy.xlsx)).
 - Learn mode and Practice mode, with sentence drills gated by level
-  (ADR-009).
+  (ADR-009), plus a **Search** tab (type a word → see how to sign it, with
+  typo-tolerant suggestions and a fingerspelling fallback).
 - Persistent camera across views, in-app sign reference rendered from
   landmark data, full offline capability after first load.
