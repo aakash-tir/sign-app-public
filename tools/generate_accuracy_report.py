@@ -45,10 +45,12 @@ CV_METRICS = REPO / "ml" / "models" / "combined" / "cv_metrics.json"
 SHIPPED_TS = REPO / "frontend" / "src" / "content" / "dynamicVocab.ts"
 OUT = REPO / "docs" / "sign-language-accuracy.xlsx"
 
-# Excel's standard "good/neutral/bad" palette.
-GREEN = PatternFill("solid", fgColor="C6EFCE")
-YELLOW = PatternFill("solid", fgColor="FFEB9C")
-RED = PatternFill("solid", fgColor="FFC7CE")
+# Excel's standard "good/neutral/bad" palette. NOTE: for conditional-formatting
+# (differential) fills Excel renders the *bgColor* of a solid pattern, not fgColor —
+# so set start_color AND end_color to the same value or the highlight won't show.
+GREEN = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+YELLOW = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+RED = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
 HEADER_FILL = PatternFill("solid", fgColor="305496")
 HEADER_FONT = Font(bold=True, color="FFFFFF")
 
