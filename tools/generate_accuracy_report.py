@@ -136,8 +136,25 @@ def write_data_sheet(
         f"Deployed: {int(summary['deployed'])} of {int(summary['total'])} trained words  ·  "
         f"Generated: {today}"
     )
-    ws["A4"] = "Band colour: green >= 70%  ·  yellow 50-70%  ·  red < 50%  (sorted A→Z)"
-    ws["A4"].font = Font(italic=True, color="595959")
+    # Live counters per band (COUNTIF over the accuracy column, so they update when
+    # rows are added/edited). Coloured label+count cells use normal (non-CF) fills.
+    ws["A4"] = "Counts by band:"
+    ws["A4"].font = Font(bold=True)
+    acc_col = get_column_letter(COL_ACC)
+    acc_rng = f"{acc_col}{DATA_START_ROW}:{acc_col}{CF_LAST_ROW}"
+    counters = [
+        ("Good (>=70%)", f'=COUNTIF({acc_rng},">=70")', GREEN),
+        ("Okay (50-70%)", f'=COUNTIFS({acc_rng},">=50",{acc_rng},"<70")', YELLOW),
+        ("Bad (<50%)", f'=COUNTIF({acc_rng},"<50")', RED),
+    ]
+    for (label, formula, fill), (label_col, value_col) in zip(
+        counters, [(2, 3), (4, 5), (6, 7)]
+    ):
+        lcell = ws.cell(row=4, column=label_col, value=label)
+        vcell = ws.cell(row=4, column=value_col, value=formula)
+        lcell.fill = vcell.fill = fill
+        lcell.font = vcell.font = Font(bold=True)
+        vcell.alignment = Alignment(horizontal="center")
 
     header_row = DATA_START_ROW - 1
     for col, name in HEADERS.items():
