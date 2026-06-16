@@ -112,6 +112,27 @@ def _resolve_ffmpeg(explicit: str | None) -> str | None:
     return str(dest)
 
 
+def _ensure_deno_on_path() -> bool:
+    """Make a JS runtime reachable so yt-dlp can solve YouTube's "n challenge".
+
+    Modern YouTube requires solving an nsig JS challenge to return real video
+    formats; without it yt-dlp returns only storyboard images ("Requested format is
+    not available"). yt-dlp's recommended solver runtime is **Deno** (node must be
+    >= 23.5, which clashes with the frontend's node 20). If ``deno`` isn't already on
+    PATH, look in the standard install dir (``~/.deno/bin``) and prepend it. Returns
+    whether a deno binary is reachable (callers can warn if not).
+    """
+    if shutil.which("deno") is not None:
+        return True
+    candidate = Path.home() / ".deno" / "bin"
+    deno = candidate / ("deno.exe" if os.name == "nt" else "deno")
+    if deno.exists():
+        _prepend_path(candidate)
+        print(f"Using Deno on PATH for the yt-dlp JS challenge: {deno}")
+        return True
+    return False
+
+
 def download_clip(
     clip: MsaslClip,
     videos_dir: Path,
@@ -285,6 +306,14 @@ def main() -> None:  # pragma: no cover - CLI
     args = parser.parse_args()
 
     ffmpeg_location = _resolve_ffmpeg(args.ffmpeg_location)
+
+    if not _ensure_deno_on_path():
+        print(
+            "WARNING: no Deno (JS runtime) found — YouTube's n-challenge can't be "
+            "solved, so yt-dlp may only see storyboard images ('Requested format is "
+            "not available'). Install Deno: https://deno.land/  (see "
+            "docs/reaching-100-signs.md)."
+        )
 
     if args.glosses:
         glosses = [canonical_label(g) for g in args.glosses.split(",") if g.strip()]

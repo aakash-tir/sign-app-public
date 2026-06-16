@@ -42,10 +42,16 @@ net the ~21 needed to reach 100.
 This is the throttled YouTube fetch. The setup gotchas (cookies, ffmpeg) are recorded in
 the memory `msasl-download-setup`; the essentials:
 
-1. Export a **`cookies.txt`** for youtube.com (the "Get cookies.txt LOCALLY" extension —
-   Chrome's App-Bound-Encryption breaks `--cookies-from-browser`).
-2. Make sure **ffmpeg is on PATH** (the project copies the `imageio-ffmpeg` binary to a
-   canonical `ffmpeg.exe` and prepends it — see the script).
+1. Export a **`cookies.txt`** for youtube.com — using the **"Get cookies.txt LOCALLY"**
+   extension **while on a youtube.com tab and logged in** (Chrome's App-Bound-Encryption
+   breaks `--cookies-from-browser`). If the file ends up tiny/empty, you weren't on a
+   youtube.com tab — re-export.
+2. **Install Deno once** (one-time, no admin): in PowerShell run
+   `irm https://deno.land/install.ps1 | iex`. YouTube now requires solving a JavaScript
+   "n challenge" to return real video formats; without a JS runtime yt-dlp only sees
+   storyboard images (`Requested format is not available`). Deno is the runtime yt-dlp
+   uses for this (our `node` 20 is too old; it needs ≥ 23.5). The download script
+   auto-finds Deno at `~/.deno/bin`. ffmpeg is already handled (bundled `imageio-ffmpeg`).
 3. Run the fetch for the **`download`** vocab:
 
    ```sh

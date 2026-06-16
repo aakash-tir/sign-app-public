@@ -26,7 +26,15 @@ train = ["torch>=2.4", "onnx>=1.16"]
 # yt-dlp. Needs ffmpeg for the segment cut/merge — imageio-ffmpeg bundles a binary
 # so no system install is required (the downloader auto-detects it via
 # --ffmpeg-location). Optional + lazy-imported. Install with: uv sync --extra msasl
-msasl = ["yt-dlp>=2024.8", "imageio-ffmpeg>=0.5"]
+#
+# YouTube now requires solving an "n challenge" (nsig) to get real video formats —
+# without it yt-dlp returns only storyboard images ("Requested format is not
+# available"). That needs a recent yt-dlp + the yt-dlp-ejs solver scripts + a JS
+# runtime on PATH. We use **Deno** (the yt-dlp-recommended runtime; node must be
+# >= 23.5 which conflicts with the frontend's node 20, so Deno is installed
+# separately): https://deno.land/ — see docs/reaching-100-signs.md and memory
+# msasl-download-setup.
+msasl = ["yt-dlp>=2026.6.9", "yt-dlp-ejs>=0.8", "imageio-ffmpeg>=0.5"]
 
 [dependency-groups]
 dev = ["ruff>=0.6", "mypy>=1.11", "pytest>=8"]
