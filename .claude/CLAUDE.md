@@ -55,7 +55,7 @@ and the secrets/credentials policy.
 ## Status
 
 **Phases 1–4 are complete/paused and deployed** — the PWA is live on Cloudflare with
-**24 fingerspelling letters + 79 dynamic signs**, a per-finger overlay option, a
+**24 fingerspelling letters + 106 dynamic signs**, a per-finger overlay option, a
 persistent shared camera, a redesigned UI, offline in-app sign references, and a **Search
 tab** (typo/stem-tolerant with a fingerspelling fallback, P4M9). See
 [`progress.md`](progress.md); Phase 2 detail in [`docs/phase2.md`](docs/phase2.md).
@@ -74,9 +74,13 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
   yet". Exact + synonym + **stem + typo-tolerant suggestions**, with a **fingerspelling
   fallback** for spellable misses; reuses `DynamicSignStage` + `SignReferencePlayer`
   (ADR-021, FR-19). P4M9 resolved the P4M1 fuzzy/fingerspell deferrals (frontend-only).
-- **Accuracy track (P4M2–P4M10).** **The recognizer went 0.615 → 0.732 honest top-1, 63 →
-  79 shipped signs, plus per-sign calibrated acceptance — all live.**
-  - **P4M10 — label smoothing, the latest win** ([#34](https://github.com/aakash-tir/sign-app/pull/34)): a label-smoothing loss (0.15)
+- **Accuracy + vocabulary track (P4M2–P4M16).** **The recognizer grew to 0.732 honest
+  top-1 and 63 → 106 shipped signs, plus per-sign calibrated acceptance — all live.**
+  - **P4M16 — MS-ASL download → 100+ signs**: fetched 36 everyday glosses, trained a
+    117-gloss model; the honest gate cleared 27 new → **79 + 27 = 106 published signs**
+    (aggregate 0.696 over 117; the original 79 hold at 0.718; no demotions). Needed a
+    download fix first (yt-dlp-ejs + Deno for YouTube's n-challenge, [#40](https://github.com/aakash-tir/sign-app/pull/40)). §6.14, docs/reaching-100-signs.md.
+  - **P4M10 — label smoothing** ([#34](https://github.com/aakash-tir/sign-app/pull/34)): a label-smoothing loss (0.15)
     lifted honest CV **0.687 → 0.732**, **71 → 79 signs, no demotions** (`hungry` recovers).
     Loss-only, no runtime/spec/size change. ADR-027, §6.12.
   - **P4M5 — the win** ([#29](https://github.com/aakash-tir/sign-app/pull/29)):

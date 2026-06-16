@@ -222,6 +222,12 @@ DOWNLOAD_GLOSSES: tuple[str, ...] = (
 
 VOCAB136_GLOSSES: tuple[str, ...] = VOCAB100_GLOSSES + DOWNLOAD_GLOSSES
 
+# The push to 100 published signs (P4M16): the shipped vocab50 base (81) + the freshly
+# downloaded MS-ASL DOWNLOAD_GLOSSES (36), deliberately EXCLUDING the thin on-disk
+# ONDISK_GLOSSES (P4M15 negative) so they don't drag the model. 117 glosses; the honest
+# >= 0.50 gate decides the final shipped set.
+VOCAB_DL_GLOSSES: tuple[str, ...] = VOCAB50_GLOSSES + DOWNLOAD_GLOSSES
+
 
 @dataclass(frozen=True)
 class Clip:

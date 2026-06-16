@@ -16,18 +16,18 @@ describe('shippedLabels', () => {
     ])
   })
 
-  it('ships the 79 glosses that clear the honest signer-disjoint gate (P4M10)', () => {
-    // Label smoothing (0.15) lifted honest CV 0.687 → 0.732; re-gate at ≥ 0.50.
-    expect(SHIPPED_GLOSSES).toHaveLength(79)
+  it('ships the 106 glosses that clear the honest signer-disjoint gate (P4M16)', () => {
+    // P4M16: a 36-gloss MS-ASL download → 117-gloss model; 27 new clear ≥ 0.50.
+    expect(SHIPPED_GLOSSES).toHaveLength(106)
     expect(SHIPPED_GLOSSES).toContain('thank you') // retained from P3M2c
-    expect(SHIPPED_GLOSSES).toContain('good') // P4M5 promotion
-    expect(SHIPPED_GLOSSES).toContain('woman') // retained (no-demote-on-noise)
-    expect(SHIPPED_GLOSSES).toContain('hungry') // P4M10 promotion (recovered ≥ 0.50)
-    expect(SHIPPED_GLOSSES).toContain('come') // P4M10 promotion
-    expect(SHIPPED_GLOSSES).toContain('mother') // P4M10 promotion
-    expect(SHIPPED_GLOSSES).toContain('sleep') // P4M10 promotion
-    expect(SHIPPED_GLOSSES).not.toContain('dog') // still below (0.38 honestly)
-    expect(SHIPPED_GLOSSES).not.toContain('stop') // still below (0.47 honestly)
+    expect(SHIPPED_GLOSSES).toContain('hungry') // P4M10 promotion
+    expect(SHIPPED_GLOSSES).toContain('apple') // P4M16 download promotion
+    expect(SHIPPED_GLOSSES).toContain('orange') // P4M16
+    expect(SHIPPED_GLOSSES).toContain('grandmother') // P4M16
+    expect(SHIPPED_GLOSSES).toContain('woman') // current sign retained (no-demote)
+    expect(SHIPPED_GLOSSES).not.toContain('dog') // on-disk P4M15 — still not shipped
+    expect(SHIPPED_GLOSSES).not.toContain('night') // P4M16 download below gate (0.00)
+    expect(SHIPPED_GLOSSES).not.toContain('pencil') // P4M16 download below gate (0.10)
   })
 
   it('has no duplicate glosses', () => {

@@ -595,6 +595,27 @@ MS-ASL glosses, each ≥ 43 clips) + `vocab136` + a `download` fetch vocab; the 
 the throttled MS-ASL fetch (the proven +15-pt lever, §6.5), then extract/train/gate to
 100. Guide: [`../../docs/reaching-100-signs.md`](../../docs/reaching-100-signs.md).
 
+### 6.14 MS-ASL download → 100+ published signs (P4M16)
+
+The data lever from §6.13 delivered. The owner ran the MS-ASL fetch for the 36
+`DOWNLOAD_GLOSSES`; after throttle-cooldown retry passes, **29 came in with usable
+coverage** (the fetch needs `--sleep` between requests — YouTube rate-limits a no-delay
+session after ~370 clips; the modern fetch also needs yt-dlp ≥ 2026.6 + `yt-dlp-ejs` + a
+Deno JS runtime for the nsig "n challenge", P4M16 download fix). Trained a **117-gloss**
+model (`vocab_dl` = vocab50 ∪ the 36 download glosses, **excluding** the P4M15 on-disk
+flops) — 4805 samples, same BiGRU + attention + label-smoothing-0.15 config.
+
+**Honest signer-disjoint CV:** aggregate **0.696** over the 117 (vs 0.732 over 81 — more
+classes are harder). **100 of 117 glosses clear 0.50**; **27 of the 36 new download
+glosses cleared** (`live` 0.89, `shoes` 0.87, `home`/`apple` 0.85, `sick` 0.82 … `purple`
+0.50). The original 79 **hold at 0.718** aggregate (−1.4 pts); 6 dip just under the bar
+(`school` 0.42 … `man` 0.49) and are **kept** under no-demote-on-noise. **Re-gate: 79 + 27
+= 106 published signs**, no demotions. 9 download glosses stayed below (`lost` 0.47 …
+`night` 0.00, several thin from the rate-limit cutoff). Reference clips for all 27 come
+from local WLASL. **No runtime/spec change** (same 30×161 frame, `featureDim` 161); the
+model output grows 81 → 117 logits, re-calibrated (P4M7). Detail + report:
+[`../../docs/sign-language-accuracy.xlsx`](../../docs/sign-language-accuracy.xlsx).
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

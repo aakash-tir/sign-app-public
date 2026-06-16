@@ -9,6 +9,7 @@ from sign_ml.wlasl import (
     VOCAB50_GLOSSES,
     VOCAB100_GLOSSES,
     VOCAB136_GLOSSES,
+    VOCAB_DL_GLOSSES,
     Clip,
     available_video_ids,
     clips_by_gloss,
@@ -20,14 +21,17 @@ from sign_ml.wlasl import (
 
 
 def test_vocab_expansion_lists_are_consistent() -> None:
-    """vocab100/136 are disjoint extensions of vocab50; no duplicate glosses (P4M15)."""
+    """vocab100/136/dl are disjoint extensions of vocab50; no duplicate glosses."""
     assert len(VOCAB100_GLOSSES) == len(VOCAB50_GLOSSES) + len(ONDISK_GLOSSES)
     assert len(VOCAB136_GLOSSES) == len(VOCAB100_GLOSSES) + len(DOWNLOAD_GLOSSES)
+    # vocab_dl (the P4M16 training set) = vocab50 + download, minus the on-disk flops
+    assert len(VOCAB_DL_GLOSSES) == len(VOCAB50_GLOSSES) + len(DOWNLOAD_GLOSSES)
+    assert not (set(VOCAB_DL_GLOSSES) & set(ONDISK_GLOSSES))
     # the on-disk and download additions are new (not already in vocab50/100)
     assert not (set(ONDISK_GLOSSES) & set(VOCAB50_GLOSSES))
     assert not (set(DOWNLOAD_GLOSSES) & set(VOCAB100_GLOSSES))
     # no duplicates anywhere
-    for vocab in (VOCAB100_GLOSSES, VOCAB136_GLOSSES):
+    for vocab in (VOCAB100_GLOSSES, VOCAB136_GLOSSES, VOCAB_DL_GLOSSES):
         assert len(set(vocab)) == len(vocab)
 
 

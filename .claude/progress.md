@@ -191,6 +191,22 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 
 ## Log
 
+- **2026-06-16** — **P4M16: MS-ASL download → 100+ published signs** (branch
+  `milestone/P4M16-vocab-100`). The data lever delivered. **Fixed the broken fetch first**
+  (merged #40): YouTube's nsig "n challenge" needs yt-dlp ≥ 2026.6 + `yt-dlp-ejs` + a
+  **Deno** JS runtime (node 20 too old); the script now auto-finds Deno. Owner supplied
+  cookies; ran the 36-gloss `download` fetch over throttle-cooldown passes (needs
+  `--sleep` — a no-delay session rate-limits after ~370 clips). **29 of 36 glosses came in
+  with coverage.** Trained a **117-gloss** model (`vocab_dl` = vocab50 ∪ download,
+  excluding the P4M15 on-disk flops; 4805 samples; same BiGRU+attention+ls0.15). **Honest
+  CV 0.696 over 117; 100 of 117 clear 0.50; 27 of the new download glosses cleared** (`live`
+  0.89 … `purple` 0.50). Original 79 hold at 0.718 (−1.4); 6 dip just under and are kept
+  (no-demote). **Re-gate: 79 + 27 = 106 published signs — TARGET MET.** Retrained +
+  recalibrated (P4M7), bundled 117-class ONNX + 27 WLASL reference clips; `SHIPPED_GLOSSES`
+  79→106 both sides; tests (vocab 106, bank 130); regenerated the accuracy report.
+  recognition.md §6.14. 9 download glosses stayed below (thin from the rate-limit cutoff);
+  7 never fetched (grandfather/grandmother were fetched + shipped; night/table/etc. below).
+  **Next: full gates + PR + merge + deploy-verify.**
 - **2026-06-15** — **P4M15: vocabulary expansion toward 100 — on-disk tested (negative);
   download path prepped** (branch `milestone/P4M15-vocab-100`). Goal: 100 published signs
   (all ≥ 0.50 honest). **Free on-disk lever first:** screened the 11,980 on-disk WLASL

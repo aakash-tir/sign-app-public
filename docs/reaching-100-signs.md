@@ -1,5 +1,11 @@
 # Reaching 100 published signs
 
+> **✅ DONE (P4M16, 2026-06-16): 106 published signs.** The MS-ASL download (Part 2)
+> delivered — 36 everyday glosses fetched, a 117-gloss model trained, and the honest gate
+> cleared **27 new signs → 79 + 27 = 106 published** (aggregate 0.696 over 117; the
+> original 79 hold at 0.718; no demotions). recognition.md §6.14. This guide is kept for
+> reproducibility / the next expansion.
+
 Goal: **100 dynamic signs published at ≥ 50% honest accuracy** (signer-disjoint
 cross-validation top-1, ADR-019). Starting point: **79 published** (model P4M10, honest
 aggregate 0.732).

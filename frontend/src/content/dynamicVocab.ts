@@ -1,14 +1,14 @@
 /**
  * Dynamic-sign glosses the app **prompts** (see `.claude/docs/recognition.md` §6.6).
  *
- * The model is trained on **81 glosses** (MS-ASL ∪ WLASL, P3M2c vocab50 push:
- * 3583 samples / 163 signers) with the P3M3 landmark-space augmentation, a
- * bidirectional GRU + attention pooling (P4M5), and a label-smoothing loss (P4M10).
+ * The model is trained on **117 glosses** (vocab50 ∪ a 36-gloss MS-ASL download,
+ * P4M16: 4805 samples) with the P3M3 landmark-space augmentation, a bidirectional
+ * GRU + attention pooling (P4M5), and a label-smoothing loss 0.15 (P4M10).
  * Membership here is decided by the **honest signer-disjoint** gate (per-gloss
- * top-1 ≥ 0.50, ADR-019): **79 glosses ship** at aggregate honest top-1 0.732;
- * only `dog` and `stop` stay known-but-unshipped (genuinely below the bar) and
- * serve as negatives. Recognition misses are absorbed by the "That's what I did"
- * valve (ADR-007).
+ * top-1 ≥ 0.50, ADR-019): **106 glosses ship** — the 79 from P4M10 (all kept) plus
+ * 27 new download glosses that cleared. Aggregate over the 117 is 0.696; the
+ * original 79 hold at 0.718. Recognition misses are absorbed by the "That's what I
+ * did" valve (ADR-007).
  */
 export const SHIPPED_GLOSSES: readonly string[] = [
   'drink',
@@ -102,6 +102,38 @@ export const SHIPPED_GLOSSES: readonly string[] = [
   'tall',
   'small',
   'white',
+  // P4M16 (MS-ASL download → 100+ signs): 36 high-coverage everyday glosses were
+  // fetched and trained into a 117-gloss model; the honest signer-disjoint gate
+  // (≥ 0.50, label smoothing 0.15) cleared 27 of them. No current sign is demoted
+  // (6 dip within noise and are retained). Aggregate over the 117 is 0.696; the
+  // original 79 hold at 0.718. recognition.md §6.14.
+  'live',
+  'shoes',
+  'home',
+  'apple',
+  'sick',
+  'spring',
+  'fish',
+  'yellow',
+  'time',
+  'orange',
+  'sandwich',
+  'meet',
+  'blue',
+  'paper',
+  'hurt',
+  'brown',
+  'wrong',
+  'red',
+  'dance',
+  'slow',
+  'sign',
+  'grandfather',
+  'grandmother',
+  'pink',
+  'bus',
+  'beautiful',
+  'purple',
 ]
 
 /** Filter a model's labels to the shipped set, preserving the model's order. */
