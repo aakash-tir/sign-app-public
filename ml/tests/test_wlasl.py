@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 
 from sign_ml.wlasl import (
+    DOWNLOAD_GLOSSES,
+    ONDISK_GLOSSES,
+    VOCAB50_GLOSSES,
+    VOCAB100_GLOSSES,
+    VOCAB136_GLOSSES,
     Clip,
     available_video_ids,
     clips_by_gloss,
@@ -12,6 +17,19 @@ from sign_ml.wlasl import (
     load_wlasl_index,
     select_clips,
 )
+
+
+def test_vocab_expansion_lists_are_consistent() -> None:
+    """vocab100/136 are disjoint extensions of vocab50; no duplicate glosses (P4M15)."""
+    assert len(VOCAB100_GLOSSES) == len(VOCAB50_GLOSSES) + len(ONDISK_GLOSSES)
+    assert len(VOCAB136_GLOSSES) == len(VOCAB100_GLOSSES) + len(DOWNLOAD_GLOSSES)
+    # the on-disk and download additions are new (not already in vocab50/100)
+    assert not (set(ONDISK_GLOSSES) & set(VOCAB50_GLOSSES))
+    assert not (set(DOWNLOAD_GLOSSES) & set(VOCAB100_GLOSSES))
+    # no duplicates anywhere
+    for vocab in (VOCAB100_GLOSSES, VOCAB136_GLOSSES):
+        assert len(set(vocab)) == len(vocab)
+
 
 # Minimal stand-in for WLASL_v0.3.json: two glosses, three instances.
 SAMPLE_METADATA = [

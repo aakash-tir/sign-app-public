@@ -191,6 +191,20 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 
 ## Log
 
+- **2026-06-15** — **P4M15: vocabulary expansion toward 100 — on-disk tested (negative);
+  download path prepped** (branch `milestone/P4M15-vocab-100`). Goal: 100 published signs
+  (all ≥ 0.50 honest). **Free on-disk lever first:** screened the 11,980 on-disk WLASL
+  videos — only **19** new glosses meet the ≥12-clip floor (none ≥20; the 81 are the
+  high-coverage ones). Added `vocab100` + `ONDISK_GLOSSES`, extracted (245 clips, 0
+  quarantined), honest-gated. **Result: only `bed` (0.54, n=13) of 19 cleared; aggregate
+  0.732→0.704; the 79 held (0.731, no regression). NOT shipped** — a 100-class model for
+  one borderline sign isn't worth it; on-disk data too thin (as predicted). Kept as
+  tooling. **Download path prepped (the real route to 100):** `DOWNLOAD_GLOSSES` (36
+  high-coverage everyday MS-ASL glosses, each ≥43 clips) + `vocab136` + a `download` fetch
+  vocab + owner guide [`docs/reaching-100-signs.md`](../docs/reaching-100-signs.md).
+  recognition.md §6.13. **No model/runtime change** (deployed stays 0.732/79). Also note
+  the per-word accuracy report shipped this day (#35–#38) with band colours + counters.
+  **Next (owner-gated): run the MS-ASL download, then I extract/train/gate to 100.**
 - **2026-06-15** — **P4M10: label-smoothing loss — the accuracy win** (branch
   `milestone/P4M10-label-smoothing`, ADR-027). Where the P4M3/P4M4 cheap levers regressed,
   **label smoothing** lifts the shipped BiGRU+attention model — the capacity-free regulariser

@@ -574,6 +574,27 @@ per-sign thresholds) under the same loss. Reproduce: `… crossval … --pooling
 --bidirectional --aug --label-smoothing 0.15`; ship: `… train …` then `… calibrate …` with
 the same flags.
 
+### 6.13 On-disk vocabulary expansion toward 100 — tested, did **not** help (P4M15)
+
+Goal: grow to **100 published signs** (all ≥ 0.50 honest). First, the **free** lever —
+WLASL glosses already on disk (11,980 videos), no download. A read-only screen found only
+**19** new glosses meeting the data floor (≥ 12 local clips; **none ≥ 20**) — the current
+81 are the high-coverage ones (boosted by MS-ASL). Added them as `vocab100`, extracted
+(245 clips, 0 quarantined), re-gated on the shipped config.
+
+**Honest signer-disjoint CV (100 glosses):** aggregate **0.704** (vs 0.732 at 81). Only
+**`bed` (0.54, n=13)** of the 19 cleared 0.50; the rest fell well below (`cool` 0.00,
+`last` 0.08, `candy`/`short` 0.15 … `cousin` 0.43). The original 79 held (**0.731** over
+them — no regression; the boundary incumbents just shuffle, `money`/`woman` ~0.47 now).
+**Decision: not shipped** — a 100-class model (18 dead classes) for one borderline sign
+isn't worth it. The on-disk data is too thin, as predicted. `vocab100`/`ONDISK_GLOSSES`
+kept as tooling.
+
+**→ The path to 100 is data.** Prepared `DOWNLOAD_GLOSSES` (36 high-coverage everyday
+MS-ASL glosses, each ≥ 43 clips) + `vocab136` + a `download` fetch vocab; the owner runs
+the throttled MS-ASL fetch (the proven +15-pt lever, §6.5), then extract/train/gate to
+100. Guide: [`../../docs/reaching-100-signs.md`](../../docs/reaching-100-signs.md).
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

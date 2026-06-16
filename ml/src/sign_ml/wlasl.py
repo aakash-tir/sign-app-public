@@ -144,6 +144,84 @@ PHASE3B_GLOSSES: tuple[str, ...] = (
 # downloaded; the honest gate decides which ~50 ship).
 VOCAB50_GLOSSES: tuple[str, ...] = EXPANDED_GLOSSES + PHASE3B_GLOSSES
 
+# P4M15 on-disk vocabulary expansion: WLASL glosses NOT already in vocab50 that meet
+# the Q7 data floor (>= 12 local clips) from the already-downloaded WLASL videos — no
+# new download. Over-proposed; the honest signer-disjoint >= 0.50 gate culls the tail.
+ONDISK_GLOSSES: tuple[str, ...] = (
+    "thin",
+    "cool",
+    "cousin",
+    "candy",
+    "thanksgiving",
+    "bed",
+    "bowling",
+    "accident",
+    "short",
+    "trade",
+    "later",
+    "shirt",
+    "change",
+    "corn",
+    "dark",
+    "last",
+    "pizza",
+    "basketball",
+    "call",
+)
+
+VOCAB100_GLOSSES: tuple[str, ...] = VOCAB50_GLOSSES + ONDISK_GLOSSES
+
+# P4M15 — proposed MS-ASL download to reach 100 published signs. 36 high-coverage
+# everyday glosses, each with >= 43 MS-ASL clips (the proven +data lever), none in
+# vocab100. Owner-gated fetch (memory msasl-download-setup); the honest signer-disjoint
+# >= 0.50 gate culls to whatever clears. After the download, train on VOCAB136.
+DOWNLOAD_GLOSSES: tuple[str, ...] = (
+    # colours
+    "orange",
+    "yellow",
+    "blue",
+    "red",
+    "green",
+    "brown",
+    "pink",
+    "purple",
+    # people
+    "grandmother",
+    "grandfather",
+    "nurse",
+    # everyday nouns
+    "fish",
+    "table",
+    "paper",
+    "apple",
+    "cat",
+    "shoes",
+    "bus",
+    "home",
+    "pencil",
+    "sandwich",
+    # states / adjectives
+    "sick",
+    "beautiful",
+    "hurt",
+    "slow",
+    "wrong",
+    "same",
+    "lost",
+    # time
+    "spring",
+    "night",
+    "time",
+    # verbs
+    "dance",
+    "draw",
+    "live",
+    "meet",
+    "sign",
+)
+
+VOCAB136_GLOSSES: tuple[str, ...] = VOCAB100_GLOSSES + DOWNLOAD_GLOSSES
+
 
 @dataclass(frozen=True)
 class Clip:

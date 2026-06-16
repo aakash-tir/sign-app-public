@@ -27,6 +27,8 @@ from .wlasl import (
     CURATED_STARTER_GLOSSES,
     EXPANDED_GLOSSES,
     VOCAB50_GLOSSES,
+    VOCAB100_GLOSSES,
+    VOCAB136_GLOSSES,
     available_video_ids,
     coverage_for,
     load_wlasl_index,
@@ -37,6 +39,8 @@ VOCABS = {
     "starter": CURATED_STARTER_GLOSSES,
     "expanded": EXPANDED_GLOSSES,
     "vocab50": VOCAB50_GLOSSES,
+    "vocab100": VOCAB100_GLOSSES,
+    "vocab136": VOCAB136_GLOSSES,
 }
 
 DATA_DIR = Path("data/wlasl")

@@ -26,12 +26,18 @@ from typing import Any
 
 from .ingest import canonical_label
 from .msasl import SPLITS, MsaslClip, load_msasl_index
-from .wlasl import CURATED_STARTER_GLOSSES, EXPANDED_GLOSSES, VOCAB50_GLOSSES
+from .wlasl import (
+    CURATED_STARTER_GLOSSES,
+    DOWNLOAD_GLOSSES,
+    EXPANDED_GLOSSES,
+    VOCAB50_GLOSSES,
+)
 
 VOCABS = {
     "starter": CURATED_STARTER_GLOSSES,
     "expanded": EXPANDED_GLOSSES,
     "vocab50": VOCAB50_GLOSSES,
+    "download": DOWNLOAD_GLOSSES,
 }
 DATA_DIR = Path("data/msasl")
 # Cap fetched resolution: we only extract landmarks, so small files are plenty and
