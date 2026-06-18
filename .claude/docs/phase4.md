@@ -1,9 +1,10 @@
 # Phase 4 — Discovery & Accuracy
 
 > **Phases 1–3 are complete and deployed.** Phase 4 *began* with the app live at 24
-> fingerspelling letters + **63 dynamic signs** (honest top-1 0.615); it **now ships 71
-> signs at 0.687** (see the §6.9 win below and [`../progress.md`](../progress.md)). Phase 4
-> has **two tracks:**
+> fingerspelling letters + **63 dynamic signs** (honest top-1 0.615); it **now ships 103
+> signs** (114-class model, aggregate honest CV 0.691; the modeling win is in §6.9, the
+> vocabulary expansion in §6.14, and the P4M17 confuser fix in §6.15 — see
+> [`../progress.md`](../progress.md)). Phase 4 has **two tracks:**
 >
 > - **Discovery (P4M1, shipped):** let the learner *find* the sign they want — the
 >   vocabulary is now big enough (63 signs) that one dropdown isn't enough.
@@ -390,10 +391,12 @@ high (build-time compute + new stage). **On-device:** unchanged.
 | P4M4 — Motion / velocity features (spec v2) | accuracy | ☑ merged [#28](https://github.com/aakash-tir/sign-app/pull/28) — **negative** (0.615→0.594), toolkit kept opt-in, not shipped (§6.8) | `milestone/P4M4-motion-features` |
 | P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☑ merged [#29](https://github.com/aakash-tir/sign-app/pull/29) + deployed — **BiGRU+attention 0.615→0.687, 71 ship** (§6.9) | `milestone/P4M5-temporal-model` |
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ not started (low-value — data not the bottleneck per P4M2) | `milestone/P4M6-targeted-data` |
-| P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☑ merged [#30](https://github.com/aakash-tir/sign-app/pull/30) + deployed — per-sign bars (69 sub-0.5) + temp 1.6 + 3-window voting (§6.10) | `milestone/P4M7-runtime-confidence` |
+| P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☑ merged [#30](https://github.com/aakash-tir/sign-app/pull/30) + deployed — per-sign bars (69 sub-0.5) + temperature (live T 0.80, re-fit per retrain) + 3-window voting (§6.10) | `milestone/P4M7-runtime-confidence` |
 | P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ not started — **track paused** (owner, 2026-06-02); the remaining big-swing lever | `milestone/P4M8-ssl-pretrain` |
 | P4M9 — Search UX: stem + fuzzy suggestions + fingerspell fallback | discovery | ☑ merged [#33](https://github.com/aakash-tir/sign-app/pull/33) + deployed (resolves the P4M1 deferrals; no model/data work) | `milestone/P4M9-search-ux` |
-| P4M10 — Label-smoothing loss | accuracy | ◐ implemented — honest CV **0.687 → 0.732**, 71 → **79 signs**, no demotions (§6.12, ADR-027) | `milestone/P4M10-label-smoothing` |
+| P4M10 — Label-smoothing loss | accuracy | ☑ merged [#34](https://github.com/aakash-tir/sign-app/pull/34) + deployed — honest CV **0.687 → 0.732**, 71 → **79 signs**, no demotions (§6.12, ADR-027) | `milestone/P4M10-label-smoothing` |
+| P4M16 — MS-ASL download → 100+ signs | accuracy | ☑ merged [#41](https://github.com/aakash-tir/sign-app/pull/41) + deployed — 117-gloss model, 27 new cleared → **106 published** (§6.14) | `milestone/P4M16-vocab-100` |
+| P4M17 — Drop confusers (dance/paper/slow) | accuracy | ☑ merged [#42](https://github.com/aakash-tir/sign-app/pull/42) + deployed — 114-class, **103 published**; stand/car recovered, school 0.42→0.49 (§6.15) | `milestone/P4M17-fix-confusers` |
 
 Legend: ☐ planned · ◐ in progress / scoping · ☑ merged.
 

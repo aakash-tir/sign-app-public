@@ -494,9 +494,11 @@ reasoning):
   signs just get a more forgiving bar (the "That's what I did" valve handles the rest).
   Fit by `fit_per_sign_thresholds`; **69/81 signs get a sub-0.5 bar** (the weakest floored
   at 0.15).
-- **Confidence calibration (temperature).** A single softmax **temperature T = 1.60**
-  (fit by NLL on the held-out folds) softens the over-confident BiGRU so the displayed
-  `%` is honest. Applied in `softmax(logits, T)` at inference.
+- **Confidence calibration (temperature).** A single softmax temperature (**T = 1.60**
+  when P4M7 introduced this on the 71-class model; fit by NLL on the held-out folds)
+  softens the over-confident BiGRU so the displayed `%` is honest. Applied in
+  `softmax(logits, T)` at inference. **The value is re-fit on every retrain — live is
+  T = 0.80 after P4M17** (see §6.15); read it from `metadata.json`, not this number.
 - **Multi-window temporal voting.** `useDynamicSignRecognition` averages the **last 3**
   inference windows' probability vectors (`averageProbs`) before deciding the prediction
   + acceptance, so a borderline sign isn't decided on one noisy window.
@@ -615,6 +617,31 @@ glosses cleared** (`live` 0.89, `shoes` 0.87, `home`/`apple` 0.85, `sick` 0.82 �
 from local WLASL. **No runtime/spec change** (same 30×161 frame, `featureDim` 161); the
 model output grows 81 → 117 logits, re-calibrated (P4M7). Detail + report:
 [`../../docs/sign-language-accuracy.xlsx`](../../docs/sign-language-accuracy.xlsx).
+
+### 6.15 Drop the 3 confusers — restore stand/school/car (P4M17, shipped)
+
+P4M16's 117-class model lifted vocabulary to 106 published signs, but a per-sign
+honest-CV audit (old 81-class → new 117-class) found **3 shipped signs regressed**:
+`stand` 0.79 → 0.47, `school` 0.73 → 0.42, `car` 0.70 → 0.43. The confusion matrix
+pinned the cause to **three of the new download glosses**: `stand` → `dance` (42 %),
+`school` → `paper`/`slow`, `car` → older signs.
+
+**Fix (owner's call): drop `dance`/`paper`/`slow` as *trained* classes** so their
+probability mass returns to the originals — `vocab_dl2` = `vocab_dl` − 3 = **114
+trained glosses** (4680 samples), same BiGRU + attention + label-smoothing-0.15
+config. Retrained + re-calibrated (**T = 0.80**, per-sign accept bars).
+
+**Honest signer-disjoint CV:** aggregate **0.691** over 114. Recovery confirmed —
+`stand` 0.47 → **0.63** ✅, `car` 0.43 → **0.57** ✅, `school` 0.42 → **0.49**
+(much improved, ~1 sample under the 0.50 gate; **kept** under no-demote — it's a
+grandfathered original and 0.49 strictly beats the live 0.42). Residual `school`
+confusion is now with *remaining* classes, which the targeted drop can't address.
+**No new demotions.** **Re-gate: 106 − 3 = 103 published signs.** 3 reference clips
+(`dance`/`paper`/`slow`) removed. No runtime/spec change (same 30×161 frame,
+`featureDim` 161); model output shrinks 117 → 114 logits. Merged PR #42, deployed +
+verified (live model sha == local; live `metadata.json` = 114 labels, T 0.80).
+Report: [`../../docs/sign-language-accuracy.xlsx`](../../docs/sign-language-accuracy.xlsx)
+(114 words / 103 deployed / 69.1 %).
 
 ## 7. Python training pipeline (build-time only)
 

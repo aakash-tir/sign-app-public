@@ -5,6 +5,13 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
+> **Live now (2026-06-18):** Phases 1–4 deployed — **24 fingerspelling letters + 103
+> dynamic signs** (114-class BiGRU+attention+ls0.15 model, T=0.80, per-sign accept bars).
+> Latest milestone: **P4M17** (drop dance/paper/slow confusers) merged + deployed (#42).
+> The authoritative status hub is [`CLAUDE.md`](CLAUDE.md) §Status; the milestone table +
+> Log below are the running record. The bullets that follow are the historical Phase 2→3
+> narrative (kept for context, not the current truth).
+
 - **🎉 Phase 2 (depth & polish) COMPLETE — all 5 plan items merged + deploying.**
   P2M1 overlay-color toggle ([#13]) · P2M2 shared camera + explainer ([#14]) · P2M3
   full UI redesign ([#15]) · P2M4 in-app sign reference from landmarks ([#16]) ·
@@ -187,7 +194,9 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 | P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☑ merged [#30](https://github.com/aakash-tir/sign-app/pull/30) + deployed — per-sign accept bars (69 sub-0.5) + temperature 1.6 + 3-window voting; no retrain (§6.10) | `milestone/P4M7-runtime-confidence` |
 | P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ not started — **track paused** (owner, 2026-06-02) | `milestone/P4M8-ssl-pretrain` |
 | P4M9 — Search UX (stem + fuzzy + fingerspell fallback) | discovery | ☑ merged [#33](https://github.com/aakash-tir/sign-app/pull/33) + deployed; resolves the P4M1 deferrals (no model/data work) | `milestone/P4M9-search-ux` |
-| P4M10 — Label-smoothing loss | accuracy | ◐ implemented — honest CV **0.687 → 0.732**, 71 → **79 signs**, no demotions (§6.12, ADR-027) | `milestone/P4M10-label-smoothing` |
+| P4M10 — Label-smoothing loss | accuracy | ☑ merged [#34](https://github.com/aakash-tir/sign-app/pull/34) + deployed — honest CV **0.687 → 0.732**, 71 → **79 signs**, no demotions (§6.12, ADR-027) | `milestone/P4M10-label-smoothing` |
+| P4M16 — MS-ASL download → 100+ signs | accuracy | ☑ merged [#41](https://github.com/aakash-tir/sign-app/pull/41) + deployed — 117-gloss model, 27 new cleared → **106 published** (§6.14) | `milestone/P4M16-vocab-100` |
+| P4M17 — Drop confusers (dance/paper/slow) | accuracy | ☑ merged [#42](https://github.com/aakash-tir/sign-app/pull/42) + deployed — 114-class, **103 published**; stand/car recovered, school 0.42→0.49 (§6.15) | `milestone/P4M17-fix-confusers` |
 
 ## Log
 
@@ -204,7 +213,7 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
   0.49 strictly beats the live 0.42). **No new demotions.** Retrained + recalibrated (T=0.80,
   per-sign accept bars), bundled 114-class ONNX into the frontend, regenerated the accuracy
   report (114 words / 103 deployed / 69.1%). Tests already updated on-branch (vocab 103, bank
-  127). recognition.md §6.15 (pending).
+  127). Merged PR #42 (`ca595d2`) + deployed + verified (live sha == local). recognition.md §6.15.
 - **2026-06-16** — **P4M16: MS-ASL download → 100+ published signs** (branch
   `milestone/P4M16-vocab-100`). The data lever delivered. **Fixed the broken fetch first**
   (merged #40): YouTube's nsig "n challenge" needs yt-dlp ≥ 2026.6 + `yt-dlp-ejs` + a

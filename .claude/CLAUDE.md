@@ -55,7 +55,7 @@ and the secrets/credentials policy.
 ## Status
 
 **Phases 1–4 are complete/paused and deployed** — the PWA is live on Cloudflare with
-**24 fingerspelling letters + 106 dynamic signs**, a per-finger overlay option, a
+**24 fingerspelling letters + 103 dynamic signs**, a per-finger overlay option, a
 persistent shared camera, a redesigned UI, offline in-app sign references, and a **Search
 tab** (typo/stem-tolerant with a fingerspelling fallback, P4M9). See
 [`progress.md`](progress.md); Phase 2 detail in [`docs/phase2.md`](docs/phase2.md).
@@ -66,7 +66,7 @@ honest ≥ 0.50 gate shipped 63 signs at honest top-1 0.615. *(Superseded by Pha
 now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-setup`.
 
 **✅ Phase 4 — discovery shipped; accuracy track ongoing.** Detail in
-[`docs/phase4.md`](docs/phase4.md); §6.7–6.12 in [`docs/recognition.md`](docs/recognition.md).
+[`docs/phase4.md`](docs/phase4.md); §6.7–6.15 in [`docs/recognition.md`](docs/recognition.md).
 
 - **Discovery — P4M1 Search tab** ([#26](https://github.com/aakash-tir/sign-app/pull/26))
   + **P4M9 search UX** ([#33](https://github.com/aakash-tir/sign-app/pull/33)):
@@ -74,8 +74,15 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
   yet". Exact + synonym + **stem + typo-tolerant suggestions**, with a **fingerspelling
   fallback** for spellable misses; reuses `DynamicSignStage` + `SignReferencePlayer`
   (ADR-021, FR-19). P4M9 resolved the P4M1 fuzzy/fingerspell deferrals (frontend-only).
-- **Accuracy + vocabulary track (P4M2–P4M16).** **The recognizer grew to 0.732 honest
-  top-1 and 63 → 106 shipped signs, plus per-sign calibrated acceptance — all live.**
+- **Accuracy + vocabulary track (P4M2–P4M17).** **The recognizer grew from 63 → 103
+  shipped signs with per-sign calibrated acceptance — all live.** (Aggregate honest CV
+  peaked at 0.732 over the 81-class model; it's 0.691 over the current 114-class model —
+  more classes are a harder task, not a regression.)
+  - **P4M17 — drop the 3 confusers** ([#42](https://github.com/aakash-tir/sign-app/pull/42)):
+    P4M16's new `dance`/`paper`/`slow` were stealing probability mass from shipped signs.
+    Dropping them as *trained* classes (→ **114 classes, 103 published**) restored
+    `stand` 0.47→0.63 and `car` 0.43→0.57; `school` 0.42→0.49 (improved, kept — grandfathered).
+    No new demotions. Re-calibrated **T=0.80**. ADR-019 gate, §6.15.
   - **P4M16 — MS-ASL download → 100+ signs**: fetched 36 everyday glosses, trained a
     117-gloss model; the honest gate cleared 27 new → **79 + 27 = 106 published signs**
     (aggregate 0.696 over 117; the original 79 hold at 0.718; no demotions). Needed a
@@ -97,7 +104,8 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
     both **tested, honest-negative, not shipped** — kept as opt-in tooling. (P4M3 notably
     *proved* mirroring is parity-correct, refuting the P3M3 deferral.) ADR-022/023, §6.8/6.11.
 
-**▶ P4M10 (label smoothing) in flight to merge; otherwise no active task.** Remaining/parked:
-**P4M8** SSL pretrain (the last big lever, uncertain payoff at this data scale); **P4M6**
-targeted data (low-value — data isn't the bottleneck); real multi-sign Learn sentences
-(ADR-012); search autocomplete-as-you-type ranking (P4M9 deferral).
+**▶ No active task — P4M17 merged + deployed (last shipped milestone).** Remaining/parked:
+push `school` back over 0.50 (find its new confuser via `diagnose`, then drop/fetch — low
+priority, it's published); **P4M8** SSL pretrain (the last big lever, uncertain payoff at
+this data scale); **P4M6** targeted data (low-value — data isn't the bottleneck); real
+multi-sign Learn sentences (ADR-012); search autocomplete-as-you-type ranking (P4M9 deferral).
