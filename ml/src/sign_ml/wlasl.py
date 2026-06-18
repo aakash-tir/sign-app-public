@@ -228,6 +228,15 @@ VOCAB136_GLOSSES: tuple[str, ...] = VOCAB100_GLOSSES + DOWNLOAD_GLOSSES
 # >= 0.50 gate decides the final shipped set.
 VOCAB_DL_GLOSSES: tuple[str, ...] = VOCAB50_GLOSSES + DOWNLOAD_GLOSSES
 
+# P4M17 targeted fix: three new download glosses most confused existing signs in the
+# 117-gloss model (`dance`<->`stand` 42%, `paper`/`slow`<->`school`). Dropping them as
+# trained classes returns that probability mass to the originals, restoring `stand` and
+# `school`. 114 glosses. recognition.md §6.15.
+_P4M17_DROP: tuple[str, ...] = ("dance", "paper", "slow")
+VOCAB_DL2_GLOSSES: tuple[str, ...] = tuple(
+    g for g in VOCAB_DL_GLOSSES if g not in _P4M17_DROP
+)
+
 
 @dataclass(frozen=True)
 class Clip:

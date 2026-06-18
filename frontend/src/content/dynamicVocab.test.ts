@@ -16,18 +16,20 @@ describe('shippedLabels', () => {
     ])
   })
 
-  it('ships the 106 glosses that clear the honest signer-disjoint gate (P4M16)', () => {
-    // P4M16: a 36-gloss MS-ASL download → 117-gloss model; 27 new clear ≥ 0.50.
-    expect(SHIPPED_GLOSSES).toHaveLength(106)
+  it('ships the 103 glosses that clear the honest signer-disjoint gate (P4M17)', () => {
+    // P4M16 shipped 106 from a 36-gloss MS-ASL download; P4M17 dropped 3 new glosses
+    // (dance/paper/slow) that confused existing stand/school → 103.
+    expect(SHIPPED_GLOSSES).toHaveLength(103)
     expect(SHIPPED_GLOSSES).toContain('thank you') // retained from P3M2c
-    expect(SHIPPED_GLOSSES).toContain('hungry') // P4M10 promotion
     expect(SHIPPED_GLOSSES).toContain('apple') // P4M16 download promotion
     expect(SHIPPED_GLOSSES).toContain('orange') // P4M16
     expect(SHIPPED_GLOSSES).toContain('grandmother') // P4M16
-    expect(SHIPPED_GLOSSES).toContain('woman') // current sign retained (no-demote)
+    expect(SHIPPED_GLOSSES).toContain('stand') // P4M17: restored (kept; recovers)
+    expect(SHIPPED_GLOSSES).not.toContain('dance') // P4M17: dropped (confused stand)
+    expect(SHIPPED_GLOSSES).not.toContain('paper') // P4M17: dropped (confused school)
+    expect(SHIPPED_GLOSSES).not.toContain('slow') // P4M17: dropped (confused school)
     expect(SHIPPED_GLOSSES).not.toContain('dog') // on-disk P4M15 — still not shipped
     expect(SHIPPED_GLOSSES).not.toContain('night') // P4M16 download below gate (0.00)
-    expect(SHIPPED_GLOSSES).not.toContain('pencil') // P4M16 download below gate (0.10)
   })
 
   it('has no duplicate glosses', () => {

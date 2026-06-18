@@ -191,6 +191,20 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 
 ## Log
 
+- **2026-06-18** — **P4M17: drop the 3 confusers to restore degraded shipped signs**
+  (branch `milestone/P4M17-fix-confusers`). Owner asked whether P4M16's 117-class model
+  hurt existing signs. Per-sign honest CV (old 81-class → new 117-class): 67/81 unchanged,
+  6 better, but **3 degraded** — `stand` 0.79→0.47, `school` 0.73→0.42, `car` 0.70→0.43.
+  Confusion: `stand`→`dance` 42%, `school`→`paper`/`slow`, `car`→old signs. **Targeted fix
+  (owner's call): drop `dance`/`paper`/`slow`** as *trained* classes so probability mass
+  returns to the originals → **114 trained classes, 103 published** (106 − 3). Their 3
+  reference clips removed; `vocab_dl2` (114 = vocab_dl − 3) wired in. **114-class honest CV
+  0.691; recovery confirmed: `stand` 0.47→0.63 ✅, `car` 0.43→0.57 ✅, `school` 0.42→0.49**
+  (much improved, ~1 sample under the 0.50 gate; it's grandfathered so stays published — and
+  0.49 strictly beats the live 0.42). **No new demotions.** Retrained + recalibrated (T=0.80,
+  per-sign accept bars), bundled 114-class ONNX into the frontend, regenerated the accuracy
+  report (114 words / 103 deployed / 69.1%). Tests already updated on-branch (vocab 103, bank
+  127). recognition.md §6.15 (pending).
 - **2026-06-16** — **P4M16: MS-ASL download → 100+ published signs** (branch
   `milestone/P4M16-vocab-100`). The data lever delivered. **Fixed the broken fetch first**
   (merged #40): YouTube's nsig "n challenge" needs yt-dlp ≥ 2026.6 + `yt-dlp-ejs` + a

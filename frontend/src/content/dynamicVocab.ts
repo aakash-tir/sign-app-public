@@ -5,10 +5,11 @@
  * P4M16: 4805 samples) with the P3M3 landmark-space augmentation, a bidirectional
  * GRU + attention pooling (P4M5), and a label-smoothing loss 0.15 (P4M10).
  * Membership here is decided by the **honest signer-disjoint** gate (per-gloss
- * top-1 ≥ 0.50, ADR-019): **106 glosses ship** — the 79 from P4M10 (all kept) plus
- * 27 new download glosses that cleared. Aggregate over the 117 is 0.696; the
- * original 79 hold at 0.718. Recognition misses are absorbed by the "That's what I
- * did" valve (ADR-007).
+ * top-1 ≥ 0.50, ADR-019): **103 glosses ship** — the 79 from P4M10 (all kept) plus
+ * 24 new download glosses. (P4M17 dropped 3 new glosses — `dance`/`paper`/`slow` —
+ * that were confusing the existing `stand`/`school`; removing them as trained classes
+ * restores those originals. §6.15.) Recognition misses are absorbed by the "That's
+ * what I did" valve (ADR-007).
  */
 export const SHIPPED_GLOSSES: readonly string[] = [
   'drink',
@@ -120,13 +121,10 @@ export const SHIPPED_GLOSSES: readonly string[] = [
   'sandwich',
   'meet',
   'blue',
-  'paper',
   'hurt',
   'brown',
   'wrong',
   'red',
-  'dance',
-  'slow',
   'sign',
   'grandfather',
   'grandmother',
