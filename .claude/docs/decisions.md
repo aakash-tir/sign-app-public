@@ -566,6 +566,34 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ---
 
+## ADR-026 — Self-supervised masked-pose pretraining: tested, **not shipped** (P4M8)
+
+- **Status:** tested, **honest-negative, not shipped** (2026-06-29). Phase 4 accuracy
+  track / P4M8 — the last and heaviest planned lever. Closes the accuracy track.
+- **Context:** The remaining "big swing" after the P4M5 model win and P4M10 label
+  smoothing was **self-supervised pretraining** — learn general pose-trajectory structure
+  from the full unlabeled pool, then fine-tune, to help the under-separated tail (P4M2).
+  A go/no-go inventory found the on-disk pool is **15,811 sequences / ~2,200 glosses**
+  (~2–2.4× the 4,680-sample labeled set after realistic extraction; high gloss diversity
+  but a **small, already-covered ~100-signer WLASL pool**).
+- **Decision:** Build the mechanism but isolate the SSL variable — **masked-pose
+  reconstruction** pretraining of the **same BiGRU encoder** (no architecture swap),
+  warm-started into the classifier via `init_gru_state`. Measure on the **same honest
+  signer-disjoint gate** (ADR-019) vs a seed-matched baseline. Because a strict
+  pretrain↔eval signer holdout collapses the pool to 376 clips (the labeled set already
+  spans WLASL's signers), first run an **optimistic upper bound** (pretrain on the full
+  pool, eval signers' unlabeled poses included): if it can't beat baseline, the honest
+  version (≤ optimistic) can't either.
+- **Consequences:** Optimistic-SSL **0.689** vs baseline **0.691** (seed-matched, 5-fold
+  signer-disjoint, BiGRU+attention+aug+ls0.15) — **flat, within noise**, and it's the
+  ceiling, so **not shipped**; the deployed model stays the P4M17 114-class 0.691 model.
+  Pretraining itself converged (val recon MSE 0.052) — the mechanism works, the data
+  scale doesn't pay. Like P4M3/P4M4, the tooling is **kept opt-in, default off**
+  (`pretrain` stage + `train`/`crossval --init-from`). No runtime/spec/model change.
+  Detail: recognition.md §6.16.
+
+---
+
 ## Open questions (non-blocking, revisit at the noted milestone)
 
 | # | Question | Default assumption | Revisit |

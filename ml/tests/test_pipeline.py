@@ -6,9 +6,15 @@ from pathlib import Path
 import numpy as np
 
 from sign_ml.data import make_synthetic_dataset
-from sign_ml.dynamic_pipeline import _clip_cache_path, _sanitize
+from sign_ml.dynamic_pipeline import (
+    _clip_cache_path,
+    _sanitize,
+    all_pool_glosses,
+    resolve_vocab,
+)
 from sign_ml.ingest import CanonicalSample
 from sign_ml.pipeline import run_synthetic_pipeline
+from sign_ml.wlasl import CURATED_STARTER_GLOSSES
 
 
 def test_synthetic_dataset_shapes() -> None:
@@ -39,6 +45,33 @@ def test_clip_cache_path_namespaces_by_source_and_sanitizes() -> None:
 def test_sanitize_replaces_unsafe_chars() -> None:
     assert _sanitize("abc_10_40") == "abc_10_40"  # already safe (kept verbatim)
     assert _sanitize("a/b\\c d:e") == "a_b_c_d_e"
+
+
+def test_resolve_vocab_static_returns_curated_tuple() -> None:
+    # A named curated vocab resolves to its static tuple without touching the
+    # data dirs (so the paths passed here are never read).
+    assert resolve_vocab(
+        "starter", Path("nonexistent/wlasl"), Path("nonexistent/msasl")
+    ) == list(CURATED_STARTER_GLOSSES)
+
+
+def test_resolve_vocab_pretrain_unions_all_on_disk_glosses(tmp_path: Path) -> None:
+    # P4M8: `pretrain` is the WHOLE on-disk pool — every gloss in the raw index,
+    # deduped + sorted — regardless of curation. No MSASL_*.json present → WLASL only.
+    wlasl_dir = tmp_path / "wlasl"
+    wlasl_dir.mkdir()
+    index = [
+        {"gloss": "zebra", "instances": [{"video_id": "1"}, {"video_id": "2"}]},
+        {"gloss": "apple", "instances": [{"video_id": "3"}]},
+        {"gloss": "mango", "instances": []},  # no clips → nothing to extract → excluded
+    ]
+    (wlasl_dir / "WLASL_v0.3.json").write_text(json.dumps(index), encoding="utf-8")
+    msasl_dir = tmp_path / "msasl"  # absent index files → contributes nothing
+
+    glosses = all_pool_glosses(wlasl_dir, msasl_dir)
+    # Sorted, deduped, every gloss with >=1 indexed clip ("mango" has none → out).
+    assert glosses == ["apple", "zebra"]
+    assert resolve_vocab("pretrain", wlasl_dir, msasl_dir) == glosses
 
 
 def test_pipeline_trains_and_exports(tmp_path: Path) -> None:

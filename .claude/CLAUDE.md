@@ -104,8 +104,15 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
     both **tested, honest-negative, not shipped** — kept as opt-in tooling. (P4M3 notably
     *proved* mirroring is parity-correct, refuting the P3M3 deferral.) ADR-022/023, §6.8/6.11.
 
-**▶ No active task — P4M17 merged + deployed (last shipped milestone).** Remaining/parked:
-push `school` back over 0.50 (find its new confuser via `diagnose`, then drop/fetch — low
-priority, it's published); **P4M8** SSL pretrain (the last big lever, uncertain payoff at
-this data scale); **P4M6** targeted data (low-value — data isn't the bottleneck); real
-multi-sign Learn sentences (ADR-012); search autocomplete-as-you-type ranking (P4M9 deferral).
+- **P4M8 — SSL pretraining: tested, honest-negative, NOT shipped** (2026-06-29, ADR-026,
+  §6.16): the last/heaviest lever. Built the full masked-pose mechanism (pretrain the **same**
+  BiGRU encoder, no arch swap) + extracted the **full on-disk pool (15,811 seq / ~2,200
+  glosses)**. A strict pretrain↔eval signer holdout collapses the pool to 376 clips, so ran the
+  **optimistic upper bound** (full pool): **0.689 vs 0.691 baseline — flat, the ceiling → shelve.**
+  Tooling kept opt-in. **This closes the Phase-4 accuracy track** — every lever explored.
+
+**▶ No active task — P4M8 tested-negative (last milestone); P4M17 last *shipped* (deployed).**
+Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
+drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
+bottleneck); real multi-sign Learn sentences (ADR-012); search autocomplete-as-you-type ranking
+(P4M9 deferral).

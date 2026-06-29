@@ -16,6 +16,7 @@ from sign_ml.dynamic_model import (
     drop_landmarks,
     fit_per_sign_thresholds,
     fit_temperature,
+    mask_frames,
     mean_hand_presence_per_class,
     resolve_splits,
     rotate_xy,
@@ -526,6 +527,74 @@ def test_distinct_signers_per_class() -> None:
     assert counts == {0: 2, 1: 1}
     # No signer info -> all zero.
     assert distinct_signers_per_class(y, None, n_classes=2) == {0: 0, 1: 0}
+
+
+# --- P4M8: masked-pose self-supervised pretraining ----------------------------
+
+
+def test_mask_frames_only_masks_real_frames() -> None:
+    rng = np.random.default_rng(0)
+    x = np.zeros((4, 6, 5), dtype=np.float64)
+    x[:, -3:, :] = 1.0  # last 3 frames real, first 3 are front padding
+    corrupted, mask = mask_frames(x, rng, mask_prob=1.0)
+    # Padding frames are never eligible to be masked...
+    assert not mask[:, :3].any()
+    # ...and with mask_prob=1 every real frame is masked + zeroed in the corrupted set.
+    assert mask[:, 3:].all()
+    assert (corrupted[:, 3:, :] == 0.0).all()
+    # Padding stays zero (untouched), and the original input is not mutated.
+    assert (corrupted[:, :3, :] == 0.0).all()
+    assert (x[:, -3:, :] == 1.0).all()
+
+
+def test_mask_frames_zero_prob_masks_nothing() -> None:
+    rng = np.random.default_rng(0)
+    x = np.ones((3, 4, 5), dtype=np.float64)
+    corrupted, mask = mask_frames(x, rng, mask_prob=0.0)
+    assert not mask.any()
+    np.testing.assert_array_equal(corrupted, x)
+
+
+def test_mask_frames_is_deterministic() -> None:
+    x = np.ones((3, 4, 5), dtype=np.float64)
+    a, ma = mask_frames(x, np.random.default_rng(7), 0.5)
+    b, mb = mask_frames(x, np.random.default_rng(7), 0.5)
+    np.testing.assert_array_equal(ma, mb)
+    np.testing.assert_array_equal(a, b)
+
+
+def test_pretrain_encoder_transfers_into_classifier() -> None:
+    pytest.importorskip("torch")
+    import torch
+
+    from sign_ml.dynamic_model import build_sequence_model, pretrain_encoder
+
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal((20, 8, 6))
+    state, metrics = pretrain_encoder(
+        x, hidden=8, bidirectional=True, seed=0, epochs=3, batch_size=8, val_frac=0.2
+    )
+    assert metrics["epochs_run"] >= 1
+    assert metrics["n_pretrain"] >= 1 and metrics["n_val"] >= 1
+
+    # The pretrained encoder loads into a classifier built with the SAME config...
+    clf = build_sequence_model(
+        3,
+        feat=6,
+        hidden=8,
+        seed=1,
+        pooling="attention",
+        bidirectional=True,
+        init_gru_state=state,
+    )
+    # ...weights actually transferred (classifier GRU == pretrained encoder)...
+    for key, value in state.items():
+        assert torch.equal(clf.gru.state_dict()[key], value)
+    # ...and the classifier still runs a forward pass.
+    clf.eval()
+    with torch.no_grad():
+        out = clf(torch.zeros(2, 8, 6, dtype=torch.float32))
+    assert out.shape == (2, 3)
 
 
 def test_mean_hand_presence_per_class() -> None:

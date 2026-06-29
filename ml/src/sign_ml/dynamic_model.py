@@ -443,6 +443,7 @@ def build_sequence_model(
     seed: int = 42,
     pooling: str = "last",
     bidirectional: bool = False,
+    init_gru_state: Any | None = None,
 ) -> Any:  # pragma: no cover - needs torch
     """A 2-layer GRU classifier (logits output).
 
@@ -456,7 +457,12 @@ def build_sequence_model(
 
     ``mean``/``attention`` **mask front-padding frames** (an all-zero input frame is
     padding) so the warm-up region doesn't dilute the pooled context. ``bidirectional``
-    runs the GRU both ways (output dim ``2*hidden``)."""
+    runs the GRU both ways (output dim ``2*hidden``).
+
+    ``init_gru_state`` (P4M8) loads a pretrained encoder ``state_dict`` into the GRU
+    before returning — the self-supervised masked-pose weights from
+    :func:`pretrain_encoder`. It must come from the same ``feat`` / ``hidden`` /
+    ``bidirectional`` config (load_state_dict raises on a mismatch)."""
     import torch
     from torch import nn
 
@@ -501,7 +507,162 @@ def build_sequence_model(
                 ctx = (out * weights).sum(dim=1)
             return self.head(ctx)
 
-    return GRUClassifier()
+    model = GRUClassifier()
+    if init_gru_state is not None:
+        model.gru.load_state_dict(init_gru_state)
+    return model
+
+
+def mask_frames(
+    x: FloatArray, rng: np.random.Generator, mask_prob: float = 0.15
+) -> tuple[FloatArray, BoolArray]:
+    """Corrupt a batch of ``(B, T, F)`` windows for masked-pose pretraining (P4M8):
+    zero whole **real** frames with probability ``mask_prob`` and return the corrupted
+    batch plus the ``(B, T)`` boolean mask of the hidden frames.
+
+    Only **real** frames (any non-zero feature — front padding is all-zero) are
+    eligible, so the pretext never "reconstructs" padding. The reconstruction target is
+    the original (uncorrupted) frame at the masked positions; the encoder must infer a
+    hidden pose from its temporal neighbours, which is what teaches general trajectory
+    structure on the unlabeled pool. Pure + deterministic for a given ``rng``."""
+    out = np.asarray(x, dtype=np.float64).copy()
+    b, t, _f = out.shape
+    real = np.any(out != 0.0, axis=2)  # (B, T) non-padding frames
+    mask: BoolArray = (rng.random((b, t)) < mask_prob) & real
+    out[mask] = 0.0
+    return out, mask
+
+
+def build_masked_autoencoder(
+    feat: int,
+    hidden: int = 64,
+    seed: int = 42,
+    bidirectional: bool = True,
+) -> Any:  # pragma: no cover - needs torch
+    """A denoising autoencoder that shares the classifier's GRU encoder (identical
+    config) plus a per-frame linear reconstruction head, for masked-pose pretraining
+    (P4M8). After pretraining, ``.gru.state_dict()`` transfers straight into a
+    :func:`build_sequence_model` classifier built with the same ``feat`` / ``hidden`` /
+    ``bidirectional`` via its ``init_gru_state`` argument."""
+    import torch
+    from torch import nn
+
+    torch.manual_seed(seed)
+    out_dim = hidden * (2 if bidirectional else 1)
+
+    class MaskedPoseAutoencoder(nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.gru = nn.GRU(
+                input_size=feat,
+                hidden_size=hidden,
+                num_layers=2,
+                batch_first=True,
+                dropout=0.3,
+                bidirectional=bidirectional,
+            )
+            self.recon = nn.Linear(out_dim, feat)
+
+        def forward(self, x: Any) -> Any:
+            out, _ = self.gru(x)  # (B, T, out_dim) — bidirectional sees full context
+            return self.recon(out)  # (B, T, feat)
+
+    return MaskedPoseAutoencoder()
+
+
+def pretrain_encoder(
+    x_unlabeled: FloatArray,
+    *,
+    hidden: int = 64,
+    bidirectional: bool = True,
+    seed: int = 42,
+    epochs: int = 100,
+    batch_size: int = 64,
+    lr: float = 1e-3,
+    mask_prob: float = 0.15,
+    val_frac: float = 0.1,
+    patience: int = 10,
+) -> tuple[Any, dict[str, Any]]:  # pragma: no cover - needs torch
+    """Self-supervised masked-pose pretraining on the unlabeled pool (P4M8, ADR-026).
+
+    Trains the shared GRU encoder to reconstruct randomly-masked frames (MSE over the
+    masked, real positions only), early-stopping on a **fixed** held-out masked set.
+    Returns the encoder ``state_dict`` (load into a classifier's GRU via
+    ``build_sequence_model(..., init_gru_state=...)``) and a small metrics dict. The
+    eval gate is unchanged — this only changes the encoder's initialization."""
+    import torch
+
+    torch.manual_seed(seed)
+    rng = np.random.default_rng(seed)
+    x_np = np.asarray(x_unlabeled, dtype=np.float64)
+    feat = x_np.shape[2]
+
+    n = x_np.shape[0]
+    perm = rng.permutation(n)
+    n_val = max(1, int(round(n * val_frac)))
+    val_idx, train_idx = perm[:n_val], perm[n_val:]
+
+    model = build_masked_autoencoder(feat, hidden, seed, bidirectional)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+
+    # Fixed val corruption (own rng) so early-stopping compares like with like.
+    val_corrupted, val_mask = mask_frames(
+        x_np[val_idx], np.random.default_rng(seed + 1), mask_prob
+    )
+    val_xin = torch.tensor(val_corrupted.astype(np.float32))
+    val_target = torch.tensor(x_np[val_idx].astype(np.float32))
+    val_m = torch.tensor(val_mask)
+
+    def masked_mse(corrupted: FloatArray, target: FloatArray, mask: BoolArray) -> Any:
+        recon = model(torch.tensor(corrupted.astype(np.float32)))
+        diff = (recon - torch.tensor(target.astype(np.float32)))[torch.tensor(mask)]
+        return (diff * diff).mean()
+
+    best_val = float("inf")
+    best_state = copy.deepcopy(model.gru.state_dict())
+    bad_epochs = 0
+    epochs_run = 0
+    for _epoch in range(epochs):
+        epochs_run += 1
+        model.train()
+        order = rng.permutation(train_idx)
+        for start in range(0, len(order), batch_size):
+            batch = order[start : start + batch_size]
+            corrupted, mask = mask_frames(x_np[batch], rng, mask_prob)
+            if not mask.any():
+                continue
+            optimizer.zero_grad()
+            loss = masked_mse(corrupted, x_np[batch], mask)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            if bool(val_m.any()):
+                vrecon = model(val_xin)
+                vdiff = (vrecon - val_target)[val_m]
+                vloss = float((vdiff * vdiff).mean().item())
+            else:
+                vloss = float("inf")
+        if vloss < best_val:
+            best_val = vloss
+            best_state = copy.deepcopy(model.gru.state_dict())
+            bad_epochs = 0
+        else:
+            bad_epochs += 1
+            if bad_epochs >= patience:
+                break
+
+    metrics: dict[str, Any] = {
+        "val_recon_mse": best_val,
+        "epochs_run": epochs_run,
+        "n_pretrain": int(len(train_idx)),
+        "n_val": int(len(val_idx)),
+        "mask_prob": mask_prob,
+        "bidirectional": bidirectional,
+        "hidden": hidden,
+    }
+    return best_state, metrics
 
 
 def train_and_eval(
@@ -521,6 +682,7 @@ def train_and_eval(
     bidirectional: bool = False,
     class_weight: bool = False,
     label_smoothing: float = 0.0,
+    init_gru_state: Any | None = None,
 ) -> tuple[Any, dict[str, Any]]:  # pragma: no cover - needs torch
     """Train the GRU with early stopping on val loss; report top-1/top-5 on test.
 
@@ -548,7 +710,12 @@ def train_and_eval(
     xt_val, xt_test = prep(x_np[val]), prep(x_np[test])
 
     model = build_sequence_model(
-        n_classes, feat, seed=seed, pooling=pooling, bidirectional=bidirectional
+        n_classes,
+        feat,
+        seed=seed,
+        pooling=pooling,
+        bidirectional=bidirectional,
+        init_gru_state=init_gru_state,
     )
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     weight = (
@@ -630,6 +797,7 @@ def cross_validate(
     calibrate: bool = False,
     class_weight: bool = False,
     label_smoothing: float = 0.0,
+    init_gru_state: Any | None = None,
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
     """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
     test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
@@ -679,6 +847,7 @@ def cross_validate(
             seed=seed + fold,
             pooling=pooling,
             bidirectional=bidirectional,
+            init_gru_state=init_gru_state,
         )
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
         weight = (

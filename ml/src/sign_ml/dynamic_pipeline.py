@@ -52,6 +52,35 @@ MSASL_DATA_DIR = Path("data/msasl")
 MODEL_ASSET = Path("models/holistic_landmarker.task")
 CACHE_DIR = Path("models/starter")
 COMBINED_CACHE_DIR = Path("models/combined")
+# P4M8: unlabeled pose sequences for self-supervised pretraining (the full on-disk
+# pool, all glosses) live in their own cache, separate from the labeled combined set.
+PRETRAIN_CACHE_DIR = Path("models/pretrain")
+
+
+def all_pool_glosses(wlasl_dir: Path, msasl_dir: Path) -> list[str]:
+    """Every gloss available across both raw indices — the entire on-disk pool for
+    unlabeled SSL pretraining (P4M8). ``WlaslAdapter`` filters on the raw gloss while
+    ``MsaslAdapter`` filters on the canonical label, so the union mixes both keyings;
+    together they select all ~2,000 WLASL glosses + every MS-ASL class on disk. Labels
+    are irrelevant to the masked-pose pretext, so no harm in the mixed keying."""
+    from .ingest import canonical_label
+    from .msasl import load_msasl_index
+
+    pool: set[str] = {
+        clip.gloss for clip in load_wlasl_index(wlasl_dir / "WLASL_v0.3.json")
+    }
+    for clip in load_msasl_index(msasl_dir):  # empty if no MSASL_*.json present
+        pool.add(canonical_label(clip.gloss))
+    return sorted(pool)
+
+
+def resolve_vocab(name: str, wlasl_dir: Path, msasl_dir: Path) -> list[str]:
+    """Map a ``--vocab`` name to its gloss list. ``pretrain`` is computed live from the
+    raw indices (the full pool); every other name is a static curated tuple."""
+    if name == "pretrain":
+        return all_pool_glosses(wlasl_dir, msasl_dir)
+    return list(VOCABS[name])
+
 
 # P3M3 landmark-space augmentation preset (off in plain training; opt-in via
 # `crossval --aug`). Tuned/accepted on the honest signer-disjoint gate once more
@@ -194,6 +223,7 @@ def run_extract_combined(
     val_fraction: float = 0.15,
     clip_timeout: float = 90.0,
     recycle_every: int = 150,
+    verbose: bool = True,
 ) -> None:  # pragma: no cover - real-data path
     """Resumable, hang-proof landmark extraction for the combined dataset.
 
@@ -210,7 +240,13 @@ def run_extract_combined(
     import time
 
     samples = _build_combined_samples(
-        wlasl_dir, msasl_dir, glosses, seed, test_fraction, val_fraction
+        wlasl_dir,
+        msasl_dir,
+        glosses,
+        seed,
+        test_fraction,
+        val_fraction,
+        verbose=verbose,
     )
     clips_dir = cache_dir / "clips"
     clips_dir.mkdir(parents=True, exist_ok=True)
@@ -356,6 +392,69 @@ def run_assemble_combined(
         print(f"  {split}: {int((s == split).sum())} samples")
 
 
+def _load_encoder_state(init_from: Path | None) -> Any:  # pragma: no cover - heavy path
+    """Load a pretrained GRU ``state_dict`` from disk (P4M8 ``pretrain`` output), or
+    ``None`` when no warm-start is requested."""
+    if init_from is None:
+        return None
+    import torch
+
+    state = torch.load(init_from, weights_only=True)
+    print(f"Warm-starting GRU from pretrained encoder: {init_from}")
+    return state
+
+
+def run_pretrain(
+    cache_dir: Path,
+    labeled_cache_dir: Path,
+    seed: int,
+    epochs: int,
+    mask_prob: float,
+    bidirectional: bool,
+    exclude_labeled_signers: bool = True,
+) -> None:  # pragma: no cover - heavy path
+    """P4M8: self-supervised masked-pose pretraining on the unlabeled pool. Saves the
+    GRU ``state_dict`` to ``<cache_dir>/encoder.pt`` for ``train --init-from`` /
+    ``crossval --init-from`` to warm-start the classifier encoder.
+
+    To keep the honest signer-disjoint guarantee end to end (ADR-019), any pretraining
+    clip whose signer also appears in the labeled eval set is dropped by default, so no
+    eval signer's pose data — even unlabeled — shapes the encoder. Clips with an unknown
+    signer can't be matched and are kept (documented residual; they may not leak)."""
+    import torch
+
+    from .dynamic_model import pretrain_encoder
+
+    x = np.load(cache_dir / "X.npy")
+    n_total = int(x.shape[0])
+    if exclude_labeled_signers:
+        pre_signers = np.load(cache_dir / "signers.npy")
+        labeled = {
+            str(s) for s in np.load(labeled_cache_dir / "signers.npy").tolist() if s
+        }
+        keep = np.array(
+            [str(s) not in labeled for s in pre_signers.tolist()], dtype=bool
+        )
+        x = x[keep]
+        print(
+            f"Signer holdout: dropped {n_total - int(x.shape[0])} clips from "
+            f"{len(labeled)} labeled signers; {int(x.shape[0])}/{n_total} remain"
+        )
+
+    print(f"Pretraining masked-pose encoder on {int(x.shape[0])} unlabeled clips...")
+    state, metrics = pretrain_encoder(
+        x, bidirectional=bidirectional, seed=seed, epochs=epochs, mask_prob=mask_prob
+    )
+    torch.save(state, cache_dir / "encoder.pt")
+    metrics["excluded_labeled_signers"] = exclude_labeled_signers
+    metrics["n_pool"] = n_total
+    (cache_dir / "pretrain_metrics.json").write_text(
+        json.dumps(metrics, indent=2), encoding="utf-8"
+    )
+    print(json.dumps(metrics, indent=2))
+    print(f"Saved encoder -> {cache_dir / 'encoder.pt'}")
+
+
 def run_train(
     cache_dir: Path,
     seed: int,
@@ -365,6 +464,7 @@ def run_train(
     bidirectional: bool = False,
     class_weight: bool = False,
     label_smoothing: float = 0.0,
+    init_from: Path | None = None,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_export import export_onnx
     from .dynamic_model import train_and_eval
@@ -389,8 +489,10 @@ def run_train(
         bidirectional=bidirectional,
         class_weight=class_weight,
         label_smoothing=label_smoothing,
+        init_gru_state=_load_encoder_state(init_from),
     )
     metrics["glosses"] = glosses
+    metrics["pretrained_encoder"] = str(init_from) if init_from else None
     metrics["augmentation"] = aug or "baseline-jitter-only"
     metrics["motion_features"] = motion
     metrics["pooling"] = pooling
@@ -421,6 +523,7 @@ def run_crossval(
     bidirectional: bool = False,
     class_weight: bool = False,
     label_smoothing: float = 0.0,
+    init_from: Path | None = None,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_model import cross_validate
 
@@ -452,7 +555,9 @@ def run_crossval(
         bidirectional=bidirectional,
         class_weight=class_weight,
         label_smoothing=label_smoothing,
+        init_gru_state=_load_encoder_state(init_from),
     )
+    report["pretrained_encoder"] = str(init_from) if init_from else None
     (cache_dir / "cv_metrics.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )
@@ -615,7 +720,9 @@ def main() -> None:  # pragma: no cover - CLI
     exc.add_argument("--model", type=Path, default=MODEL_ASSET)
     exc.add_argument("--out", type=Path, default=COMBINED_CACHE_DIR)
     exc.add_argument("--max-frames", type=int, default=64)
-    exc.add_argument("--vocab", choices=sorted(VOCABS), default="expanded")
+    exc.add_argument(
+        "--vocab", choices=[*sorted(VOCABS), "pretrain"], default="expanded"
+    )
     exc.add_argument("--seed", type=int, default=0)
     exc.add_argument(
         "--clip-timeout",
@@ -638,12 +745,48 @@ def main() -> None:  # pragma: no cover - CLI
     asm.add_argument("--wlasl", type=Path, default=DATA_DIR)
     asm.add_argument("--msasl", type=Path, default=MSASL_DATA_DIR)
     asm.add_argument("--out", type=Path, default=COMBINED_CACHE_DIR)
-    asm.add_argument("--vocab", choices=sorted(VOCABS), default="expanded")
+    asm.add_argument(
+        "--vocab", choices=[*sorted(VOCABS), "pretrain"], default="expanded"
+    )
     asm.add_argument("--seed", type=int, default=0)
+
+    pt = sub.add_parser(
+        "pretrain",
+        help="P4M8: self-supervised masked-pose pretraining on the unlabeled pool "
+        "-> encoder.pt (warm-start for train/crossval --init-from)",
+    )
+    pt.add_argument("--cache", type=Path, default=PRETRAIN_CACHE_DIR)
+    pt.add_argument(
+        "--labeled-cache",
+        type=Path,
+        default=COMBINED_CACHE_DIR,
+        help="labeled eval cache whose signers are held out of pretraining (ADR-019)",
+    )
+    pt.add_argument("--seed", type=int, default=42)
+    pt.add_argument("--epochs", type=int, default=100)
+    pt.add_argument("--mask-prob", type=float, default=0.15)
+    pt.add_argument(
+        "--no-bidirectional",
+        dest="bidirectional",
+        action="store_false",
+        help="pretrain a unidirectional encoder (default matches the shipped BiGRU)",
+    )
+    pt.add_argument(
+        "--keep-labeled-signers",
+        dest="exclude_labeled_signers",
+        action="store_false",
+        help="do NOT hold labeled-set signers out of pretraining (overstates the gate)",
+    )
 
     tr = sub.add_parser("train", help="train + eval + export ONNX from cache")
     tr.add_argument("--cache", type=Path, default=CACHE_DIR)
     tr.add_argument("--seed", type=int, default=42)
+    tr.add_argument(
+        "--init-from",
+        type=Path,
+        default=None,
+        help="warm-start the GRU from a pretrained encoder.pt (P4M8)",
+    )
     tr.add_argument(
         "--aug",
         action="store_true",
@@ -692,6 +835,12 @@ def main() -> None:  # pragma: no cover - CLI
     cv.add_argument("--cache", type=Path, default=CACHE_DIR)
     cv.add_argument("--seed", type=int, default=42)
     cv.add_argument("--folds", type=int, default=5)
+    cv.add_argument(
+        "--init-from",
+        type=Path,
+        default=None,
+        help="warm-start each fold's GRU from a pretrained encoder.pt (P4M8)",
+    )
     cv.add_argument(
         "--stratified",
         action="store_true",
@@ -796,18 +945,29 @@ def main() -> None:  # pragma: no cover - CLI
             args.model,
             args.out,
             args.max_frames,
-            glosses=list(VOCABS[args.vocab]),
+            glosses=resolve_vocab(args.vocab, args.wlasl, args.msasl),
             seed=args.seed,
             clip_timeout=args.clip_timeout,
             recycle_every=args.recycle_every,
+            verbose=args.vocab != "pretrain",
         )
     elif args.stage == "assemble-combined":
         run_assemble_combined(
             args.wlasl,
             args.msasl,
             args.out,
-            glosses=list(VOCABS[args.vocab]),
+            glosses=resolve_vocab(args.vocab, args.wlasl, args.msasl),
             seed=args.seed,
+        )
+    elif args.stage == "pretrain":
+        run_pretrain(
+            args.cache,
+            args.labeled_cache,
+            args.seed,
+            epochs=args.epochs,
+            mask_prob=args.mask_prob,
+            bidirectional=args.bidirectional,
+            exclude_labeled_signers=args.exclude_labeled_signers,
         )
     elif args.stage == "crossval":
         aug = dict(P3M3_AUG) if args.aug else {}
@@ -824,6 +984,7 @@ def main() -> None:  # pragma: no cover - CLI
             bidirectional=args.bidirectional,
             class_weight=args.class_weight,
             label_smoothing=args.label_smoothing,
+            init_from=args.init_from,
         )
     elif args.stage == "calibrate":
         run_calibrate(
@@ -858,6 +1019,7 @@ def main() -> None:  # pragma: no cover - CLI
             bidirectional=args.bidirectional,
             class_weight=args.class_weight,
             label_smoothing=args.label_smoothing,
+            init_from=args.init_from,
         )
 
 

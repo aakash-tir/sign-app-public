@@ -192,7 +192,7 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 | P4M5 — Temporal model upgrade (attention pooling) | accuracy | ☑ merged [#29](https://github.com/aakash-tir/sign-app/pull/29) + deployed — **BiGRU + attention: honest CV 0.615→0.687 (+7.2), 63→71 ship** (§6.9) | `milestone/P4M5-temporal-model` |
 | P4M6 — Targeted per-gloss data fetch (owner-gated) | accuracy | ☐ not started (low-value — data not the bottleneck per P4M2) | `milestone/P4M6-targeted-data` |
 | P4M7 — Runtime confidence (per-sign thresholds, voting) | accuracy | ☑ merged [#30](https://github.com/aakash-tir/sign-app/pull/30) + deployed — per-sign accept bars (69 sub-0.5) + temperature 1.6 + 3-window voting; no retrain (§6.10) | `milestone/P4M7-runtime-confidence` |
-| P4M8 — Self-supervised pretraining (big swing) | accuracy | ☐ not started — **track paused** (owner, 2026-06-02) | `milestone/P4M8-ssl-pretrain` |
+| P4M8 — Self-supervised pretraining (big swing) | accuracy | ☑ **tested, honest-negative, NOT shipped** (2026-06-29) — optimistic-SSL 0.689 vs baseline 0.691 (flat); tooling kept opt-in (§6.16, ADR-026) | `milestone/P4M8-ssl-pretrain` |
 | P4M9 — Search UX (stem + fuzzy + fingerspell fallback) | discovery | ☑ merged [#33](https://github.com/aakash-tir/sign-app/pull/33) + deployed; resolves the P4M1 deferrals (no model/data work) | `milestone/P4M9-search-ux` |
 | P4M10 — Label-smoothing loss | accuracy | ☑ merged [#34](https://github.com/aakash-tir/sign-app/pull/34) + deployed — honest CV **0.687 → 0.732**, 71 → **79 signs**, no demotions (§6.12, ADR-027) | `milestone/P4M10-label-smoothing` |
 | P4M16 — MS-ASL download → 100+ signs | accuracy | ☑ merged [#41](https://github.com/aakash-tir/sign-app/pull/41) + deployed — 117-gloss model, 27 new cleared → **106 published** (§6.14) | `milestone/P4M16-vocab-100` |
@@ -200,6 +200,24 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 
 ## Log
 
+- **2026-06-29** — **P4M8: self-supervised masked-pose pretraining — tested, honest-negative,
+  NOT shipped** (branch `milestone/P4M8-ssl-pretrain`, ADR-026). The last/heaviest accuracy
+  lever. Built the full SSL mechanism (isolating the SSL variable — pretrain the **same**
+  BiGRU encoder, no arch swap): `mask_frames` (masked-pose corruption) + `pretrain_encoder`
+  (GRU autoencoder, reconstruct masked frames) + `init_gru_state` warm-start threaded through
+  `build_sequence_model`/`train_and_eval`/`cross_validate`; `pretrain` CLI stage + `train`/
+  `crossval --init-from`. **Phase 0 go/no-go:** extracted the **full on-disk pool → 15,811
+  sequences / ~2,200 glosses** (the resumable extractor; reused 5,084 existing caches, 9
+  quarantined of 15.8k) — ~2–2.4× the 4,680-sample labeled set, high gloss diversity but a
+  small ~100-signer WLASL pool. **Honest-protocol wrinkle:** a strict pretrain↔eval signer
+  holdout collapses the pool to **376 clips** (labeled set already spans WLASL's signers), so
+  ran the **optimistic upper bound** first (full pool, `--keep-labeled-signers`). **Result
+  (seed-matched, 5-fold signer-disjoint):** optimistic-SSL **0.689** vs baseline **0.691** —
+  **flat, within noise**, and it's the ceiling (honest ≤ optimistic), so **not shipped**;
+  deployed model stays the P4M17 114-class 0.691. Pretraining converged (val recon MSE 0.052
+  — mechanism works, data scale doesn't pay). Tooling kept **opt-in** like P4M3/P4M4. No
+  runtime/spec/model change. recognition.md §6.16. ml gate green (ruff/mypy/pytest 108, +6).
+  **Closes the Phase-4 accuracy track.** **Next: PR + merge.**
 - **2026-06-18** — **P4M17: drop the 3 confusers to restore degraded shipped signs**
   (branch `milestone/P4M17-fix-confusers`). Owner asked whether P4M16's 117-class model
   hurt existing signs. Per-sign honest CV (old 81-class → new 117-class): 67/81 unchanged,

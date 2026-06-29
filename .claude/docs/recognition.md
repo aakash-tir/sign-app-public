@@ -643,6 +643,50 @@ verified (live model sha == local; live `metadata.json` = 114 labels, T 0.80).
 Report: [`../../docs/sign-language-accuracy.xlsx`](../../docs/sign-language-accuracy.xlsx)
 (114 words / 103 deployed / 69.1 %).
 
+### 6.16 Self-supervised masked-pose pretraining — tested, did **not** help (P4M8)
+
+The last and heaviest accuracy lever (ADR-026): pretrain the BiGRU encoder on the
+**entire on-disk pool** with a self-supervised pretext, then fine-tune the classifier
+from those weights — the idea being that learning general trajectory structure from
+far more (unlabeled) signs would help the under-separated tail (P4M2). The full pool is
+**15,811 pose sequences across ~2,200 glosses** (all WLASL + MS-ASL on disk, vs the
+4,680-sample / 114-gloss labeled set) — extracted through the same resumable pipeline
+(9 quarantined of 15.8k). **Pretext:** masked-pose reconstruction — randomly zero whole
+real frames (`mask_frames`, p = 0.15), train a GRU autoencoder to reconstruct them
+(`pretrain_encoder`), then load `.gru` into the classifier via
+`build_sequence_model(init_gru_state=…)`. The encoder is the **same** BiGRU (no
+architecture swap — the SSL variable is isolated). Pretraining converged cleanly
+(val reconstruction MSE 0.052, early-stop epoch 51) — the *mechanism* works.
+
+**An honest-protocol wrinkle, and the probe it forced.** To keep the signer-disjoint
+guarantee (ADR-019) end to end, the `pretrain` stage holds out any pool clip whose
+signer is in the labeled eval set. But WLASL has only ~100 globally-identified signers
+and the labeled set already spans **180** of them, so the strict holdout collapses the
+pool to **376 clips** — fewer than the labeled set, useless for pretraining. So we ran
+the cheaper question first: an **optimistic upper bound** — pretrain on the *full* pool
+(eval signers' *unlabeled* poses included, `--keep-labeled-signers`). If SSL can't beat
+baseline even with that advantage, the honest version (≤ optimistic) certainly can't.
+
+**Result (seed-matched, 5-fold signer-disjoint, BiGRU+attention+aug+ls0.15):**
+
+| Init | top-1 | top-5 |
+| --- | --- | --- |
+| Baseline (fresh GRU, the shipped config) | **0.691** | 0.875 |
+| Optimistic-SSL (full-pool warm-start) | **0.689** | 0.882 |
+
+**Flat** — −0.2 pt top-1 / +0.7 pt top-5, both within fold noise — and that's the
+*ceiling*. So the honest per-fold version can only be ≤ 0.689 < 0.691; there is no
+configuration in which this ships. **Not shipped** — the deployed model stays the
+P4M17 114-class 0.691 model. Like P4M3/P4M4, the lever is **kept as opt-in, tested
+tooling** (`pretrain` stage + `train`/`crossval --init-from`), default off.
+
+**Why it doesn't move the needle here** — consistent with the P4M2 diagnosis and the
+go/no-go inventory: the pretraining fuel was only ~2–2.4× the labeled set with a small,
+already-covered signer pool, and at this scale the supervised BiGRU + attention +
+label-smoothing already extracts the separable structure SSL would have to add. SSL's
+real payoff regime (orders-of-magnitude more diverse unlabeled data) isn't reachable
+from the on-disk corpus. This closes the Phase-4 accuracy track's last big swing.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:
