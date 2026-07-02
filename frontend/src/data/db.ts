@@ -1,5 +1,10 @@
 import Dexie, { type Table } from 'dexie'
-import type { UserProfile, Word, WordProgress } from '../domain/types'
+import type {
+  SentenceProgress,
+  UserProfile,
+  Word,
+  WordProgress,
+} from '../domain/types'
 
 export interface ProfileRecord extends UserProfile {
   id: string
@@ -17,6 +22,7 @@ export class SignAppDB extends Dexie {
   declare words: Table<Word, string>
   declare progress: Table<WordProgress, string>
   declare profile: Table<ProfileRecord, string>
+  declare sentences: Table<SentenceProgress, string>
 
   constructor(name = 'sign-app') {
     super(name)
@@ -26,6 +32,10 @@ export class SignAppDB extends Dexie {
     })
     this.version(2).stores({
       profile: 'id',
+    })
+    // Phase 5 (ADR-028): persisted per-sentence completion progress.
+    this.version(3).stores({
+      sentences: 'sentenceId',
     })
   }
 }

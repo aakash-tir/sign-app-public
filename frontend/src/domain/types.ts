@@ -49,6 +49,14 @@ export function defaultProfile(): UserProfile {
   }
 }
 
+/** Persisted completion record for one sentence (FR-20, ADR-028). */
+export interface SentenceProgress {
+  /** The sentence's stable id (its joined glosses — see `domain/sentences.ts`). */
+  sentenceId: string
+  timesCompleted: number
+  lastCompletedAt: number
+}
+
 export interface WordProgress {
   wordId: string
   bucket: Bucket

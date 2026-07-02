@@ -4,7 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    # milestone/** covers PRs into phase integration branches (e.g. Phase 5's
+    # milestone/P5-sentences), so sub-milestone PRs get the same gates as main.
+    branches: [main, 'milestone/**']
 
 # Cancel superseded runs on the same ref.
 concurrency:

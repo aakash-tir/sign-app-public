@@ -5,12 +5,13 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-> **Live now (2026-06-18):** Phases 1–4 deployed — **24 fingerspelling letters + 103
-> dynamic signs** (114-class BiGRU+attention+ls0.15 model, T=0.80, per-sign accept bars).
-> Latest milestone: **P4M17** (drop dance/paper/slow confusers) merged + deployed (#42).
-> The authoritative status hub is [`CLAUDE.md`](CLAUDE.md) §Status; the milestone table +
-> Log below are the running record. The bullets that follow are the historical Phase 2→3
-> narrative (kept for context, not the current truth).
+> **Live now (2026-07-01):** Phases 1–5 deployed — **24 fingerspelling letters + 103
+> dynamic signs** (114-class BiGRU+attention+ls0.15 model, T=0.80, per-sign accept bars),
+> plus the **Sentences** section (Phase 5: 57-sentence bank, persisted progress, ADR-028).
+> Latest milestone: **Phase 5** (P5M1–P5M3, [`docs/phase5.md`](docs/phase5.md)) merged +
+> deployed. The authoritative status hub is [`CLAUDE.md`](CLAUDE.md) §Status; the
+> milestone table + Log below are the running record. The bullets that follow are the
+> historical Phase 2→3 narrative (kept for context, not the current truth).
 
 - **🎉 Phase 2 (depth & polish) COMPLETE — all 5 plan items merged + deploying.**
   P2M1 overlay-color toggle ([#13]) · P2M2 shared camera + explainer ([#14]) · P2M3
@@ -199,8 +200,29 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 | P4M17 — Drop confusers (dance/paper/slow) | accuracy | ☑ merged [#42](https://github.com/aakash-tir/sign-app/pull/42) + deployed — 114-class, **103 published**; stand/car recovered, school 0.42→0.49 (§6.15) | `milestone/P4M17-fix-confusers` |
 | P4M11 — Search autocomplete (as-you-type ranking) | discovery | ☑ merged [#45](https://github.com/aakash-tir/sign-app/pull/45) + deploying — pure `autocomplete()` ranker (prefix → substring → fuzzy) + keyboard-navigable combobox dropdown in `SearchView`; resolves the P4M9 deferral. Frontend-only, no model/data work | `milestone/P4M11-search-autocomplete` |
 
+## Phase 5 — the Sentences section ([docs/phase5.md](docs/phase5.md))
+
+| Milestone | Status | Branch |
+| --- | --- | --- |
+| P5M1 — Sentence content bank + pure domain | ☑ merged [#46](https://github.com/aakash-tir/sign-app/pull/46) into the integration branch — 57-sentence bank (2–4 signs over the 103-gloss vocab) + `domain/sentences.ts` (all-confident eligibility, level length bands, seeded selection preferring un-completed) | `milestone/P5M1-sentence-domain` |
+| P5M2 — Persisted sentence progress | ☑ merged [#47](https://github.com/aakash-tir/sign-app/pull/47) — Dexie v3 `sentences` table + `SentenceRepo`; v2→v3 migration test | `milestone/P5M2-sentence-progress` |
+| P5M3 — Sentences section UI + e2e | ☑ merged [#48](https://github.com/aakash-tir/sign-app/pull/48) — `/sentences` route + nav tab, per-sign verify (rising-edge accept) + valve, reference player, progress line, ADR-009 gating states; in-Learn P2M7 drill removed | `milestone/P5M3-sentences-view` |
+| Integration → main | ☑ merged [#49](https://github.com/aakash-tir/sign-app/pull/49) + deployed | `milestone/P5-sentences` |
+
 ## Log
 
+- **2026-07-01** — **Phase 5: the Sentences section — complete** (integration branch
+  `milestone/P5-sentences`, plan [docs/phase5.md](docs/phase5.md), ADR-028, FR-20;
+  owner-approved scope: top-level tab + persisted progress). Sub-milestones each
+  branch → PR → squash into the integration branch (CI extended to run both lanes on
+  PRs into `milestone/**`): **P5M1** ([#46](https://github.com/aakash-tir/sign-app/pull/46))
+  content bank 8 → **57 sentences** + pure `domain/sentences.ts`; **P5M2**
+  ([#47](https://github.com/aakash-tir/sign-app/pull/47)) Dexie v3 + `SentenceRepo`;
+  **P5M3** ([#48](https://github.com/aakash-tir/sign-app/pull/48)) the `/sentences`
+  section (current-word highlight + reference, per-sign calibrated acceptance with a
+  rising-edge advance guard, "That's what I did" valve, "N of M completed", locked/empty
+  explainers; the old in-Learn drill removed). Frontend-only, no model/data change.
+  Tests grew 208 → **233 vitest** / 21 → **23 playwright**; all gates green per PR.
 - **2026-07-01** — **P4M11: search autocomplete (as-you-type ranking)** (branch
   `milestone/P4M11-search-autocomplete`). Resolves the P4M9 deferral;
   **frontend-only, no model/data work.** Added a pure `autocomplete(query, glosses,

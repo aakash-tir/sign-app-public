@@ -18,6 +18,7 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 | [`docs/phase2.md`](docs/phase2.md) | **Phase 2 plan** — depth & polish milestones (P2M1–P2M5) after M0–M7. |
 | [`docs/phase3.md`](docs/phase3.md) | **Phase 3 plan** — accuracy & vocabulary depth (P3M1–P3M3): honest eval, reviewed-dataset expansion toward ~50 signs, landmark-space augmentation. |
 | [`docs/phase4.md`](docs/phase4.md) | **Phase 4 plan** — two tracks: **discovery** (P4M1: sign **search** tab, shipped) + **accuracy** (P4M2–P4M8: lift the 18 dynamic signs below the honest 0.50 gate). |
+| [`docs/phase5.md`](docs/phase5.md) | **Phase 5 plan** — the **Sentences section** (P5M1–P5M3, shipped): dedicated tab, 57-sentence bank, persisted progress, level bands (ADR-028, FR-20). |
 | [`docs/decisions.md`](docs/decisions.md) | **Decision log (ADRs)** + open questions. |
 | [`docs/hosting.md`](docs/hosting.md) | **Hosting** — what Cloudflare Pages is and how we deploy. |
 | [`progress.md`](progress.md) | **Live status** — which milestone we're on, what's done. |
@@ -54,10 +55,11 @@ and the secrets/credentials policy.
 
 ## Status
 
-**Phases 1–4 are complete/paused and deployed** — the PWA is live on Cloudflare with
+**Phases 1–5 are complete/paused and deployed** — the PWA is live on Cloudflare with
 **24 fingerspelling letters + 103 dynamic signs**, a per-finger overlay option, a
-persistent shared camera, a redesigned UI, offline in-app sign references, and a **Search
-tab** (typo/stem-tolerant with a fingerspelling fallback + as-you-type autocomplete, P4M9/P4M11). See
+persistent shared camera, a redesigned UI, offline in-app sign references, a **Search
+tab** (typo/stem-tolerant with a fingerspelling fallback + as-you-type autocomplete, P4M9/P4M11),
+and a **Sentences section** (Phase 5). See
 [`progress.md`](progress.md); Phase 2 detail in [`docs/phase2.md`](docs/phase2.md).
 
 **✅ Phase 3 (accuracy & vocabulary depth) — all merged + deployed.** Grew the dynamic
@@ -114,9 +116,19 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
   **optimistic upper bound** (full pool): **0.689 vs 0.691 baseline — flat, the ceiling → shelve.**
   Tooling kept opt-in. **This closes the Phase-4 accuracy track** — every lever explored.
 
-**▶ No active task — P4M11 (search autocomplete) merged ([#45](https://github.com/aakash-tir/sign-app/pull/45))
-+ deployed, resolving the last P4M9 deferral (frontend-only). P4M8 tested-negative closed the
+**✅ Phase 5 — the Sentences section (2026-07-01, [`docs/phase5.md`](docs/phase5.md), ADR-028,
+FR-20).** Promoted sentences from the minimal P2M7 Learn drill to a **top-level `/sentences`
+tab**: a **57-sentence bank** (2–4 signs over the 103-gloss vocab), pure domain
+eligibility/selection (all-confident ∩ per-level length bands; seeded RNG preferring
+un-completed), **persisted completion progress** (Dexie v3 + `SentenceRepo`), per-sign
+camera verification (ADR-025 acceptance, rising-edge advance) with the "That's what I did"
+valve, and ADR-009 gating with locked/empty explainers. In-Learn drill removed. Built as
+sub-milestones off an integration branch: P5M1 [#46](https://github.com/aakash-tir/sign-app/pull/46) ·
+P5M2 [#47](https://github.com/aakash-tir/sign-app/pull/47) · P5M3 [#48](https://github.com/aakash-tir/sign-app/pull/48)
+→ main [#49](https://github.com/aakash-tir/sign-app/pull/49). Frontend-only; no model change.
+
+**▶ No active task — Phase 5 (Sentences) merged + deployed. P4M8 tested-negative closed the
 accuracy track.**
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
-bottleneck); real multi-sign Learn sentences (ADR-012).
+bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.

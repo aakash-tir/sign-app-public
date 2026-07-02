@@ -173,11 +173,13 @@ Precise algorithm and edge cases are specified in
 | FR-18 | New datasets ingest through a canonical normalization layer (canonical labels, fixed window, signer-disjoint splits) before training. *(P2M5)* |
 | | **Phase 4 (discovery & navigation — see [`docs/phase4.md`](docs/phase4.md)):** |
 | FR-19 | A **Search** tab lets the user look up a sign to learn: an exact + synonym + case-insensitive match against the shipped dynamic signs shows its reference animation + a camera that recognizes that sign; an unmatched term reports it isn't in the system yet. *(P4M1, ADR-021)* |
+| | **Phase 5 (the Sentences section — see [`docs/phase5.md`](docs/phase5.md)):** |
+| FR-20 | A **Sentences** tab presents short sequences of the learner's confident signs with per-sign camera verification, a reference animation for the current sign, level-gated availability with per-level length bands (ADR-009/028), and locally persisted completion progress that biases selection toward fresh sentences. *(P5M1–P5M3, ADR-028)* |
 
 These IDs are referenced from the milestone acceptance criteria in
 [`docs/milestones.md`](docs/milestones.md) (phase 1),
-[`docs/phase2.md`](docs/phase2.md) (phase 2), and [`docs/phase4.md`](docs/phase4.md)
-(phase 4).
+[`docs/phase2.md`](docs/phase2.md) (phase 2), [`docs/phase4.md`](docs/phase4.md)
+(phase 4), and [`docs/phase5.md`](docs/phase5.md) (phase 5).
 
 ## 7. Non-goals (initial scope)
 

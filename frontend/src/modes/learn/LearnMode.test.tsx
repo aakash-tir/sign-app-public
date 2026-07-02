@@ -118,19 +118,13 @@ describe('LearnMode spelling (gated)', () => {
   })
 })
 
-describe('LearnMode sign sentences (gated)', () => {
-  it('drills a multi-sign sequence via the camera', async () => {
+describe('LearnMode sentences hand-off (P5M3)', () => {
+  it('no longer offers the old sentence drill (moved to the Sentences tab)', async () => {
     for (const sign of ['want', 'eat']) await repo.markKnown(sign)
     await repo.setLevel('intermediate')
 
-    const view = render(<LearnMode repo={repo} />)
-    fireEvent.click(await screen.findByTestId('sentence-tab'))
-    expect(await screen.findByTestId('sentence')).toHaveTextContent('want')
-
-    for (const sign of ['want', 'eat']) {
-      mocks.recognized = { label: sign, confidence: 0.99 }
-      view.rerender(<LearnMode repo={repo} />)
-    }
-    expect(await screen.findByTestId('sentence-done')).toBeInTheDocument()
+    render(<LearnMode repo={repo} />)
+    await screen.findByTestId('learn-target')
+    expect(screen.queryByTestId('sentence-tab')).not.toBeInTheDocument()
   })
 })

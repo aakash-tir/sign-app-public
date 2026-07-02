@@ -13,6 +13,7 @@ import { LearnMode } from './modes/learn/LearnMode'
 import { SettingsView } from './modes/settings/SettingsView'
 import { DynamicSignView } from './modes/dynamic/DynamicSignView'
 import { SearchView } from './modes/search/SearchView'
+import { SentencesView } from './modes/sentences/SentencesView'
 import { loadOverlayColorMode } from './recognition/overlayColorMode'
 import { CameraProvider } from './recognition/cameraProvider'
 
@@ -31,6 +32,7 @@ function App() {
             <nav className="mode-switch" aria-label="Main">
               <NavLink to="/practice">Practice</NavLink>
               <NavLink to="/learn">Learn</NavLink>
+              <NavLink to="/sentences">Sentences</NavLink>
               <NavLink to="/signs">Signs</NavLink>
               <NavLink to="/search">Search</NavLink>
               <NavLink to="/settings">Settings</NavLink>
@@ -43,6 +45,7 @@ function App() {
               <Route path="/" element={<Navigate to="/practice" replace />} />
               <Route path="/practice" element={<PracticeMode />} />
               <Route path="/learn" element={<LearnMode />} />
+              <Route path="/sentences" element={<SentencesView />} />
               <Route path="/signs" element={<DynamicSignView />} />
               <Route path="/search" element={<SearchView />} />
               <Route path="/settings" element={<SettingsView />} />

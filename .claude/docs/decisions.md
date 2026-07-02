@@ -175,7 +175,8 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   did"), gated by ADR-009 like the spell drill. Framed as a sequencing exercise
   ("sign these words in order"), **not** a claim of full ASL grammar; the content
   (`content/signSentences.ts`) is small, conservative, and owner-reviewable. The
-  letter-spelled "Spell words" drill remains alongside it.
+  letter-spelled "Spell words" drill remains alongside it. *(Superseded in Phase 5
+  by the dedicated **Sentences** section — ADR-028; the in-Learn drill was removed.)*
 
 ## ADR-013 — Dynamic landmark stack: MediaPipe HolisticLandmarker
 
@@ -591,6 +592,41 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   scale doesn't pay. Like P4M3/P4M4, the tooling is **kept opt-in, default off**
   (`pretrain` stage + `train`/`crossval --init-from`). No runtime/spec/model change.
   Detail: recognition.md §6.16.
+
+---
+
+## ADR-028 — The Sentences section: dedicated tab, persisted progress, level bands
+
+- **Status:** accepted + shipped (owner-approved scope, 2026-07-01). Phase 5
+  (P5M1–P5M3, [`phase5.md`](phase5.md)). Supersedes the P2M7 in-Learn drill
+  (ADR-012 follow-on); delivers FR-6's "tracked" and FR-20.
+- **Context:** The P2M7 drill was 8 hardcoded 2-sign sequences from the ~17-sign
+  era, hidden as a conditional Learn tab, untracked, with raw `Math.random`
+  selection in the component and no per-word reference. The vocabulary is now 103
+  shipped signs — enough for real content.
+- **Decision:**
+  - **Dedicated top-level `/sentences` tab** (always visible; locked/empty states
+    explain instead of hiding). The in-Learn drill is **removed** — the top-level
+    tab sits next to Learn, so an internal link would be redundant.
+  - **Content bank** (`content/signSentences.ts`): ~57 conservative gloss-order
+    sequences, 2–4 signs, shipped-glosses-only (test-enforced); ids = joined
+    glosses (stable, derivable). Still a **sequencing exercise**, not ASL grammar
+    (reaffirms ADR-012's framing).
+  - **Pure domain** (`domain/sentences.ts`): eligibility = every sign `confident`
+    (ADR-009) ∩ **per-level length bands** — beginner 2–3, intermediate 2–4,
+    expert 3–4 (starting values, tunable); selection = injected seedable RNG
+    preferring **un-completed** sentences, recycling when all done.
+  - **Persisted progress** (Dexie v3 `sentences` table via `SentenceRepo`):
+    `{sentenceId, timesCompleted, lastCompletedAt}` — drives the freshness bias
+    and a "N of M completed" line.
+  - **Verification:** one sign at a time via the dynamic recognizer's per-sign
+    calibrated acceptance (ADR-025), advancing on the **rising edge** of the
+    accept flag (the raw flag would double-advance); "That's what I did" valve
+    (ADR-008) as always.
+- **Consequences:** Sentences are a first-class, resumable practice surface that
+  scales with the vocabulary; content edits that change a sentence's signs reset
+  that sentence's progress (accepted — ids stay derivable). No model/runtime
+  change (frontend-only phase). Detail: [`phase5.md`](phase5.md).
 
 ---
 
