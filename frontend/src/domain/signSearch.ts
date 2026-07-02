@@ -10,6 +10,9 @@ export type SignMatch =
 /** How many "did you mean…" suggestions to surface on a near miss. */
 export const MAX_SUGGESTIONS = 3
 
+/** How many as-you-type autocomplete options to show under the search box. */
+export const MAX_AUTOCOMPLETE = 8
+
 /**
  * Canonicalize a raw query the same way the ML ingest layer normalizes glosses
  * (`ml/src/sign_ml/ingest.py` `canonical_label`): trim, lowercase, collapse
@@ -118,6 +121,60 @@ export function fuzzySuggestions(
     if (out.length >= MAX_SUGGESTIONS) break
   }
   return out
+}
+
+/**
+ * As-you-type autocomplete: the ranked shipped glosses that match a **partial**
+ * query, for the dropdown under the search box (P4M11). Ranking, best first:
+ * exact term → prefix → substring → typo-tolerant fuzzy (edit distance, only for
+ * queries ≥ 3 chars). Considers both gloss names and synonym keys (mapped to their
+ * canonical gloss); a synonym hit is penalized so a gloss's own name wins a tie.
+ * Dedupes by gloss and returns the best `limit`. Pure + deterministic; returns
+ * `[]` for an empty query. Unlike {@link fuzzySuggestions} (tuned for a full-word
+ * near miss after submit) this favors prefixes so short prefixes surface early.
+ */
+export function autocomplete(
+  query: string,
+  glosses: readonly string[] = SHIPPED_GLOSSES,
+  synonyms: Record<string, string> = SIGN_SYNONYMS,
+  limit: number = MAX_AUTOCOMPLETE,
+): string[] {
+  const normalized = normalizeQuery(query)
+  if (normalized === '') return []
+
+  // term -> canonical shipped gloss (glosses map to themselves; synonym keys map
+  // to their target when that target is shipped).
+  const terms = new Map<string, string>()
+  for (const gloss of glosses) terms.set(gloss, gloss)
+  for (const [key, target] of Object.entries(synonyms)) {
+    if (!terms.has(key) && glosses.includes(target)) terms.set(key, target)
+  }
+
+  const maxDist = normalized.length <= 4 ? 1 : 2
+  const best = new Map<string, number>() // canonical gloss -> best (lowest) rank
+  for (const [term, gloss] of terms) {
+    let rank = Infinity
+    if (term === normalized) rank = 0
+    else if (term.startsWith(normalized)) rank = 1
+    else if (term.includes(normalized)) rank = 2
+    else if (normalized.length >= 3) {
+      const dist = editDistance(normalized, term)
+      if (dist <= maxDist) rank = 3 + dist
+    }
+    if (rank === Infinity) continue
+    // A gloss reached via a synonym key loses a tie to its own name.
+    if (term !== gloss) rank += 0.5
+    const prev = best.get(gloss)
+    if (prev === undefined || rank < prev) best.set(gloss, rank)
+  }
+
+  return [...best.entries()]
+    .sort(
+      (a, b) =>
+        a[1] - b[1] || a[0].length - b[0].length || a[0].localeCompare(b[0]),
+    )
+    .slice(0, limit)
+    .map(([gloss]) => gloss)
 }
 
 /**

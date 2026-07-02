@@ -58,6 +58,24 @@ test('a near miss offers a suggestion that resolves the sign (P4M9)', async ({
   await expect(page.getByTestId('sign-reference')).toBeVisible()
 })
 
+test('typing shows autocomplete options and picking one resolves the sign (P4M11)', async ({
+  page,
+}) => {
+  await openSearchTab(page)
+  await page.getByTestId('sign-search-input').fill('fa')
+
+  const options = page.getByTestId('sign-search-options')
+  await expect(options).toBeVisible()
+  const fatherOption = page
+    .getByRole('option', { name: 'father', exact: true })
+    .first()
+  await expect(fatherOption).toBeVisible()
+  await fatherOption.click()
+
+  await expect(page.getByTestId('sign-search-found')).toContainText(/father/i)
+  await expect(page.getByTestId('sign-reference')).toBeVisible()
+})
+
 test('a spellable miss offers a fingerspelling fallback (P4M9)', async ({
   page,
 }) => {

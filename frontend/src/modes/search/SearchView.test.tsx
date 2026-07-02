@@ -47,10 +47,14 @@ vi.mock('../../recognition/useUnifiedSignRecognition', () => ({
 
 import { SearchView } from './SearchView'
 
-function search(term: string) {
+function type(term: string) {
   fireEvent.change(screen.getByTestId('sign-search-input'), {
     target: { value: term },
   })
+}
+
+function search(term: string) {
+  type(term)
   fireEvent.click(screen.getByRole('button', { name: /^search$/i }))
 }
 
@@ -96,6 +100,43 @@ describe('SearchView', () => {
     )
     expect(screen.queryByTestId('sign-reference')).not.toBeInTheDocument()
     expect(mocks.state.setTarget).not.toHaveBeenCalledWith('xyzzy')
+  })
+
+  it('shows ranked autocomplete options as the learner types', () => {
+    render(<SearchView />)
+    type('fa')
+    const options = screen.getAllByTestId('sign-search-option')
+    expect(options.length).toBeGreaterThan(0)
+    expect(options.map((o) => o.textContent)).toContain('father')
+  })
+
+  it('searches the gloss when an autocomplete option is clicked', () => {
+    render(<SearchView />)
+    type('fa')
+    fireEvent.click(screen.getByRole('option', { name: 'father' }))
+    expect(screen.getByTestId('sign-search-found')).toHaveTextContent(/father/i)
+    expect(mocks.state.setTarget).toHaveBeenLastCalledWith('father')
+  })
+
+  it('selects the highlighted option with the keyboard (ArrowDown + Enter)', () => {
+    render(<SearchView />)
+    type('fath')
+    const input = screen.getByTestId('sign-search-input')
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    // Enter submits the form; the highlighted option wins over the raw query.
+    fireEvent.click(screen.getByRole('button', { name: /^search$/i }))
+    expect(screen.getByTestId('sign-search-found')).toHaveTextContent(/father/i)
+    expect(mocks.state.setTarget).toHaveBeenLastCalledWith('father')
+  })
+
+  it('closes the autocomplete list on Escape', () => {
+    render(<SearchView />)
+    type('fa')
+    expect(screen.queryByTestId('sign-search-options')).toBeInTheDocument()
+    fireEvent.keyDown(screen.getByTestId('sign-search-input'), {
+      key: 'Escape',
+    })
+    expect(screen.queryByTestId('sign-search-options')).not.toBeInTheDocument()
   })
 
   it('offers a fingerspelling fallback for a spellable miss', () => {

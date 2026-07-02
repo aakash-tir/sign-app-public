@@ -1,15 +1,28 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from 'react'
 import { useDynamicSignRecognition } from '../../recognition/useDynamicSignRecognition'
 import { DynamicSignStage } from '../../recognition/DynamicSignStage'
 import { SignReferencePlayer } from '../../recognition/SignReferencePlayer'
 import { FingerspellStage } from '../../recognition/FingerspellStage'
 import { fingerspellingModel } from '../../recognition/signClassifier'
-import { matchSign, type SignMatch } from '../../domain/signSearch'
+import {
+  autocomplete,
+  matchSign,
+  type SignMatch,
+} from '../../domain/signSearch'
 import { fingerspellLetters } from '../../domain/fingerspell'
 import './SearchView.css'
 
 /** Letters the static fingerspelling model recognizes (the ASL alphabet − J/Z). */
 const ALPHABET: ReadonlySet<string> = new Set(fingerspellingModel.labels)
+
+const LISTBOX_ID = 'sign-search-listbox'
+const optionId = (index: number) => `sign-search-option-${index}`
 
 /**
  * Search for a sign to learn (P4M1/P4M9, FR-19). The learner types a sign; if
@@ -25,26 +38,60 @@ export function SearchView() {
   const [query, setQuery] = useState('')
   const [result, setResult] = useState<SignMatch | null>(null)
   const [spelling, setSpelling] = useState<string[] | null>(null)
+  // As-you-type autocomplete dropdown state.
+  const [isOpen, setIsOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
 
   // Lock the recognizer's target to the matched gloss (or clear it).
   useEffect(() => {
     setTarget(result?.status === 'found' ? result.gloss : null)
   }, [result, setTarget])
 
+  const options = useMemo(() => autocomplete(query), [query])
+  const showOptions = isOpen && options.length > 0
+
   const runSearch = (term: string) => {
     setResult(matchSign(term))
     setSpelling(null)
+    setIsOpen(false)
+    setActiveIndex(-1)
+  }
+
+  const handleChange = (value: string) => {
+    setQuery(value)
+    setIsOpen(true)
+    setActiveIndex(-1)
+  }
+
+  // Pick a suggestion (click, or Enter/arrow selection): search that exact gloss.
+  const handleSuggestion = (gloss: string) => {
+    setQuery(gloss)
+    runSearch(gloss)
   }
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    runSearch(query)
+    const active = options[activeIndex]
+    if (showOptions && active) handleSuggestion(active)
+    else runSearch(query)
   }
 
-  // Pick a suggestion: treat it as a fresh search for that exact gloss.
-  const handleSuggestion = (gloss: string) => {
-    setQuery(gloss)
-    runSearch(gloss)
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (!showOptions) {
+        setIsOpen(true)
+        return
+      }
+      setActiveIndex((i) => (i + 1) % options.length)
+    } else if (e.key === 'ArrowUp') {
+      if (!showOptions) return
+      e.preventDefault()
+      setActiveIndex((i) => (i <= 0 ? options.length - 1 : i - 1))
+    } else if (e.key === 'Escape') {
+      setIsOpen(false)
+      setActiveIndex(-1)
+    }
   }
 
   // The word the learner could fingerspell instead, when nothing matched.
@@ -58,14 +105,54 @@ export function SearchView() {
       <form className="sign-search-form" role="search" onSubmit={handleSubmit}>
         <label className="sign-search-label">
           Search for a sign to learn
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. father, thank you, help"
-            data-testid="sign-search-input"
-            autoFocus
-          />
+          <div className="sign-search-combobox">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => handleChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={() => setIsOpen(false)}
+              placeholder="e.g. father, thank you, help"
+              data-testid="sign-search-input"
+              role="combobox"
+              aria-expanded={showOptions}
+              aria-controls={LISTBOX_ID}
+              aria-autocomplete="list"
+              aria-activedescendant={
+                activeIndex >= 0 ? optionId(activeIndex) : undefined
+              }
+              autoComplete="off"
+              autoFocus
+            />
+            {showOptions && (
+              <ul
+                className="sign-search-options"
+                id={LISTBOX_ID}
+                role="listbox"
+                data-testid="sign-search-options"
+              >
+                {options.map((gloss, index) => (
+                  <li
+                    key={gloss}
+                    id={optionId(index)}
+                    role="option"
+                    aria-selected={index === activeIndex}
+                    className={
+                      index === activeIndex
+                        ? 'sign-search-option is-active'
+                        : 'sign-search-option'
+                    }
+                    data-testid="sign-search-option"
+                    // Keep focus on the input so the click lands before blur closes the list.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleSuggestion(gloss)}
+                  >
+                    {gloss}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </label>
         <button type="submit">Search</button>
       </form>

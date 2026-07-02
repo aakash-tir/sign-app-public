@@ -197,9 +197,23 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 | P4M10 — Label-smoothing loss | accuracy | ☑ merged [#34](https://github.com/aakash-tir/sign-app/pull/34) + deployed — honest CV **0.687 → 0.732**, 71 → **79 signs**, no demotions (§6.12, ADR-027) | `milestone/P4M10-label-smoothing` |
 | P4M16 — MS-ASL download → 100+ signs | accuracy | ☑ merged [#41](https://github.com/aakash-tir/sign-app/pull/41) + deployed — 117-gloss model, 27 new cleared → **106 published** (§6.14) | `milestone/P4M16-vocab-100` |
 | P4M17 — Drop confusers (dance/paper/slow) | accuracy | ☑ merged [#42](https://github.com/aakash-tir/sign-app/pull/42) + deployed — 114-class, **103 published**; stand/car recovered, school 0.42→0.49 (§6.15) | `milestone/P4M17-fix-confusers` |
+| P4M11 — Search autocomplete (as-you-type ranking) | discovery | ☑ done — pure `autocomplete()` ranker (prefix → substring → fuzzy) + keyboard-navigable combobox dropdown in `SearchView`; resolves the P4M9 deferral. Frontend-only, no model/data work | `milestone/P4M11-search-autocomplete` |
 
 ## Log
 
+- **2026-07-01** — **P4M11: search autocomplete (as-you-type ranking)** (branch
+  `milestone/P4M11-search-autocomplete`). Resolves the P4M9 deferral;
+  **frontend-only, no model/data work.** Added a pure `autocomplete(query, glosses,
+  synonyms, limit)` ranker to `domain/signSearch.ts` — ranks exact → prefix →
+  substring → typo-tolerant fuzzy (edit distance for queries ≥ 3 chars), considers
+  gloss names + synonym keys (synonym hits penalized so a gloss's own name wins a
+  tie), dedupes by gloss, caps at `MAX_AUTOCOMPLETE` (8). `SearchView` now renders a
+  keyboard-navigable combobox dropdown (ARIA combobox/listbox/option,
+  ArrowUp/Down + Enter to select, Escape/blur to close, click to pick). CSS: the
+  form no longer wraps so the dropdown (anchored under the input) never overlaps the
+  Search button. Tests: +11 vitest (autocomplete ranker + view interactions) and +1
+  Playwright (type → options → pick). All gates green (prettier/eslint/tsc; vitest
+  208; playwright 21). **Next: PR + squash-merge + deploy-verify.**
 - **2026-06-29** — **P4M8: self-supervised masked-pose pretraining — tested, honest-negative,
   NOT shipped** (branch `milestone/P4M8-ssl-pretrain`, ADR-026). The last/heaviest accuracy
   lever. Built the full SSL mechanism (isolating the SSL variable — pretrain the **same**

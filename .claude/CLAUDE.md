@@ -57,7 +57,7 @@ and the secrets/credentials policy.
 **Phases 1–4 are complete/paused and deployed** — the PWA is live on Cloudflare with
 **24 fingerspelling letters + 103 dynamic signs**, a per-finger overlay option, a
 persistent shared camera, a redesigned UI, offline in-app sign references, and a **Search
-tab** (typo/stem-tolerant with a fingerspelling fallback, P4M9). See
+tab** (typo/stem-tolerant with a fingerspelling fallback + as-you-type autocomplete, P4M9/P4M11). See
 [`progress.md`](progress.md); Phase 2 detail in [`docs/phase2.md`](docs/phase2.md).
 
 **✅ Phase 3 (accuracy & vocabulary depth) — all merged + deployed.** Grew the dynamic
@@ -74,6 +74,9 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
   yet". Exact + synonym + **stem + typo-tolerant suggestions**, with a **fingerspelling
   fallback** for spellable misses; reuses `DynamicSignStage` + `SignReferencePlayer`
   (ADR-021, FR-19). P4M9 resolved the P4M1 fuzzy/fingerspell deferrals (frontend-only).
+  **P4M11 search autocomplete** adds an as-you-type ranked combobox dropdown (pure
+  `autocomplete()` ranker: prefix → substring → fuzzy; keyboard-navigable), resolving
+  the last P4M9 deferral (frontend-only).
 - **Accuracy + vocabulary track (P4M2–P4M17).** **The recognizer grew from 63 → 103
   shipped signs with per-sign calibrated acceptance — all live.** (Aggregate honest CV
   peaked at 0.732 over the 81-class model; it's 0.691 over the current 114-class model —
@@ -111,8 +114,8 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
   **optimistic upper bound** (full pool): **0.689 vs 0.691 baseline — flat, the ceiling → shelve.**
   Tooling kept opt-in. **This closes the Phase-4 accuracy track** — every lever explored.
 
-**▶ No active task — P4M8 tested-negative (last milestone); P4M17 last *shipped* (deployed).**
+**▶ P4M11 (search autocomplete) done on `milestone/P4M11-search-autocomplete` — resolves the
+last P4M9 deferral (frontend-only; gates green). P4M17 last *shipped* to `main`/deployed.**
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
-bottleneck); real multi-sign Learn sentences (ADR-012); search autocomplete-as-you-type ranking
-(P4M9 deferral).
+bottleneck); real multi-sign Learn sentences (ADR-012).

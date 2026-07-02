@@ -6,7 +6,8 @@
 
 .sign-search-form {
   display: flex;
-  flex-wrap: wrap;
+  /* Keep the input and button on one row so the autocomplete dropdown (anchored
+     under the input) never overlaps the Search button. */
   align-items: flex-end;
   gap: 0.75rem;
 }
@@ -33,6 +34,45 @@
 .sign-search-label input:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 1px;
+}
+
+.sign-search-combobox {
+  position: relative;
+}
+
+.sign-search-combobox input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sign-search-options {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.sign-search-option {
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.sign-search-option:hover,
+.sign-search-option.is-active {
+  background: var(--surface-2);
 }
 
 .sign-search-missing {

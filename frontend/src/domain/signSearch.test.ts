@@ -4,6 +4,7 @@ import {
   normalizeQuery,
   editDistance,
   fuzzySuggestions,
+  autocomplete,
 } from './signSearch'
 import { SHIPPED_GLOSSES } from '../content/dynamicVocab'
 import { SIGN_SYNONYMS } from '../content/signSynonyms'
@@ -142,5 +143,60 @@ describe('fuzzySuggestions', () => {
   it('dedupes a gloss reachable via both its name and a synonym', () => {
     const suggestions = fuzzySuggestions('fathr', glosses, { papa: 'father' })
     expect(suggestions.filter((g) => g === 'father')).toHaveLength(1)
+  })
+})
+
+describe('autocomplete', () => {
+  const glosses = ['father', 'mother', 'brother', 'thank you', 'think'] as const
+
+  it('returns nothing for an empty or whitespace query', () => {
+    expect(autocomplete('')).toEqual([])
+    expect(autocomplete('   ')).toEqual([])
+  })
+
+  it('ranks prefix matches ahead of substring matches for a short query', () => {
+    const out = autocomplete('th', glosses, {})
+    // `think`/`thank you` start with `th`; `father`/`mother`/`brother` only
+    // contain it. Prefix hits must come first.
+    expect(out.slice(0, 2)).toEqual(['think', 'thank you'])
+    expect(out).toContain('mother') // substring hit still surfaces, but later
+  })
+
+  it('ranks a shorter prefix match ahead of a longer one', () => {
+    // both start with `th`; `think` (5) sorts before `thank you` (9).
+    expect(autocomplete('th', glosses, {})[0]).toBe('think')
+  })
+
+  it('ranks an exact term ahead of a mere prefix', () => {
+    // `father` (exact) beats `father...`-style prefixes; with this set it's just
+    // the top hit for its own name.
+    expect(autocomplete('father', glosses, {})[0]).toBe('father')
+  })
+
+  it('falls back to substring matches', () => {
+    // `other` is a substring of both mother and brother, but a prefix of neither.
+    expect(autocomplete('other', glosses, {})).toEqual(
+      expect.arrayContaining(['mother', 'brother']),
+    )
+  })
+
+  it('is typo-tolerant for longer queries', () => {
+    expect(autocomplete('fathr', glosses, {})).toContain('father')
+  })
+
+  it('resolves synonym keys onto the canonical gloss and dedupes', () => {
+    const out = autocomplete('da', glosses, { dad: 'father' })
+    expect(out).toContain('father')
+    expect(out.filter((g) => g === 'father')).toHaveLength(1)
+  })
+
+  it('caps the number of suggestions at the requested limit', () => {
+    // every gloss contains a matchable letter; ask for at most 2.
+    expect(autocomplete('o', glosses, {}, 2).length).toBeLessThanOrEqual(2)
+  })
+
+  it('defaults to the shipped vocabulary', () => {
+    const out = autocomplete('fath')
+    expect(out).toContain('father')
   })
 })
