@@ -114,8 +114,9 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
   **optimistic upper bound** (full pool): **0.689 vs 0.691 baseline — flat, the ceiling → shelve.**
   Tooling kept opt-in. **This closes the Phase-4 accuracy track** — every lever explored.
 
-**▶ P4M11 (search autocomplete) done on `milestone/P4M11-search-autocomplete` — resolves the
-last P4M9 deferral (frontend-only; gates green). P4M17 last *shipped* to `main`/deployed.**
+**▶ No active task — P4M11 (search autocomplete) merged ([#45](https://github.com/aakash-tir/sign-app/pull/45))
++ deployed, resolving the last P4M9 deferral (frontend-only). P4M8 tested-negative closed the
+accuracy track.**
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
 bottleneck); real multi-sign Learn sentences (ADR-012).
