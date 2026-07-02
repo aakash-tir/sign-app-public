@@ -127,8 +127,10 @@ sub-milestones off an integration branch: P5M1 [#46](https://github.com/aakash-t
 P5M2 [#47](https://github.com/aakash-tir/sign-app/pull/47) · P5M3 [#48](https://github.com/aakash-tir/sign-app/pull/48)
 → main [#49](https://github.com/aakash-tir/sign-app/pull/49). Frontend-only; no model change.
 
-**▶ No active task — Phase 5 (Sentences) merged + deployed. P4M8 tested-negative closed the
-accuracy track.**
+**▶ Next up: the owner will manually check the Sentences feature on the live app**
+(Phase 5 merged + deployed 2026-07-01, but not yet owner-verified in real use — treat any
+tuning/fix feedback from that check as the next milestone's input). P4M8 tested-negative
+closed the accuracy track.
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
 bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.
