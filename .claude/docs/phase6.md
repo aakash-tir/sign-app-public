@@ -165,7 +165,7 @@ milestone as they land; every milestone ships tests (working agreement).
 | Milestone | Status | Branch |
 | --- | --- | --- |
 | P6M1 — Syllabus + reconciliation | ☑ merged [#50](https://github.com/aakash-tir/sign-app/pull/50) | `milestone/P6M1-syllabus` |
-| P6M2 — Store-wrap feasibility spike | ◐ in progress (GO verdict; PR pending) | `milestone/P6M2-store-spike` |
+| P6M2 — Store-wrap feasibility spike | ☑ merged [#51](https://github.com/aakash-tir/sign-app/pull/51) (squash `b41c15e`) — **GO**; real-device check = owner follow-up | `milestone/P6M2-store-spike` |
 | P6M3 — Recall engine (pure domain) | ☐ not started | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☐ not started | `milestone/P6M5-sentence-stage` |

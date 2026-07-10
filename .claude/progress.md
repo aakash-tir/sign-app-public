@@ -225,7 +225,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | Milestone | Status | Branch |
 | --- | --- | --- |
 | P6M1 — Syllabus + reconciliation | ☑ merged [#50](https://github.com/aakash-tir/sign-app/pull/50) (squash `1eb78a1`) — 11 units / 62 sets, 103 glosses + 13 placeholders, 8 letter batches, `PRIORITY_WORDS` | `milestone/P6M1-syllabus` |
-| P6M2 — Store-wrap feasibility spike | ◐ in progress (GO verdict; PR pending) | `milestone/P6M2-store-spike` |
+| P6M2 — Store-wrap feasibility spike | ☑ merged [#51](https://github.com/aakash-tir/sign-app/pull/51) (squash `b41c15e`) — **GO**; real-device check = owner follow-up | `milestone/P6M2-store-spike` |
 | P6M3 — Recall engine (pure domain) | ☐ not started | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☐ not started | `milestone/P6M5-sentence-stage` |
@@ -257,7 +257,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
   Build recipe: JAVA_HOME = Android Studio JBR 21, `./gradlew assembleDebug`. All gates
   green: prettier / eslint / tsc / **262 vitest** / **23 playwright** (on 4179).
   iOS path: macOS CI (GitHub Actions) at packaging time; signing owner-gated (P6M9).
-  Findings in [`docs/phase6.md`](docs/phase6.md) §P6M2. **Next: PR + merge.**
+  Findings in [`docs/phase6.md`](docs/phase6.md) §P6M2. **Merged [#51](https://github.com/aakash-tir/sign-app/pull/51) (squash `b41c15e`); both CI lanes green. Next: P6M3 (recall engine) — the real-device APK check is a parallel owner follow-up.**
 - **2026-07-10** — **P6M1: syllabus + reconciliation (content + pure domain)** (branch
   `milestone/P6M1-syllabus`). The learner-app curriculum, designed **ideal-first** then
   reconciled against the live vocabulary. **Content** (`content/curriculum.ts`,
