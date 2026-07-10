@@ -226,7 +226,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | --- | --- | --- |
 | P6M1 — Syllabus + reconciliation | ☑ merged [#50](https://github.com/aakash-tir/sign-app/pull/50) (squash `1eb78a1`) — 11 units / 62 sets, 103 glosses + 13 placeholders, 8 letter batches, `PRIORITY_WORDS` | `milestone/P6M1-syllabus` |
 | P6M2 — Store-wrap feasibility spike | ☑ merged [#51](https://github.com/aakash-tir/sign-app/pull/51) (squash `b41c15e`) — **GO**; real-device check = owner follow-up | `milestone/P6M2-store-spike` |
-| P6M3 — Recall engine (pure domain) | ◐ in progress (implemented; PR pending) | `milestone/P6M3-recall-engine` |
+| P6M3 — Recall engine (pure domain) | ☑ merged [#52](https://github.com/aakash-tir/sign-app/pull/52) — teach → 3× recall, pool review every 3rd prompt | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☐ not started | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☐ not started | `milestone/P6M6-alphabet-path` |
@@ -251,7 +251,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
   throughout. Tests: **+21 vitest** (phase transitions, interleave pattern
   new-new-review, empty-pool/1-word/placeholder edges, determinism, full seeded
   session walk). All gates green: prettier / eslint / tsc / **283 vitest** / **23
-  playwright**. **Next: PR + merge.**
+  playwright**. **Merged [#52](https://github.com/aakash-tir/sign-app/pull/52); all CI green. Next: P6M4 (words path UI).**
 - **2026-07-10** — **P6M2: store-wrap feasibility spike — GO** (branch
   `milestone/P6M2-store-spike`). Wrapped the current build in **Capacitor 7**
   (`capacitor.config.ts` + committed `frontend/android/`; provisional appId
