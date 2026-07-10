@@ -151,7 +151,7 @@ green; verify the Cloudflare deploy.
 | Milestone | Status | Branch |
 | --- | --- | --- |
 | Plan doc (this file) | ☑ on the integration branch | `milestone/P5-sentences` |
-| P5M1 — Content bank + pure domain | ☑ merged [#46](https://github.com/aakash-tir/sign-app/pull/46) — 57-sentence bank + `domain/sentences.ts` (eligibility, level bands, seeded selection) | `milestone/P5M1-sentence-domain` |
+| P5M1 — Content bank + pure domain | ☑ merged [#46](https://github.com/aakash-tir/sign-app/pull/46) — 59-sentence bank + `domain/sentences.ts` (eligibility, level bands, seeded selection) | `milestone/P5M1-sentence-domain` |
 | P5M2 — Persisted sentence progress | ☑ merged [#47](https://github.com/aakash-tir/sign-app/pull/47) — Dexie v3 `sentences` table + `SentenceRepo` (incl. v2→v3 migration test) | `milestone/P5M2-sentence-progress` |
 | P5M3 — Sentences section UI + e2e | ☑ merged [#48](https://github.com/aakash-tir/sign-app/pull/48) — `/sentences` tab, per-sign verify + valve, progress line, gating states; in-Learn drill removed | `milestone/P5M3-sentences-view` |
 | Docs + merge to main + deploy | ☑ this PR | `milestone/P5-sentences` → `main` |

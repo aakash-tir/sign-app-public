@@ -30,7 +30,9 @@ Applies to `frontend/`. Architecture context: [`../../docs/architecture.md`](../
 
 ## Recognition layer
 
-- All camera + MediaPipe + TF.js code lives in `src/recognition/`.
+- All camera + MediaPipe + classifier code lives in `src/recognition/` — the
+  static JSON-MLP (`mlpClassifier.ts`) and the dynamic ONNX runtime
+  (`onnxDynamicClassifier.ts`, `onnxruntime-web`). There is no TF.js.
 - The **camera is owned by the app-level `CameraProvider`** (one shared
   `MediaStream`, mounted above the router) — see **ADR-018**. Views attach/detach
   the shared stream via `useCamera`/`useCameraContext` but **never call

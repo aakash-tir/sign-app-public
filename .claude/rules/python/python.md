@@ -17,9 +17,13 @@ Applies to `ml/` (build-time training & tooling only — see ADR-004). This code
 
 ## Structure
 
-- Package under `ml/src/sign_ml/` with clear stages: `extract/`, `train/`,
-  `export/`, `eval/`, `data/` (see [`../../docs/architecture.md`](../../docs/architecture.md) §3).
-- Keep stages composable and CLI-runnable (e.g. `uv run python -m sign_ml.train`).
+- Package under `ml/src/sign_ml/` as **flat stage modules** — `extract.py`,
+  `model.py`, `export.py`, `eval.py`, `data.py`, plus their `dynamic_*`
+  counterparts (see [`../../docs/architecture.md`](../../docs/architecture.md) §3).
+- Keep stages composable and CLI-runnable. The dynamic pipeline is the main entry
+  point: `uv run --project ml python -m sign_ml.dynamic_pipeline <stage>`
+  (`extract` · `extract-combined` · `assemble-combined` · `pretrain` · `train` ·
+  `crossval` · `calibrate` · `diagnose`; `train` also exports the ONNX).
 - Deterministic where possible: seed RNG; log config + metrics for reproducibility.
 
 ## Normalization parity
@@ -31,8 +35,13 @@ Applies to `ml/` (build-time training & tooling only — see ADR-004). This code
 
 ## Model export
 
-- Export to **TF.js** format into `frontend/public/models/`.
-- Keep models small (MLP for static, GRU/LSTM for dynamic) for fast offline load.
+- Export into `frontend/public/models/` in one of two formats: **plain JSON
+  weights** for the static fingerspelling MLP (trained with scikit-learn;
+  `format: mlp-1`, ADR-011) and **ONNX** for the dynamic model (trained in
+  PyTorch, exported via `torch.onnx.export`, loaded by `onnxruntime-web`,
+  ADR-015). **Never TF.js.**
+- Keep models small (MLP for static, BiGRU + attention for dynamic) for fast
+  offline load; the on-device ONNX budget is **≤ ~1.5 MB** (shipped: 698 KB).
 - Record dataset, subset, and **measured accuracy** alongside each exported model;
   vocabulary expansion is gated on these numbers (ADR-007).
 

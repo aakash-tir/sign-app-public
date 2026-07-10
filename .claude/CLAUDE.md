@@ -18,7 +18,7 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 | [`docs/phase2.md`](docs/phase2.md) | **Phase 2 plan** — depth & polish milestones (P2M1–P2M5) after M0–M7. |
 | [`docs/phase3.md`](docs/phase3.md) | **Phase 3 plan** — accuracy & vocabulary depth (P3M1–P3M3): honest eval, reviewed-dataset expansion toward ~50 signs, landmark-space augmentation. |
 | [`docs/phase4.md`](docs/phase4.md) | **Phase 4 plan** — two tracks: **discovery** (P4M1: sign **search** tab, shipped) + **accuracy** (P4M2–P4M8: lift the 18 dynamic signs below the honest 0.50 gate). |
-| [`docs/phase5.md`](docs/phase5.md) | **Phase 5 plan** — the **Sentences section** (P5M1–P5M3, shipped): dedicated tab, 57-sentence bank, persisted progress, level bands (ADR-028, FR-20). |
+| [`docs/phase5.md`](docs/phase5.md) | **Phase 5 plan** — the **Sentences section** (P5M1–P5M3, shipped): dedicated tab, 59-sentence bank, persisted progress, level bands (ADR-028, FR-20). |
 | [`docs/decisions.md`](docs/decisions.md) | **Decision log (ADRs)** + open questions. |
 | [`docs/hosting.md`](docs/hosting.md) | **Hosting** — what Cloudflare Pages is and how we deploy. |
 | [`progress.md`](progress.md) | **Live status** — which milestone we're on, what's done. |
@@ -28,10 +28,14 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 ## The 60-second summary
 
 - **Stack:** React + TypeScript + Vite + `vite-plugin-pwa` (runtime).
-  **Python** (`uv`, MediaPipe, TF/Keras) for training only — see ADR-004.
+  **Python** (`uv`, MediaPipe, **scikit-learn** for the static MLP + **PyTorch**
+  for the dynamic model) for training only — see ADR-004.
 - **Recognition:** MediaPipe Tasks Vision extracts hand/pose landmarks **on-device**,
-  a small **TF.js** classifier labels the sign. No video leaves the device; works
-  offline (ADR-002).
+  then a classifier labels the sign: a **hand-written JSON-weights MLP** for static
+  fingerspelling (ADR-011) and an **ONNX model via `onnxruntime-web`** for dynamic
+  signs (ADR-015). No video leaves the device; works offline (ADR-002).
+  *(No TensorFlow/TF.js anywhere — ADR-002's original "TF.js classifier" was
+  superseded by ADR-011 + ADR-015.)*
 - **Scope:** MVP = fingerspelling + curated common signs; broad word-level
   recognition is research-hard and phased/accuracy-gated (ADR-007).
 - **Persistence:** local-first, IndexedDB via Dexie (ADR-005).
@@ -118,7 +122,7 @@ now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-se
 
 **✅ Phase 5 — the Sentences section (2026-07-01, [`docs/phase5.md`](docs/phase5.md), ADR-028,
 FR-20).** Promoted sentences from the minimal P2M7 Learn drill to a **top-level `/sentences`
-tab**: a **57-sentence bank** (2–4 signs over the 103-gloss vocab), pure domain
+tab**: a **59-sentence bank** (2–4 signs over the 103-gloss vocab), pure domain
 eligibility/selection (all-confident ∩ per-level length bands; seeded RNG preferring
 un-completed), **persisted completion progress** (Dexie v3 + `SentenceRepo`), per-sign
 camera verification (ADR-025 acceptance, rising-edge advance) with the "That's what I did"
@@ -127,10 +131,15 @@ sub-milestones off an integration branch: P5M1 [#46](https://github.com/aakash-t
 P5M2 [#47](https://github.com/aakash-tir/sign-app/pull/47) · P5M3 [#48](https://github.com/aakash-tir/sign-app/pull/48)
 → main [#49](https://github.com/aakash-tir/sign-app/pull/49). Frontend-only; no model change.
 
-**▶ Next up: the owner will manually check the Sentences feature on the live app**
-(Phase 5 merged + deployed 2026-07-01, but not yet owner-verified in real use — treat any
-tuning/fix feedback from that check as the next milestone's input). P4M8 tested-negative
-closed the accuracy track.
+**✅ Owner-verified (2026-07-10): the Sentences feature works in real use.** Checked
+against a locally seeded bank (all 103 dynamic signs forced `confident` via a temporary
+dev-only scaffold, since reaching the ADR-009 gate organically needs ≥20 confident words);
+`/sentences` unlocked and drilled correctly. Scaffold removed, not committed. **Phase 5 is
+closed.** P4M8 tested-negative closed the accuracy track.
+
+**▶ Next up: no milestone in flight** — pick from the parked list below.
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
 bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.
+Also: `SIGN_SENTENCES` has no count assertion, so the bank size drifted from the docs
+undetected (57 → 59) — worth pinning in `signSentences.test.ts`.

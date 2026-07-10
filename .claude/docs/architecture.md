@@ -22,7 +22,8 @@
 │   Recognition layer                                           │
 │     ├─ camera (getUserMedia)                                  │
 │     ├─ MediaPipe Tasks Vision  → hand/pose landmarks (WASM)   │
-│     ├─ classifier (TF.js)      → sign label + confidence      │
+│     ├─ classifier             → sign label + confidence       │
+│     │    static: JSON-MLP · dynamic: ONNX (onnxruntime-web)   │
 │                                                                │
 │   Persistence:  IndexedDB (word bank, progress) + Cache API   │
 │                 (app shell, models) via service worker        │
@@ -55,7 +56,8 @@ files over HTTPS.
 | State | **Zustand** (lightweight) | domain state kept in pure TS; store is thin |
 | Camera | **getUserMedia / WebRTC** | cross-platform camera access |
 | Landmarks | **`@mediapipe/tasks-vision`** | Hand Landmarker / Gesture Recognizer, on-device WASM/WebGL |
-| Inference (static) | **hand-written MLP** over bundled JSON weights | zero-dep, offline (ADR-011); TF.js/ONNX revisited for dynamic models (M6) |
+| Inference (static) | **hand-written MLP** over bundled JSON weights | zero-dep, offline (ADR-011) |
+| Inference (dynamic) | **`onnxruntime-web`** over a bundled ONNX model | BiGRU + attention, code-split out of the main bundle (ADR-015) |
 | Storage | **IndexedDB** via **Dexie** | word bank, progress, proficiency |
 | Lint/format | **ESLint + Prettier** | |
 | Types | **tsc --noEmit** | gate |
@@ -68,8 +70,9 @@ files over HTTPS.
 | Language | **Python 3.12+** | |
 | Env/deps | **uv** | fast, reproducible |
 | Landmark extraction | **MediaPipe (Python)** | same landmark topology as the web runtime |
-| Training | **TensorFlow / Keras** | static MLP + dynamic sequence model |
-| Export | **tensorflowjs converter** | → TF.js format the frontend loads |
+| Training (static) | **scikit-learn** `MLPClassifier` | the fingerspelling MLP (ADR-011) |
+| Training (dynamic) | **PyTorch** (`torch>=2.4`) | BiGRU + attention sequence model. *Not* TensorFlow — see ADR-015 |
+| Export | plain **JSON weights** (static, `format: mlp-1`); **`torch.onnx.export`** → ONNX (dynamic) | the two formats the frontend loads |
 | Format/lint | **ruff** (`ruff format` + `ruff check`) | gate |
 | Types | **mypy .** | gate |
 | Tests | **pytest** | gate |
@@ -88,18 +91,18 @@ sign-app/
 │  │  ├─ modes/learn/        # Learn-mode UI
 │  │  ├─ modes/practice/     # Practice-mode UI
 │  │  ├─ domain/             # PURE TS: buckets, selection algo, proficiency
-│  │  ├─ recognition/        # camera, mediapipe, tf.js classifier
+│  │  ├─ recognition/        # camera, mediapipe, JSON-MLP + ONNX classifiers
 │  │  ├─ data/               # Dexie schema + repositories
 │  │  └─ content/            # curriculum / sign reference assets metadata
-│  ├─ public/models/         # exported TF.js model(s) + mediapipe wasm/assets
-│  ├─ tests/                 # vitest + playwright
+│  ├─ public/models/         # bundled ONNX model + metadata; mediapipe wasm/assets
+│  ├─ e2e/                   # playwright (vitest lives beside its source)
 │  └─ package.json
 ├─ ml/                       # Python training + tooling (build-time)
-│  ├─ src/sign_ml/
-│  │  ├─ extract/            # video/image → landmarks
-│  │  ├─ train/              # static + sequence model training
-│  │  ├─ export/             # → tfjs
-│  │  └─ data/               # dataset adapters (ASL alphabet, WLASL)
+│  ├─ src/sign_ml/           # flat stage modules, CLI-runnable
+│  │  ├─ extract.py / dynamic_extract.py     # video/image → landmarks
+│  │  ├─ model.py / dynamic_model.py         # static + sequence training
+│  │  ├─ export.py / dynamic_export.py       # → JSON weights / ONNX
+│  │  └─ data.py, wlasl.py, msasl.py, ingest.py   # dataset adapters
 │  ├─ tests/
 │  └─ pyproject.toml
 ├─ .claude/                  # documentation (this directory)
@@ -122,7 +125,8 @@ artifact crosses the boundary as a checked-in/published model file.
    canonicalize handedness) — shared logic, mirrored between TS runtime and
    Python training so train/serve features match.
 4. The normalized feature vector (static) or window of frames (dynamic) is fed to
-   the **TF.js classifier** → `{label, confidence}`.
+   the classifier — the **JSON-MLP** (static) or the **ONNX model** via
+   `onnxruntime-web` (dynamic) → `{label, confidence}`.
 5. Domain layer decides **correct / not-correct** by comparing the predicted
    label to the prompted word above a confidence threshold (with deb: requiring N
    consecutive agreeing frames to debounce).
@@ -231,7 +235,7 @@ Edge cases (all covered by unit tests in M3):
 ## 7. Offline & PWA
 
 - `vite-plugin-pwa` (Workbox) precaches the **app shell** (HTML/CSS/JS).
-- **MediaPipe WASM/model assets** and the **TF.js classifier** are served from
+- **MediaPipe WASM/model assets** and the **ONNX classifier** are served from
   `public/models/` and runtime-cached (cache-first) so recognition works offline
   after first load.
 - Word-bank/progress live in **IndexedDB** — fully local, survives offline.

@@ -7,9 +7,10 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 > **Live now (2026-07-01):** Phases 1–5 deployed — **24 fingerspelling letters + 103
 > dynamic signs** (114-class BiGRU+attention+ls0.15 model, T=0.80, per-sign accept bars),
-> plus the **Sentences** section (Phase 5: 57-sentence bank, persisted progress, ADR-028).
+> plus the **Sentences** section (Phase 5: 59-sentence bank, persisted progress, ADR-028).
 > Latest milestone: **Phase 5** (P5M1–P5M3, [`docs/phase5.md`](docs/phase5.md)) merged +
-> deployed. The authoritative status hub is [`CLAUDE.md`](CLAUDE.md) §Status; the
+> deployed + **owner-verified in real use (2026-07-10)**. No milestone in flight.
+> The authoritative status hub is [`CLAUDE.md`](CLAUDE.md) §Status; the
 > milestone table + Log below are the running record. The bullets that follow are the
 > historical Phase 2→3 narrative (kept for context, not the current truth).
 
@@ -155,6 +156,8 @@ Legend: ☐ not started · ◐ in progress · ☑ merged
 
 - ASL · PWA-first React/TS · on-device MediaPipe + TF.js · Python build-time only.
   Full rationale in [`docs/decisions.md`](docs/decisions.md).
+  *(Historical: the TF.js half was superseded — static ships a JSON-MLP (ADR-011),
+  dynamic ships ONNX/`onnxruntime-web` trained in PyTorch (ADR-015).)*
 
 ## Open questions to resolve (by milestone)
 
@@ -182,7 +185,8 @@ top-1, 63 → 71 signs**, plus per-sign calibrated acceptance — all live. The 
 mirror/class-weight) each proved they don't help on top of it (kept as opt-in tooling),
 matching the P4M2 diagnosis ("data not the bottleneck"). Remaining: P4M6 (low-value),
 P4M8 (the big SSL swing) — owner to decide later. Honest signer-disjoint CV (ADR-019) is
-the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
+the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 698 KB — the 114-class P4M17 model;
+the 690 KB figure quoted in the P4M5 rows below was the 81-class model).
 
 | Milestone | Track | Status | Branch |
 | --- | --- | --- | --- |
@@ -204,19 +208,36 @@ the arbiter; on-device ONNX ≤ ~1.5 MB (shipped 690 KB).
 
 | Milestone | Status | Branch |
 | --- | --- | --- |
-| P5M1 — Sentence content bank + pure domain | ☑ merged [#46](https://github.com/aakash-tir/sign-app/pull/46) into the integration branch — 57-sentence bank (2–4 signs over the 103-gloss vocab) + `domain/sentences.ts` (all-confident eligibility, level length bands, seeded selection preferring un-completed) | `milestone/P5M1-sentence-domain` |
+| P5M1 — Sentence content bank + pure domain | ☑ merged [#46](https://github.com/aakash-tir/sign-app/pull/46) into the integration branch — 59-sentence bank (2–4 signs over the 103-gloss vocab) + `domain/sentences.ts` (all-confident eligibility, level length bands, seeded selection preferring un-completed) | `milestone/P5M1-sentence-domain` |
 | P5M2 — Persisted sentence progress | ☑ merged [#47](https://github.com/aakash-tir/sign-app/pull/47) — Dexie v3 `sentences` table + `SentenceRepo`; v2→v3 migration test | `milestone/P5M2-sentence-progress` |
 | P5M3 — Sentences section UI + e2e | ☑ merged [#48](https://github.com/aakash-tir/sign-app/pull/48) — `/sentences` route + nav tab, per-sign verify (rising-edge accept) + valve, reference player, progress line, ADR-009 gating states; in-Learn P2M7 drill removed | `milestone/P5M3-sentences-view` |
 | Integration → main | ☑ merged [#49](https://github.com/aakash-tir/sign-app/pull/49) + deployed | `milestone/P5-sentences` |
 
 ## Log
 
+- **2026-07-10** — **Sentences owner-verified + docs audited against the code.** The owner
+  confirmed the Phase 5 Sentences feature **works in real use** — the last open Phase-5
+  item. Verified with a **temporary dev-only scaffold** (`devSeedConfident.ts` +
+  an `import.meta.env.DEV` hook in `main.tsx`) that marked all 103 dynamic signs
+  `confident` through `WordBankRepo`, clearing both ADR-009 gates; `/sentences` showed
+  "0 of 46 sentences completed" (beginner band 2–3 → 17 + 29 of the 59-sentence bank).
+  **Scaffold removed, never committed.** Then audited every doc claim against the code:
+  vocabulary (103/114), calibration (T=0.80), 24 letters, Dexie v3, test counts
+  (233 vitest / 23 playwright / 108 pytest) and the accuracy xlsx all **matched**. Fixed
+  what didn't: the **sentence bank is 59, not 57** (6 places; no test pins the count), the
+  shipped **ONNX is 698 KB, not 690** (that was the 81-class P4M5 model), and — the big one
+  — the docs described a **TF.js / TensorFlow-Keras toolchain that does not exist**. Reality:
+  scikit-learn `MLPClassifier` → JSON weights (static, ADR-011) and PyTorch →
+  `torch.onnx.export` → `onnxruntime-web` (dynamic, ADR-015). Corrected `CLAUDE.md`,
+  `architecture.md` (diagram, stack tables, repo tree, data flow, PWA), and both rules files
+  (`python.md` was *instructing* TF.js export and a non-existent `sign_ml.train` CLI);
+  annotated ADR-002 as superseded rather than rewriting it. Docs-only commit.
 - **2026-07-01** — **Phase 5: the Sentences section — complete** (integration branch
   `milestone/P5-sentences`, plan [docs/phase5.md](docs/phase5.md), ADR-028, FR-20;
   owner-approved scope: top-level tab + persisted progress). Sub-milestones each
   branch → PR → squash into the integration branch (CI extended to run both lanes on
   PRs into `milestone/**`): **P5M1** ([#46](https://github.com/aakash-tir/sign-app/pull/46))
-  content bank 8 → **57 sentences** + pure `domain/sentences.ts`; **P5M2**
+  content bank 8 → **59 sentences** + pure `domain/sentences.ts`; **P5M2**
   ([#47](https://github.com/aakash-tir/sign-app/pull/47)) Dexie v3 + `SentenceRepo`;
   **P5M3** ([#48](https://github.com/aakash-tir/sign-app/pull/48)) the `/sentences`
   section (current-word highlight + reference, per-sign calibrated acceptance with a

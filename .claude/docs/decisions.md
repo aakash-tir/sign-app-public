@@ -17,7 +17,11 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ## ADR-002 — Recognition: landmark-based, on-device
 
-- **Status:** accepted.
+- **Status:** accepted — **but the classifier runtime below is superseded**: the
+  static path became a JSON-weights MLP (**ADR-011**) and the dynamic path became
+  ONNX / `onnxruntime-web` trained in PyTorch (**ADR-015**). **No TF.js or
+  TensorFlow ships or trains today.** The landmark-based, on-device *principle* —
+  which is what this ADR is really about — stands unchanged.
 - **Context:** Need to verify signs from the camera on Windows/Android/iOS/Linux,
   offline, privacy-preserving, low-latency, from one web codebase.
 - **Decision:** **MediaPipe Tasks Vision** (hand/pose landmarks, on-device WASM)
@@ -608,8 +612,9 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   - **Dedicated top-level `/sentences` tab** (always visible; locked/empty states
     explain instead of hiding). The in-Learn drill is **removed** — the top-level
     tab sits next to Learn, so an internal link would be redundant.
-  - **Content bank** (`content/signSentences.ts`): ~57 conservative gloss-order
-    sequences, 2–4 signs, shipped-glosses-only (test-enforced); ids = joined
+  - **Content bank** (`content/signSentences.ts`): 59 conservative gloss-order
+    sequences (17 × 2-sign, 29 × 3-sign, 13 × 4-sign), shipped-glosses-only
+    (test-enforced); ids = joined
     glosses (stable, derivable). Still a **sequencing exercise**, not ASL grammar
     (reaffirms ADR-012's framing).
   - **Pure domain** (`domain/sentences.ts`): eligibility = every sign `confident`
