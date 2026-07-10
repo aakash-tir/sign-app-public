@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  CurriculumSetProgress,
   SentenceProgress,
   UserProfile,
   Word,
@@ -23,6 +24,7 @@ export class SignAppDB extends Dexie {
   declare progress: Table<WordProgress, string>
   declare profile: Table<ProfileRecord, string>
   declare sentences: Table<SentenceProgress, string>
+  declare curriculumSets: Table<CurriculumSetProgress, string>
 
   constructor(name = 'sign-app') {
     super(name)
@@ -36,6 +38,11 @@ export class SignAppDB extends Dexie {
     // Phase 5 (ADR-028): persisted per-sentence completion progress.
     this.version(3).stores({
       sentences: 'sentenceId',
+    })
+    // Phase 6 (ADR-029): persisted curriculum-set completion — drives the
+    // learner route's linear-with-review unlock (Q3).
+    this.version(4).stores({
+      curriculumSets: 'setId',
     })
   }
 }

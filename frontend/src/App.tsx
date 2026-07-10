@@ -14,6 +14,7 @@ import { SettingsView } from './modes/settings/SettingsView'
 import { DynamicSignView } from './modes/dynamic/DynamicSignView'
 import { SearchView } from './modes/search/SearchView'
 import { SentencesView } from './modes/sentences/SentencesView'
+import { WordsPathView } from './modes/learner/WordsPathView'
 import { loadOverlayColorMode } from './recognition/overlayColorMode'
 import { CameraProvider } from './recognition/cameraProvider'
 
@@ -30,6 +31,7 @@ function App() {
           <header className="app-header">
             <h1>Sign App</h1>
             <nav className="mode-switch" aria-label="Main">
+              <NavLink to="/course">Course</NavLink>
               <NavLink to="/practice">Practice</NavLink>
               <NavLink to="/learn">Learn</NavLink>
               <NavLink to="/sentences">Sentences</NavLink>
@@ -43,6 +45,7 @@ function App() {
           <main className="app-main">
             <Routes>
               <Route path="/" element={<Navigate to="/practice" replace />} />
+              <Route path="/course" element={<WordsPathView />} />
               <Route path="/practice" element={<PracticeMode />} />
               <Route path="/learn" element={<LearnMode />} />
               <Route path="/sentences" element={<SentencesView />} />

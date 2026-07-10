@@ -1,0 +1,117 @@
+.words-path {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.words-path h2 {
+  margin: 0;
+}
+
+.words-path-loading,
+.words-path-progress,
+.recall-progress {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.path-unit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.path-unit-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.path-sets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.path-set {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.path-set-locked {
+  opacity: 0.55;
+}
+
+.path-set-current {
+  border-color: var(--ring);
+}
+
+.path-set-placeholder {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.path-set-signs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.path-word {
+  text-transform: capitalize;
+  color: var(--text);
+}
+
+.path-word-soon {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.path-soon-note {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.teach-card,
+.recall-reveal,
+.set-complete {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.teach-cue,
+.recall-cue {
+  margin: 0;
+  color: var(--muted);
+}
+
+.teach-word,
+.recall-word {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.recall-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.feedback-text {
+  margin: 0;
+  font-size: 1.1rem;
+}

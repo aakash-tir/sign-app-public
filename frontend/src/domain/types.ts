@@ -49,6 +49,13 @@ export function defaultProfile(): UserProfile {
   }
 }
 
+/** Persisted completion record for one curriculum set (Phase 6, ADR-029). */
+export interface CurriculumSetProgress {
+  /** The set's stable id (its joined signs — see `domain/curriculum.ts`). */
+  setId: string
+  completedAt: number
+}
+
 /** Persisted completion record for one sentence (FR-20, ADR-028). */
 export interface SentenceProgress {
   /** The sentence's stable id (its joined glosses — see `domain/sentences.ts`). */

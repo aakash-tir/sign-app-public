@@ -31,6 +31,11 @@
   pointer-events: none;
 }
 
+/* Learner surfaces hide the landmark overlay — clean video only (Phase 6 §3). */
+.camera-overlay-off {
+  visibility: hidden;
+}
+
 .camera-controls {
   display: flex;
   flex-direction: column;

@@ -20,6 +20,12 @@ interface DynamicSignStageProps {
    * set. Default `true`; set `false` when the consumer renders its own reference.
    */
   showReference?: boolean
+  /**
+   * Show the landmark overlay on the video. Default `true` (the dev surfaces keep
+   * it); the learner views pass `false` — learners see clean video only (Phase 6
+   * plan §3). The canvas stays mounted (the draw loop owns it); it is just hidden.
+   */
+  showOverlay?: boolean
 }
 
 /**
@@ -33,6 +39,7 @@ export function DynamicSignStage({
   ariaLabel,
   targetControl,
   showReference = true,
+  showOverlay = true,
 }: DynamicSignStageProps) {
   const {
     videoRef,
@@ -58,7 +65,12 @@ export function DynamicSignStage({
           muted
           data-testid="dynamic-video"
         />
-        <canvas ref={canvasRef} className="camera-overlay" />
+        <canvas
+          ref={canvasRef}
+          className={
+            showOverlay ? 'camera-overlay' : 'camera-overlay camera-overlay-off'
+          }
+        />
         {status === 'idle' && <CameraPlaceholder />}
       </div>
 
