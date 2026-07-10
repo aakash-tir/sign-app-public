@@ -144,8 +144,12 @@ closed.** P4M8 tested-negative closed the accuracy track.
 of the same codebase, today's tabs behind a **dev mode**, **linear-with-review**
 progression, **bucket-based** recall, **24 letters** (J/Z wait until verifiable),
 **placeholder slots** for not-yet-recognized words, a **new learner-facing look**.
-**First milestone: P6M1 (draft the syllabus for owner review), then the P6M2 store-wrap
-feasibility spike.**
+**P6M1 (syllabus + reconciliation) is merged
+([#50](https://github.com/aakash-tir/sign-app/pull/50)):** 11 units / 62 sets covering
+all 103 shipped glosses + 13 placeholder words (`PRIORITY_WORDS`: goodbye, you, me, my,
+your, feel, deaf, when, why, today, tomorrow, morning, night), 8 letter batches (no
+J/Z) — owner review of the route welcome; it's plain content
+(`frontend/src/content/curriculum.ts`). **Next: P6M2 (store-wrap feasibility spike).**
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
 bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.

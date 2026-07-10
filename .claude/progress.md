@@ -10,7 +10,8 @@ is in [`docs/milestones.md`](docs/milestones.md).
 > plus the **Sentences** section (Phase 5: 59-sentence bank, persisted progress, ADR-028).
 > Latest milestone: **Phase 5** (P5M1–P5M3, [`docs/phase5.md`](docs/phase5.md)) merged +
 > deployed + **owner-verified in real use (2026-07-10)**. **Phase 6 (the learner app)
-> is planned** — [`docs/phase6.md`](docs/phase6.md), ADR-029; **P6M1 (syllabus) is next.**
+> is underway** — [`docs/phase6.md`](docs/phase6.md), ADR-029; **P6M1 (syllabus) merged
+> [#50](https://github.com/aakash-tir/sign-app/pull/50); P6M2 (store-wrap spike) is next.**
 > The authoritative status hub is [`CLAUDE.md`](CLAUDE.md) §Status; the
 > milestone table + Log below are the running record. The bullets that follow are the
 > historical Phase 2→3 narrative (kept for context, not the current truth).
@@ -223,7 +224,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 | Milestone | Status | Branch |
 | --- | --- | --- |
-| P6M1 — Syllabus + reconciliation | ◐ in progress (implemented; PR pending) | `milestone/P6M1-syllabus` |
+| P6M1 — Syllabus + reconciliation | ☑ merged [#50](https://github.com/aakash-tir/sign-app/pull/50) (squash `1eb78a1`) — 11 units / 62 sets, 103 glosses + 13 placeholders, 8 letter batches, `PRIORITY_WORDS` | `milestone/P6M1-syllabus` |
 | P6M2 — Store-wrap feasibility spike | ☐ not started | `milestone/P6M2-store-spike` |
 | P6M3 — Recall engine (pure domain) | ☐ not started | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
@@ -254,7 +255,9 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
   that fires when the model ships one). All gates green: prettier / eslint / tsc /
   **262 vitest** / **23 playwright**. *(Local gotcha: a stale preview server from
   another project was squatting playwright's port 4173 — `reuseExistingServer` tested
-  the wrong app; killed it, all green.)* **Next: PR + merge.**
+  the wrong app; killed it, all green.)* **Merged
+  [#50](https://github.com/aakash-tir/sign-app/pull/50) (squash `1eb78a1`); all three CI
+  checks green. Next: P6M2 (store-wrap feasibility spike).**
 - **2026-07-10** — **Phase 6 planned: the learner app.** The owner wrote the next-phase
   plan in `plan.md` (the real user-facing app: syllabus + teach→recall, two always-open
   paths — alphabet and words — stick-figure reference for now, no landmark overlay for
