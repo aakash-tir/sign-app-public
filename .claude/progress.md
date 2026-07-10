@@ -9,7 +9,8 @@ is in [`docs/milestones.md`](docs/milestones.md).
 > dynamic signs** (114-class BiGRU+attention+ls0.15 model, T=0.80, per-sign accept bars),
 > plus the **Sentences** section (Phase 5: 59-sentence bank, persisted progress, ADR-028).
 > Latest milestone: **Phase 5** (P5M1–P5M3, [`docs/phase5.md`](docs/phase5.md)) merged +
-> deployed + **owner-verified in real use (2026-07-10)**. No milestone in flight.
+> deployed + **owner-verified in real use (2026-07-10)**. **Phase 6 (the learner app)
+> is planned** — [`docs/phase6.md`](docs/phase6.md), ADR-029; **P6M1 (syllabus) is next.**
 > The authoritative status hub is [`CLAUDE.md`](CLAUDE.md) §Status; the
 > milestone table + Log below are the running record. The bullets that follow are the
 > historical Phase 2→3 narrative (kept for context, not the current truth).
@@ -213,8 +214,40 @@ the 690 KB figure quoted in the P4M5 rows below was the 81-class model).
 | P5M3 — Sentences section UI + e2e | ☑ merged [#48](https://github.com/aakash-tir/sign-app/pull/48) — `/sentences` route + nav tab, per-sign verify (rising-edge accept) + valve, reference player, progress line, ADR-009 gating states; in-Learn P2M7 drill removed | `milestone/P5M3-sentences-view` |
 | Integration → main | ☑ merged [#49](https://github.com/aakash-tir/sign-app/pull/49) + deployed | `milestone/P5-sentences` |
 
+## Phase 6 — the learner app ([docs/phase6.md](docs/phase6.md), ADR-029)
+
+The owner's plan ([`../plan.md`](../plan.md)): the actual user app — syllabus +
+Duolingo-style teach→recall over two always-open paths, a new learner-facing look,
+today's tabs behind a dev mode, **store-first** native packaging. All seven
+plan-shaping questions answered 2026-07-10 (plan.md §6).
+
+| Milestone | Status | Branch |
+| --- | --- | --- |
+| P6M1 — Syllabus + reconciliation | ☐ not started | `milestone/P6M1-syllabus` |
+| P6M2 — Store-wrap feasibility spike | ☐ not started | `milestone/P6M2-store-spike` |
+| P6M3 — Recall engine (pure domain) | ☐ not started | `milestone/P6M3-recall-engine` |
+| P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
+| P6M5 — Sentence stage | ☐ not started | `milestone/P6M5-sentence-stage` |
+| P6M6 — Alphabet path UI | ☐ not started | `milestone/P6M6-alphabet-path` |
+| P6M7 — Learner shell + new look | ☐ not started | `milestone/P6M7-learner-shell` |
+| P6M8 — Progress & polish | ☐ not started | `milestone/P6M8-progress` |
+| P6M9 — Store release (owner-gated) | ☐ not started | `milestone/P6M9-store-release` |
+
 ## Log
 
+- **2026-07-10** — **Phase 6 planned: the learner app.** The owner wrote the next-phase
+  plan in `plan.md` (the real user-facing app: syllabus + teach→recall, two always-open
+  paths — alphabet and words — stick-figure reference for now, no landmark overlay for
+  learners); it was reformatted + grounded against the live system, and the owner
+  answered **all seven plan-shaping questions**: **store-first** packaging (Q1), dev
+  mode for today's tabs (Q2), linear-with-review progression (Q3), extend the session
+  buckets (Q4), **24 letters — J/Z wait** (Q5), **placeholder slots** for
+  not-yet-recognized words (Q6), a **new learner-facing look** (Q7). Authored
+  [`docs/phase6.md`](docs/phase6.md) (P6M1–P6M9: syllabus → store-wrap spike → recall
+  engine → words path → sentence stage → alphabet path → shell/new look → progress →
+  owner-gated store release) + **ADR-029** (extends ADR-003: native wrap around the
+  same codebase); doc map + statuses synced. Store accounts/fees are stop-and-ask
+  items at P6M9. **Next: P6M1 — draft the syllabus for owner review.**
 - **2026-07-10** — **Sentences owner-verified + docs audited against the code.** The owner
   confirmed the Phase 5 Sentences feature **works in real use** — the last open Phase-5
   item. Verified with a **temporary dev-only scaffold** (`devSeedConfident.ts` +

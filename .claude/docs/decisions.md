@@ -633,6 +633,46 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
   that sentence's progress (accepted — ids stay derivable). No model/runtime
   change (frontend-only phase). Detail: [`phase5.md`](phase5.md).
 
+## ADR-029 — Phase 6: the learner app (scope + the seven plan decisions)
+
+- **Status:** accepted (owner, 2026-07-10). Phase 6 ([`phase6.md`](phase6.md),
+  owner plan in [`../../plan.md`](../../plan.md)).
+- **Context:** Everything shipped through Phase 5 is a developer/testing
+  surface. The owner's next-phase plan: build the actual user app — a guided,
+  Duolingo-style syllabus + teach→recall experience over two always-open paths
+  (alphabet, words). Seven plan-shaping questions were asked and answered
+  (plan.md §6 — a numbering series local to that file, distinct from the Q1–Q9
+  table below).
+- **Decision:**
+  - **Store-first packaging:** native app-store distribution is in scope this
+    phase via a Capacitor-style WebView wrap of the **same** React/TS codebase.
+    *Extends ADR-003* (PWA-first, single codebase): the PWA and web delivery
+    remain; a native shell is added around them. Feasibility is de-risked by an
+    early spike (P6M2) before UX work depends on it; store accounts/fees are
+    owner-gated stop-and-ask items (P6M9).
+  - **Today's tabs → dev mode:** the learner app becomes the default UI; the
+    current Practice/Learn/Sentences/Signs/Search views stay reachable behind a
+    hidden developer setting for exercising the recognizer.
+  - **Progression: linear with review** — batches unlock in order, everything
+    learned stays reviewable, no skipping ahead.
+  - **Recall: extend the session buckets** (ADR-008/-009 machinery) with
+    per-batch recall reps; **no wall-clock spaced repetition** this phase.
+  - **Alphabet path teaches 24 letters** — J and Z (motion letters the static
+    recognizer can't verify) wait until they're checkable.
+  - **Not-yet-recognized curriculum words hold placeholder slots**: the
+    syllabus is designed ideal-first, flagged words keep their position but are
+    not taught/verified/recalled until the owner adds them; the flagged list is
+    the priority queue for the next model-vocabulary expansion.
+  - **A new learner-facing look**: its own design language; the current design
+    tokens survive only inside the dev mode.
+- **Consequences:** The app's default surface changes for the first time since
+  P2M3; `main` stays shippable because learner surfaces land additively and
+  P6M7 flips the default last. New platform obligations arrive with the store
+  wrap (macOS CI for iOS builds, store listings/privacy copy, owner-gated
+  accounts). The curriculum becomes a first-class owner-reviewable content
+  artifact with test-enforced invariants (constructibility, reconciliation).
+  Milestones + risks: [`phase6.md`](phase6.md).
+
 ---
 
 ## Open questions (non-blocking, revisit at the noted milestone)

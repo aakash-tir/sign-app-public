@@ -19,11 +19,12 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 | [`docs/phase3.md`](docs/phase3.md) | **Phase 3 plan** — accuracy & vocabulary depth (P3M1–P3M3): honest eval, reviewed-dataset expansion toward ~50 signs, landmark-space augmentation. |
 | [`docs/phase4.md`](docs/phase4.md) | **Phase 4 plan** — two tracks: **discovery** (P4M1: sign **search** tab, shipped) + **accuracy** (P4M2–P4M8: lift the 18 dynamic signs below the honest 0.50 gate). |
 | [`docs/phase5.md`](docs/phase5.md) | **Phase 5 plan** — the **Sentences section** (P5M1–P5M3, shipped): dedicated tab, 59-sentence bank, persisted progress, level bands (ADR-028, FR-20). |
+| [`docs/phase6.md`](docs/phase6.md) | **Phase 6 plan** — the **learner app** (P6M1–P6M9, ADR-029): syllabus + teach→recall over two paths, new learner-facing look, dev mode for today's tabs, store-first packaging. |
 | [`docs/decisions.md`](docs/decisions.md) | **Decision log (ADRs)** + open questions. |
 | [`docs/hosting.md`](docs/hosting.md) | **Hosting** — what Cloudflare Pages is and how we deploy. |
 | [`progress.md`](progress.md) | **Live status** — which milestone we're on, what's done. |
 | [`rules/`](rules/) | **Coding standards** — frontend, Python, and git/CI workflow. |
-| [`../plan.md`](../plan.md) | The owner's plan. **Now holds the Phase 2 plan**; per-item analysis is in [`../output.md`](../output.md). (M0–M7 intent lives in these `.claude` docs.) |
+| [`../plan.md`](../plan.md) | The owner's plan. **Now holds the Phase 6 learner-app plan** (reformatted 2026-07-10); earlier phase plans live in git history + these `.claude` docs. Phase-2 per-item analysis is in [`../output.md`](../output.md). |
 
 ## The 60-second summary
 
@@ -137,7 +138,14 @@ dev-only scaffold, since reaching the ADR-009 gate organically needs ≥20 confi
 `/sentences` unlocked and drilled correctly. Scaffold removed, not committed. **Phase 5 is
 closed.** P4M8 tested-negative closed the accuracy track.
 
-**▶ Next up: no milestone in flight** — pick from the parked list below.
+**▶ Next up: Phase 6 — the learner app.** All seven plan questions answered (owner,
+2026-07-10); plan in [`../plan.md`](../plan.md), detailed milestones in
+[`docs/phase6.md`](docs/phase6.md) (P6M1–P6M9, **ADR-029**): **store-first** native wrap
+of the same codebase, today's tabs behind a **dev mode**, **linear-with-review**
+progression, **bucket-based** recall, **24 letters** (J/Z wait until verifiable),
+**placeholder slots** for not-yet-recognized words, a **new learner-facing look**.
+**First milestone: P6M1 (draft the syllabus for owner review), then the P6M2 store-wrap
+feasibility spike.**
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
 bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.
