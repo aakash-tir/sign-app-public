@@ -153,7 +153,7 @@ verdict GO:** Capacitor Android wrap committed; camera + MediaPipe WASM + onnxru
 all run in the WebView (phase6.md §P6M2). Owner follow-up: sustained-recognition check on
 a **real Android phone** (`adb install frontend/android/app/build/outputs/apk/debug/app-debug.apk`
 — build it first with `./gradlew assembleDebug`, JAVA_HOME = Android Studio's jbr).
-**P6M3 (recall engine) merged [#52](https://github.com/aakash-tir/sign-app/pull/52):** pure teach → recall state machine (`domain/recall.ts`; 3× reps, pool review every 3rd prompt, placeholders excluded). **Next: P6M4 (words path UI).**
+**P6M3 (recall engine) merged [#52](https://github.com/aakash-tir/sign-app/pull/52):** pure teach → recall state machine (`domain/recall.ts`; 3× reps, pool review every 3rd prompt, placeholders excluded). **P6M4 (words path UI) merged [#53](https://github.com/aakash-tir/sign-app/pull/53):** the `/course` tab — path list (linear-with-review, placeholder stubs), teach → recall sessions on the P6M3 engine, Dexie v4 `curriculumSets`, clean learner video (`showOverlay={false}`). Live — owner can try `/course`. **Next: P6M5 (sentence stage at set completion).**
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
 bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.
