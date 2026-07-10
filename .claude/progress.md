@@ -226,7 +226,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | --- | --- | --- |
 | P6M1 — Syllabus + reconciliation | ☑ merged [#50](https://github.com/aakash-tir/sign-app/pull/50) (squash `1eb78a1`) — 11 units / 62 sets, 103 glosses + 13 placeholders, 8 letter batches, `PRIORITY_WORDS` | `milestone/P6M1-syllabus` |
 | P6M2 — Store-wrap feasibility spike | ☑ merged [#51](https://github.com/aakash-tir/sign-app/pull/51) (squash `b41c15e`) — **GO**; real-device check = owner follow-up | `milestone/P6M2-store-spike` |
-| P6M3 — Recall engine (pure domain) | ☐ not started | `milestone/P6M3-recall-engine` |
+| P6M3 — Recall engine (pure domain) | ◐ in progress (implemented; PR pending) | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☐ not started | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☐ not started | `milestone/P6M6-alphabet-path` |
@@ -236,6 +236,22 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 ## Log
 
+- **2026-07-10** — **P6M3: recall engine (pure domain)** (branch
+  `milestone/P6M3-recall-engine`). The teach → recall state machine
+  (`domain/recall.ts`, pure/framework-free, reducer-style immutable state): per set,
+  **teach each sign one at a time** (`startRecallSession`/`confirmTaught`; placeholder
+  words excluded via `teachableSigns` — a placeholder-only set starts `complete`), then
+  **drill recall until every new sign is recalled correctly `RECALL_TARGET_REPS` (3)
+  times** (`nextRecallPrompt`/`recordRecallOutcome`); every
+  `REVIEW_INTERLEAVE_EVERY` (3)rd prompt **reviews the whole learned pool** so old words
+  stay warm (plan.md §2.2); no-immediate-repeat guard; wrong answers never count (the
+  sign stays due — "forgot → view again" arrives as a plain `wrong`, ADR-008); review
+  outcomes never gate completion. Bucket transitions stay in `applyOutcome` (glue layer,
+  Q4 "extend session buckets"); completion feeds `routeAccess` (Q3). Injected seeded RNG
+  throughout. Tests: **+21 vitest** (phase transitions, interleave pattern
+  new-new-review, empty-pool/1-word/placeholder edges, determinism, full seeded
+  session walk). All gates green: prettier / eslint / tsc / **283 vitest** / **23
+  playwright**. **Next: PR + merge.**
 - **2026-07-10** — **P6M2: store-wrap feasibility spike — GO** (branch
   `milestone/P6M2-store-spike`). Wrapped the current build in **Capacitor 7**
   (`capacitor.config.ts` + committed `frontend/android/`; provisional appId
