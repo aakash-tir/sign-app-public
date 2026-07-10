@@ -9,7 +9,11 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    // Not vite's default preview port (4173): with reuseExistingServer, a
+    // preview server from *another* project on the default port silently
+    // becomes the test target (bit us twice — the suite "passed" 1/23 against
+    // a different app). A project-unique port makes that collision impossible.
+    baseURL: 'http://localhost:4179',
     trace: 'on-first-retry',
   },
   projects: [
@@ -29,8 +33,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4173 --strictPort',
-    url: 'http://localhost:4173',
+    command: 'npm run build && npm run preview -- --port 4179 --strictPort',
+    url: 'http://localhost:4179',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

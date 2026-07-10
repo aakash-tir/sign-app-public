@@ -69,6 +69,32 @@ milestone as they land; every milestone ships tests (working agreement).
   (P6M9).
 - Deliverable: committed wrapper config + a written go/no-go findings note in
   this doc. **No store accounts yet.**
+- **Result (2026-07-10): GO.** Capacitor 7 wrap committed (`capacitor.config.ts`
+  + `frontend/android/`; provisional appId `com.aakashtir.signapp` — permanent
+  only at first store upload, P6M9). Debug APK builds at **5.7 MB** (one fix: a
+  `kotlin-bom` pin in `app/build.gradle` for duplicate kotlin-stdlib classes).
+  Verified on two Android 16 emulator instances (one headless):
+  - App installs + launches; the **full UI renders in the WebView** at
+    `https://localhost` (secure context, so `getUserMedia` is allowed).
+  - **`getUserMedia` delivers frames** — the camera feed visibly renders in the
+    `<video>` element; the P2M2 privacy explainer flows exactly as on web.
+  - **MediaPipe tasks-vision WASM loads (from the CDN) with a WebGL2 context
+    and logs "Graph successfully started running"** — on *both* instances.
+  - **onnxruntime-web loads** (WebGPU unavailable → WASM fallback, same as most
+    browsers). **No JS errors** in either run.
+  - **Caveat — emulator, not app:** both instances **crashed (qemu exit)
+    seconds after the vision graph started**, with no preceding JS error; the
+    emulator's virtual-camera + host-GL path can't sustain the load. Sustained
+    recognition therefore still needs a **real-device check** (owner: USB
+    debugging + `adb install
+    frontend/android/app/build/outputs/apk/debug/app-debug.apk`, or run from
+    Android Studio). Watch low-end-phone perf headroom at P6M7-era QA.
+  - **Production TODOs surfaced:** (1) the spike pre-granted `CAMERA` via adb —
+    ship an in-app native permission request before store release; (2)
+    MediaPipe WASM/models load from the CDN at runtime (M7 design), so the
+    native app needs network on first run — bundle them or lean on the SW cache
+    for offline-native later. Build recipe: `JAVA_HOME` = Android Studio JBR
+    (JDK 21), `./gradlew assembleDebug`.
 
 ### P6M3 — Recall engine (pure domain)
 
@@ -120,8 +146,11 @@ milestone as they land; every milestone ships tests (working agreement).
 
 ## 4. Risks / watch items
 
-- **WebView runtime risk** (WASM, camera, ONNX perf inside the wrap) — the
-  whole reason P6M2 runs second, before UX work banks on it.
+- **WebView runtime risk** (WASM, camera, ONNX perf inside the wrap) —
+  **resolved GO by P6M2**: every component loads and runs in the Android
+  WebView. Residual: sustained-session behavior + perf on real (esp. low-end)
+  devices — the emulator can't hold the vision load (qemu crashes), so this
+  moves to a real-device check.
 - **iOS build environment** — Windows dev machine; needs macOS CI (GitHub
   Actions) for iOS builds; signing is owner-gated.
 - **Design scope creep** (Q7 fresh look) — land tokens + shell first, refine
@@ -136,7 +165,7 @@ milestone as they land; every milestone ships tests (working agreement).
 | Milestone | Status | Branch |
 | --- | --- | --- |
 | P6M1 — Syllabus + reconciliation | ☑ merged [#50](https://github.com/aakash-tir/sign-app/pull/50) | `milestone/P6M1-syllabus` |
-| P6M2 — Store-wrap feasibility spike | ☐ not started | `milestone/P6M2-store-spike` |
+| P6M2 — Store-wrap feasibility spike | ◐ in progress (GO verdict; PR pending) | `milestone/P6M2-store-spike` |
 | P6M3 — Recall engine (pure domain) | ☐ not started | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☐ not started | `milestone/P6M5-sentence-stage` |

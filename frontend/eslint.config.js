@@ -13,6 +13,8 @@ export default defineConfig([
     'coverage',
     'playwright-report',
     'test-results',
+    // Generated native store-wrap project (Capacitor, P6M2) — not our lint scope.
+    'android',
   ]),
   {
     files: ['**/*.{ts,tsx}'],
