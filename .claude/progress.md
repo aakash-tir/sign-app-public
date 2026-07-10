@@ -223,7 +223,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 | Milestone | Status | Branch |
 | --- | --- | --- |
-| P6M1 — Syllabus + reconciliation | ☐ not started | `milestone/P6M1-syllabus` |
+| P6M1 — Syllabus + reconciliation | ◐ in progress (implemented; PR pending) | `milestone/P6M1-syllabus` |
 | P6M2 — Store-wrap feasibility spike | ☐ not started | `milestone/P6M2-store-spike` |
 | P6M3 — Recall engine (pure domain) | ☐ not started | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
@@ -235,6 +235,26 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 ## Log
 
+- **2026-07-10** — **P6M1: syllabus + reconciliation (content + pure domain)** (branch
+  `milestone/P6M1-syllabus`). The learner-app curriculum, designed **ideal-first** then
+  reconciled against the live vocabulary. **Content** (`content/curriculum.ts`,
+  owner-reviewable): **11 themed units / 62 word sets** (1–2 signs each) covering **all
+  103 shipped glosses + 13 placeholder words** (Q6), plus **8 alphabetical letter
+  batches** of 3 (the 24 verifiable letters — no J/Z, Q5). **Pure domain**
+  (`domain/curriculum.ts`, framework-free, recognized-set injected): derived
+  `wordStatus` (reconciliation can't drift from `SHIPPED_GLOSSES`), linear-with-review
+  `routeAccess` (Q3; placeholder-only sets never block and are never current),
+  `learnedPool`/`sentencesBuildableFrom`/`routeConstructibility` (the plan.md §2.1
+  ordering rule: after every set the pool builds ≥ 1 bank sentence — holds from set 1,
+  `want eat`; the finished route builds the entire 59-sentence bank), and
+  `priorityWords` → **`PRIORITY_WORDS` = goodbye, you, me, my, your, feel, deaf, when,
+  why, today, tomorrow, morning, night** (the model-track expansion queue). Tests:
+  **+29 vitest** (domain traversal/constructibility edge cases + content invariants,
+  incl. exact 103-gloss set equality and an intentional expected-placeholders assertion
+  that fires when the model ships one). All gates green: prettier / eslint / tsc /
+  **262 vitest** / **23 playwright**. *(Local gotcha: a stale preview server from
+  another project was squatting playwright's port 4173 — `reuseExistingServer` tested
+  the wrong app; killed it, all green.)* **Next: PR + merge.**
 - **2026-07-10** — **Phase 6 planned: the learner app.** The owner wrote the next-phase
   plan in `plan.md` (the real user-facing app: syllabus + teach→recall, two always-open
   paths — alphabet and words — stick-figure reference for now, no landmark overlay for

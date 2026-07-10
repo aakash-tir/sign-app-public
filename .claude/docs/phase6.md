@@ -51,6 +51,13 @@ milestone as they land; every milestone ships tests (working agreement).
 - Tests: route validity (no dupes, set sizes, letters exclude J/Z), every
   `recognized` word actually shipped, constructibility holds, placeholders
   excluded from recall/constructibility.
+- **Result (2026-07-10):** shipped as `content/curriculum.ts` (11 units, 62
+  sets: all 103 shipped glosses + 13 placeholders) + pure `domain/curriculum.ts`
+  (status derived from the injected recognized set — reconciliation can't
+  drift). **Priority words** (route order): `goodbye, you, me, my, your, feel,
+  deaf, when, why, today, tomorrow, morning, night`. Letters: 8 alphabetical
+  batches of 3 (A–Y, no J/Z). Constructibility holds from the very first set
+  (`want eat`) and the finished route builds the entire 59-sentence bank.
 
 ### P6M2 — Store-wrap feasibility spike (early — de-risks Q1)
 
@@ -128,7 +135,7 @@ milestone as they land; every milestone ships tests (working agreement).
 
 | Milestone | Status | Branch |
 | --- | --- | --- |
-| P6M1 — Syllabus + reconciliation | ☐ not started | `milestone/P6M1-syllabus` |
+| P6M1 — Syllabus + reconciliation | ◐ in progress (implemented; PR pending) | `milestone/P6M1-syllabus` |
 | P6M2 — Store-wrap feasibility spike | ☐ not started | `milestone/P6M2-store-spike` |
 | P6M3 — Recall engine (pure domain) | ☐ not started | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☐ not started | `milestone/P6M4-words-path` |
