@@ -29,10 +29,6 @@ export function CameraProvider({
   const statusRef = useRef(status)
   const resumeOnVisibleRef = useRef(false)
 
-  useEffect(() => {
-    statusRef.current = status
-  }, [status])
-
   // Load the one-time-explainer flag from the persisted profile (best-effort).
   useEffect(() => {
     let active = true
@@ -52,13 +48,23 @@ export function CameraProvider({
     setStream(next)
   }, [])
 
+  // Ref + state together, synchronously (same pattern as setActiveStream).
+  // Syncing the ref in a passive effect left a gap where the DOM already
+  // showed `on` but the visibilitychange handler still read the old status —
+  // a tab hidden in that window kept the camera streaming until the next
+  // visibility flip (caught by the tab-hidden test flaking under load).
+  const setCameraStatus = useCallback((next: CameraStatus) => {
+    statusRef.current = next
+    setStatus(next)
+  }, [])
+
   const enableNow = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setError('Camera access is not available in this browser.')
-      setStatus('error')
+      setCameraStatus('error')
       return
     }
-    setStatus('starting')
+    setCameraStatus('starting')
     setError(null)
     try {
       const next = await navigator.mediaDevices.getUserMedia({
@@ -66,12 +72,12 @@ export function CameraProvider({
         audio: false,
       })
       setActiveStream(next)
-      setStatus('on')
+      setCameraStatus('on')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to access camera.')
-      setStatus('error')
+      setCameraStatus('error')
     }
-  }, [setActiveStream])
+  }, [setActiveStream, setCameraStatus])
 
   const start = useCallback(() => {
     if (explainerSeenRef.current) {
@@ -85,8 +91,8 @@ export function CameraProvider({
     resumeOnVisibleRef.current = false // a manual stop shouldn't auto-resume
     streamRef.current?.getTracks().forEach((track) => track.stop())
     setActiveStream(null)
-    setStatus('idle')
-  }, [setActiveStream])
+    setCameraStatus('idle')
+  }, [setActiveStream, setCameraStatus])
 
   const confirmExplainer = useCallback(() => {
     explainerSeenRef.current = true

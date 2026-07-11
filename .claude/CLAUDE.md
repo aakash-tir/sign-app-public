@@ -138,22 +138,34 @@ dev-only scaffold, since reaching the ADR-009 gate organically needs ≥20 confi
 `/sentences` unlocked and drilled correctly. Scaffold removed, not committed. **Phase 5 is
 closed.** P4M8 tested-negative closed the accuracy track.
 
-**▶ Next up: Phase 6 — the learner app.** All seven plan questions answered (owner,
-2026-07-10); plan in [`../plan.md`](../plan.md), detailed milestones in
-[`docs/phase6.md`](docs/phase6.md) (P6M1–P6M9, **ADR-029**): **store-first** native wrap
-of the same codebase, today's tabs behind a **dev mode**, **linear-with-review**
-progression, **bucket-based** recall, **24 letters** (J/Z wait until verifiable),
-**placeholder slots** for not-yet-recognized words, a **new learner-facing look**.
-**P6M1 (syllabus) merged [#50](https://github.com/aakash-tir/sign-app/pull/50):** 11
-units / 62 sets covering all 103 shipped glosses + 13 placeholder words
-(`PRIORITY_WORDS`), 8 letter batches (no J/Z) — owner review of the route welcome; it's
-plain content (`frontend/src/content/curriculum.ts`).
-**P6M2 (store-wrap spike) merged [#51](https://github.com/aakash-tir/sign-app/pull/51) —
-verdict GO:** Capacitor Android wrap committed; camera + MediaPipe WASM + onnxruntime-web
-all run in the WebView (phase6.md §P6M2). Owner follow-up: sustained-recognition check on
-a **real Android phone** (`adb install frontend/android/app/build/outputs/apk/debug/app-debug.apk`
-— build it first with `./gradlew assembleDebug`, JAVA_HOME = Android Studio's jbr).
-**P6M3 (recall engine) merged [#52](https://github.com/aakash-tir/sign-app/pull/52):** pure teach → recall state machine (`domain/recall.ts`; 3× reps, pool review every 3rd prompt, placeholders excluded). **P6M4 (words path UI) merged [#53](https://github.com/aakash-tir/sign-app/pull/53):** the `/course` tab — path list (linear-with-review, placeholder stubs), teach → recall sessions on the P6M3 engine, Dexie v4 `curriculumSets`, clean learner video (`showOverlay={false}`). Live — owner can try `/course`. **P6M5 (sentence stage) merged [#54](https://github.com/aakash-tir/sign-app/pull/54):** set completion flows into "use your new words in a sentence" (shared `SentenceDrill`, recorded via `SentenceRepo`); also **root-caused + fixed the Dexie teardown flake** across all DB-backed suites (drain transaction before delete). **P6M6 (alphabet path) merged [#55](https://github.com/aakash-tir/sign-app/pull/55):** `/course/alphabet` — 8 letter batches (no J/Z) → recall → the spell-words stage (`FingerspellStage`); Words|Alphabet pill switch. The learner feature set is functionally complete. **Next: P6M7 (learner shell + the new look + dev mode).**
+**▶ Phase 6 — the learner app (underway; P6M1–P6M6 merged + deployed).** All seven plan
+questions answered (owner, 2026-07-10) — plan in [`../plan.md`](../plan.md), milestones
+in [`docs/phase6.md`](docs/phase6.md) (P6M1–P6M9, **ADR-029**): store-first native wrap,
+today's tabs behind a dev mode, linear-with-review progression, bucket-based recall,
+24 letters (J/Z wait), placeholder slots for missing words, a new learner-facing look.
+
+- **P6M1 syllabus** [#50](https://github.com/aakash-tir/sign-app/pull/50) — 11 units /
+  62 sets (all 103 glosses + 13 placeholders → `PRIORITY_WORDS`), 8 letter batches;
+  owner review welcome (`frontend/src/content/curriculum.ts`).
+- **P6M2 store-wrap spike** [#51](https://github.com/aakash-tir/sign-app/pull/51) —
+  **GO**: Capacitor Android wrap; camera + MediaPipe WASM + onnxruntime-web run in the
+  WebView. Owner follow-up: sustained-recognition on a **real phone** (`./gradlew
+  assembleDebug` with JAVA_HOME = Android Studio's jbr, then `adb install
+  frontend/android/app/build/outputs/apk/debug/app-debug.apk`).
+- **P6M3 recall engine** [#52](https://github.com/aakash-tir/sign-app/pull/52) — pure
+  teach → recall machine (`domain/recall.ts`; 3× reps, pool review every 3rd prompt).
+- **P6M4 words path** [#53](https://github.com/aakash-tir/sign-app/pull/53) — the
+  `/course` tab: teach → recall sessions, placeholder stubs, Dexie v4, clean learner
+  video (`showOverlay={false}`).
+- **P6M5 sentence stage** [#54](https://github.com/aakash-tir/sign-app/pull/54) — set
+  completion flows into a sentence (shared `SentenceDrill`); also root-caused + fixed
+  the historic Dexie teardown flake.
+- **P6M6 alphabet path** [#55](https://github.com/aakash-tir/sign-app/pull/55) —
+  `/course/alphabet`: 8 batches → recall → the spell-words stage; Words|Alphabet switch.
+
+The learner feature set is **functionally complete and verified** (2026-07-10 pass: all
+gates, real-browser drive, live-site probes; one ADR-018 camera privacy edge found +
+fixed). **Next: P6M7 (learner shell + the new look + dev mode).**
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
 bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.

@@ -5,9 +5,12 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-> **Live now (2026-07-01):** Phases 1–5 deployed — **24 fingerspelling letters + 103
-> dynamic signs** (114-class BiGRU+attention+ls0.15 model, T=0.80, per-sign accept bars),
-> plus the **Sentences** section (Phase 5: 59-sentence bank, persisted progress, ADR-028).
+> **Live now (2026-07-10):** Phases 1–5 + the Phase-6 learner surfaces deployed —
+> **24 fingerspelling letters + 103 dynamic signs** (114-class BiGRU+attention+ls0.15
+> model, T=0.80, per-sign accept bars), the **Sentences** section (Phase 5: 59-sentence
+> bank, ADR-028), and the **learner course** (Phase 6 P6M1–P6M6: `/course` words path
+> with teach→recall + sentence stage, `/course/alphabet` with the spell-words stage,
+> placeholder slots, Dexie v4 progress — not yet the default shell, that's P6M7).
 > Latest milestone: **Phase 5** (P5M1–P5M3, [`docs/phase5.md`](docs/phase5.md)) merged +
 > deployed + **owner-verified in real use (2026-07-10)**. **Phase 6 (the learner app)
 > is underway** — [`docs/phase6.md`](docs/phase6.md), ADR-029; **P6M1 (syllabus) merged
@@ -236,6 +239,22 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 ## Log
 
+- **2026-07-10** — **Phase-6 verification pass (owner-requested) — everything green,
+  one real bug found + fixed.** Re-ran every gate on `main`: ml (ruff/mypy/**108
+  pytest**) and frontend (prettier/eslint/tsc/vitest/**26 playwright**) all green. Drove
+  the built app in a real browser (fake camera, phone viewport): words path teach →
+  forgot-reveal → recall → sentence stage → complete, alphabet path, screenshots
+  reviewed — **zero console errors; the full MediaPipe+ONNX pipeline ran live** (visible
+  prediction). Live site probes: `/course` + `/course/alphabet` 200. **The catch:** the
+  tab-hidden camera-release test flaked under full-parallel load and it was a **real
+  ADR-018 privacy edge** — `statusRef` synced to state in a passive effect, so a tab
+  hidden in the commit→effect window kept the camera streaming until the next visibility
+  flip; fixed by syncing ref+state together (`setCameraStatus`, same pattern as
+  `setActiveStream`). Also hardened test infra: testing-library `asyncUtilTimeout` 1s→5s
+  (39-suite parallel runs pushed initial IndexedDB loads past the default, flaking
+  random DB-backed suites). Verified **0 failures across 8 consecutive full-suite
+  default-parallelism runs** (~2,500 test executions). Also learned: `tsc --noEmit` gave
+  a stale pass off its incremental cache mid-edit — cache-busted before trusting it.
 - **2026-07-10** — **P6M6: the alphabet path UI** (branch
   `milestone/P6M6-alphabet-path`). Second learner path (plan §2.3 path 1) at
   `/course/alphabet`, joined to the words path by a `CoursePathSwitch` pill nav (both
