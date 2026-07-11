@@ -233,7 +233,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | P6M4 — Words path UI | ☑ merged [#53](https://github.com/aakash-tir/sign-app/pull/53) — `/course` route: teach → recall → complete, Dexie v4, clean learner video | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☑ merged [#54](https://github.com/aakash-tir/sign-app/pull/54) — shared `SentenceDrill`; also fixed the Dexie teardown flake for good | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☑ merged [#55](https://github.com/aakash-tir/sign-app/pull/55) — `/course/alphabet`: 8 batches → recall → spell-words stage | `milestone/P6M6-alphabet-path` |
-| P6M7 — Learner shell + new look | ◐ in progress (implemented; PR pending) | `milestone/P6M7-learner-shell` |
+| P6M7 — Learner shell + new look | ☑ merged [#57](https://github.com/aakash-tir/sign-app/pull/57) — `/` = LearnerHome, dev-mode toggle, teal learner theme, exit-lesson | `milestone/P6M7-learner-shell` |
 | P6M8 — Progress & polish | ☐ not started | `milestone/P6M8-progress` |
 | P6M9 — Store release (owner-gated) | ☐ not started | `milestone/P6M9-store-release` |
 
@@ -259,7 +259,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
   tabs, dev-mode toggle persists, exit-lesson). Hardened two more load-race test
   assertions found while stress-testing. All gates green: prettier / eslint / tsc /
   **319 vitest** (0 failures across 6 full-parallel runs) / **29 playwright**.
-  **Next: PR + merge.**
+  **Merged [#57](https://github.com/aakash-tir/sign-app/pull/57); all CI green + deployed — the live app now opens on the learner home. Next: owner review of the look, then P6M8 (progress & polish).**
 - **2026-07-10** — **Phase-6 verification pass (owner-requested) — everything green,
   one real bug found + fixed.** Re-ran every gate on `main`: ml (ruff/mypy/**108
   pytest**) and frontend (prettier/eslint/tsc/vitest/**26 playwright**) all green. Drove

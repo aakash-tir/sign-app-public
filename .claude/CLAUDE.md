@@ -163,9 +163,14 @@ today's tabs behind a dev mode, linear-with-review progression, bucket-based rec
 - **P6M6 alphabet path** [#55](https://github.com/aakash-tir/sign-app/pull/55) —
   `/course/alphabet`: 8 batches → recall → the spell-words stage; Words|Alphabet switch.
 
+- **P6M7 learner shell** [#57](https://github.com/aakash-tir/sign-app/pull/57) — `/` =
+  LearnerHome ("continue where you left off"), learner-first nav, **Settings → Developer
+  mode** toggle for the dev tabs (Q2), the teal learner theme (Q7 first pass, scoped),
+  and "← Exit lesson" everywhere (owner feedback).
+
 The learner feature set is **functionally complete and verified** (2026-07-10 pass: all
 gates, real-browser drive, live-site probes; one ADR-018 camera privacy edge found +
-fixed). **Next: P6M7 (learner shell + the new look + dev mode).**
+fixed). **Next: owner review of the new look, then P6M8 (progress & polish), P6M9 (store release, owner-gated).**
 Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
 drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
 bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.
