@@ -15,6 +15,7 @@ import { DynamicSignView } from './modes/dynamic/DynamicSignView'
 import { SearchView } from './modes/search/SearchView'
 import { SentencesView } from './modes/sentences/SentencesView'
 import { WordsPathView } from './modes/learner/WordsPathView'
+import { AlphabetPathView } from './modes/learner/AlphabetPathView'
 import { loadOverlayColorMode } from './recognition/overlayColorMode'
 import { CameraProvider } from './recognition/cameraProvider'
 
@@ -46,6 +47,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/practice" replace />} />
               <Route path="/course" element={<WordsPathView />} />
+              <Route path="/course/alphabet" element={<AlphabetPathView />} />
               <Route path="/practice" element={<PracticeMode />} />
               <Route path="/learn" element={<LearnMode />} />
               <Route path="/sentences" element={<SentencesView />} />

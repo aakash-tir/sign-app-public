@@ -15,9 +15,12 @@ import './FingerspellStage.css'
 export function FingerspellStage({
   letters,
   word,
+  showOverlay = true,
 }: {
   letters: string[]
   word: string
+  /** `false` on learner surfaces — clean video, no landmark overlay (Phase 6 §3). */
+  showOverlay?: boolean
 }) {
   const {
     videoRef,
@@ -79,7 +82,12 @@ export function FingerspellStage({
 
       <div className="camera-stage">
         <video ref={videoRef} className="camera-video" playsInline muted />
-        <canvas ref={canvasRef} className="camera-overlay" />
+        <canvas
+          ref={canvasRef}
+          className={
+            showOverlay ? 'camera-overlay' : 'camera-overlay camera-overlay-off'
+          }
+        />
         {cameraStatus === 'idle' && <CameraPlaceholder />}
       </div>
       {cameraStatus === 'idle' && (

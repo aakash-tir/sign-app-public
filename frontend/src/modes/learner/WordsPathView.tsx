@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDynamicSignRecognition } from '../../recognition/useDynamicSignRecognition'
 import { DynamicSignStage } from '../../recognition/DynamicSignStage'
 import { SignReferencePlayer } from '../../recognition/SignReferencePlayer'
+import { CoursePathSwitch } from './CoursePathSwitch'
 import { SentenceDrill } from '../sentences/SentenceDrill'
 import { db } from '../../data/db'
 import { WordBankRepo } from '../../data/wordBankRepo'
@@ -385,6 +386,7 @@ export function WordsPathView({
   return (
     <section className="words-path" aria-label="Words path">
       <h2>Words</h2>
+      <CoursePathSwitch />
       <p className="words-path-progress" data-testid="words-path-progress">
         {completedCount} of {totalTeachable} sets completed
       </p>

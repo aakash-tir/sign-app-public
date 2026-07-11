@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import type { UseDynamicSignRecognition } from '../../recognition/useDynamicSignRecognition'
 import { mulberry32 } from '../../domain/rng'
 import { RECALL_TARGET_REPS } from '../../domain/recall'
@@ -67,12 +68,14 @@ afterEach(async () => {
 
 function renderView() {
   return render(
-    <WordsPathView
-      repo={repo}
-      curriculumRepo={curriculumRepo}
-      sentenceRepo={sentenceRepo}
-      rng={mulberry32(1)}
-    />,
+    <MemoryRouter>
+      <WordsPathView
+        repo={repo}
+        curriculumRepo={curriculumRepo}
+        sentenceRepo={sentenceRepo}
+        rng={mulberry32(1)}
+      />
+    </MemoryRouter>,
   )
 }
 
