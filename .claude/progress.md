@@ -229,7 +229,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | P6M3 — Recall engine (pure domain) | ☑ merged [#52](https://github.com/aakash-tir/sign-app/pull/52) — teach → 3× recall, pool review every 3rd prompt | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☑ merged [#53](https://github.com/aakash-tir/sign-app/pull/53) — `/course` route: teach → recall → complete, Dexie v4, clean learner video | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☑ merged [#54](https://github.com/aakash-tir/sign-app/pull/54) — shared `SentenceDrill`; also fixed the Dexie teardown flake for good | `milestone/P6M5-sentence-stage` |
-| P6M6 — Alphabet path UI | ◐ in progress (implemented; PR pending) | `milestone/P6M6-alphabet-path` |
+| P6M6 — Alphabet path UI | ☑ merged [#55](https://github.com/aakash-tir/sign-app/pull/55) — `/course/alphabet`: 8 batches → recall → spell-words stage | `milestone/P6M6-alphabet-path` |
 | P6M7 — Learner shell + new look | ☐ not started | `milestone/P6M7-learner-shell` |
 | P6M8 — Progress & polish | ☐ not started | `milestone/P6M8-progress` |
 | P6M9 — Store release (owner-gated) | ☐ not started | `milestone/P6M9-store-release` |
@@ -253,7 +253,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
   hints, recognized-accept, forgot/reveal, batch completion + persistence, spell
   unlock/pick) and **+1 playwright** (`alphabet-path.spec.ts`: teach → 9-valve recall →
   complete → reload persistence). All gates green: prettier / eslint / tsc / **308
-  vitest** / **26 playwright**. **Next: PR + merge.**
+  vitest** / **26 playwright**. **Merged [#55](https://github.com/aakash-tir/sign-app/pull/55); all CI green + deployed. The learner feature set from the plan is functionally complete — next is the P6M7 shell/new look. Next: P6M7.**
 - **2026-07-10** — **P6M5: the sentence stage at set completion** (branch
   `milestone/P6M5-sentence-stage`). Completing a course set now flows into **"use your
   new words in a sentence"** (plan §2.3 path 2) before the set-complete screen.
