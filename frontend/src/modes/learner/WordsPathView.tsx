@@ -136,6 +136,16 @@ export function WordsPathView({
     setSession(startRecallSession(set, RECOGNIZED))
   }, [])
 
+  // Owner feedback (2026-07-11): a lesson can be exited at any time — back to
+  // the path, abandoning the in-session progress. Attempts already recorded
+  // stay recorded (ADR-008 commits per attempt); set completion only ever
+  // lands on a finished session, so exiting mid-way never marks the set.
+  const handleExitLesson = useCallback(() => {
+    setSession(null)
+    setRevealedSign(null)
+    setStageSentence(null)
+  }, [])
+
   // Handlers below read `session` by value (not via updater functions):
   // updaters must stay pure — StrictMode double-invokes them in dev, which
   // would double-advance the teach queue and double-record attempts.
@@ -237,6 +247,14 @@ export function WordsPathView({
       return (
         <section className="words-path" aria-label="Words path">
           <h2>Words</h2>
+          <button
+            type="button"
+            className="exit-lesson"
+            data-testid="exit-lesson"
+            onClick={handleExitLesson}
+          >
+            ← Exit lesson
+          </button>
           <div className="sentence-stage" data-testid="sentence-stage">
             <p className="recall-cue">
               Nice — now use your new words in a sentence:
@@ -286,6 +304,14 @@ export function WordsPathView({
     return (
       <section className="words-path" aria-label="Words path">
         <h2>Words</h2>
+        <button
+          type="button"
+          className="exit-lesson"
+          data-testid="exit-lesson"
+          onClick={handleExitLesson}
+        >
+          ← Exit lesson
+        </button>
         <div className="teach-card" data-testid="teach-card">
           <p className="teach-cue">New word</p>
           <p className="teach-word" data-testid="teach-word">
@@ -313,6 +339,14 @@ export function WordsPathView({
     return (
       <section className="words-path" aria-label="Words path">
         <h2>Words</h2>
+        <button
+          type="button"
+          className="exit-lesson"
+          data-testid="exit-lesson"
+          onClick={handleExitLesson}
+        >
+          ← Exit lesson
+        </button>
         <p className="recall-progress" data-testid="recall-progress">
           {progress.done} of {progress.total} recalls
         </p>

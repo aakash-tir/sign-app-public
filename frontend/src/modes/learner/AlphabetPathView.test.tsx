@@ -175,6 +175,20 @@ describe('a letter batch session', () => {
   })
 })
 
+describe('exiting a lesson (owner feedback, P6M7)', () => {
+  it('exits a batch session back to the alphabet without completing it', async () => {
+    renderView()
+    await startFirstBatch()
+    fireEvent.click(screen.getByTestId('exit-lesson'))
+
+    expect(await screen.findByTestId('alphabet-progress')).toHaveTextContent(
+      '0 of 8 batches completed',
+    )
+    expect(await curriculumRepo.completedIds()).toEqual(new Set())
+    expect(screen.getByTestId('batch-start')).toBeInTheDocument()
+  })
+})
+
 describe('the spell-words stage', () => {
   beforeEach(async () => {
     for (const batch of LETTER_BATCHES) {

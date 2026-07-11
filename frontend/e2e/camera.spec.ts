@@ -1,9 +1,15 @@
 import { test, expect } from '@playwright/test'
 
-// The camera demo lives behind the "Camera" tab (Practice is the default mode).
+// The camera demo is a dev surface (tabs behind dev mode, Q2). The cross-tab
+// tests need CLIENT-SIDE navigation — a page.goto() is a full reload that
+// drops the shared stream — so enable dev mode to get the nav links back.
 async function openCameraTab(page: import('@playwright/test').Page) {
-  await page.goto('/')
-  await page.getByRole('link', { name: 'Camera' }).click()
+  await page.goto('/settings')
+  await page.getByTestId('dev-mode-on').click()
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Camera' })
+    .click()
 }
 
 test('camera view mounts with an enable button', async ({ page }) => {
@@ -36,7 +42,7 @@ test('camera stays on across tab switches — no re-enable (FR-15)', async ({
     timeout: 15_000,
   })
 
-  // Switch to the Signs tab: the shared camera is already on, with no prompt.
+  // Switch to the Signs tab (client-side): shared camera stays on, no prompt.
   await page.getByRole('link', { name: 'Signs' }).click()
   await expect(page.getByTestId('camera-status')).toContainText(/camera on/i, {
     timeout: 15_000,
@@ -57,7 +63,7 @@ test('camera works on the Learn tab (late-mounted video gets the stream)', async
   })
 
   // Learn renders a "Loading…" gate before its <video> mounts; the shared stream
-  // must still attach (callback ref), with no re-enable prompt.
+  // must still attach (callback ref), with no re-enable prompt (client-side nav).
   await page.getByRole('link', { name: 'Learn' }).click()
   await expect(page.getByTestId('learn-target')).toBeVisible()
   await expect(

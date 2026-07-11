@@ -102,6 +102,7 @@ export class WordBankRepo {
           // Legacy profiles predate these fields — fall back to safe defaults.
           overlayColorMode: record.overlayColorMode ?? 'classic',
           cameraExplainerSeen: record.cameraExplainerSeen ?? false,
+          devMode: record.devMode ?? false,
         }
       : defaultProfile()
   }
@@ -120,6 +121,13 @@ export class WordBankRepo {
   /** Persist the hand-overlay color mode (FR-14). */
   async setOverlayColorMode(mode: OverlayColorMode): Promise<UserProfile> {
     const updated = { ...(await this.getProfile()), overlayColorMode: mode }
+    await this.saveProfile(updated)
+    return updated
+  }
+
+  /** Toggle developer mode (Phase 6 Q2: dev surfaces alongside the learner app). */
+  async setDevMode(devMode: boolean): Promise<UserProfile> {
+    const updated = { ...(await this.getProfile()), devMode }
     await this.saveProfile(updated)
     return updated
   }

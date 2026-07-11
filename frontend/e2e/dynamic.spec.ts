@@ -2,8 +2,7 @@ import { test, expect } from '@playwright/test'
 
 // The dynamic word-level sign demo lives behind the "Signs" tab.
 async function openSignsTab(page: import('@playwright/test').Page) {
-  await page.goto('/')
-  await page.getByRole('link', { name: 'Signs' }).click()
+  await page.goto('/signs') // dev surface: direct URL (tabs behind dev mode, Q2)
 }
 
 test('dynamic signs view mounts with an enable button', async ({ page }) => {

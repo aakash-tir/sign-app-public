@@ -99,9 +99,12 @@ describe('SentencesView drilling', () => {
     const words = await screen.findAllByTestId('sentence-word')
     expect(words.map((w) => w.textContent)).toEqual(['want', 'eat'])
     expect(words[0]).toHaveClass('current')
-    expect(mocks.state.setTarget).toHaveBeenLastCalledWith('want')
-    // The current word's reference animation renders.
-    expect(screen.getByTestId('sign-reference')).toBeInTheDocument()
+    // Target + reference land in effects after the chips commit — wait, don't
+    // assert synchronously (flaked under full-parallel load).
+    await vi.waitFor(() =>
+      expect(mocks.state.setTarget).toHaveBeenLastCalledWith('want'),
+    )
+    expect(await screen.findByTestId('sign-reference')).toBeInTheDocument()
   })
 
   it('advances through the words as the recognizer accepts them', async () => {

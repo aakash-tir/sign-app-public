@@ -68,6 +68,22 @@ describe('SettingsView', () => {
     expect((await repo.getProgress('A'))?.bucket).toBe('confident')
   })
 
+  it('toggles developer mode and persists it (Q2)', async () => {
+    render(<SettingsView repo={repo} />)
+    await screen.findByTestId('level-current')
+    const onBtn = screen.getByTestId('dev-mode-on')
+    const offBtn = screen.getByTestId('dev-mode-off')
+    expect(offBtn).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(onBtn)
+    await waitFor(() => expect(onBtn).toHaveAttribute('aria-pressed', 'true'))
+    await waitFor(async () =>
+      expect((await repo.getProfile()).devMode).toBe(true),
+    )
+    fireEvent.click(offBtn)
+    await waitFor(() => expect(offBtn).toHaveAttribute('aria-pressed', 'true'))
+  })
+
   it('toggles the overlay color mode and persists it', async () => {
     render(<SettingsView repo={repo} />)
     await screen.findByTestId('level-current')

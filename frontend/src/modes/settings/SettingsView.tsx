@@ -12,6 +12,7 @@ import {
   setOverlayColorMode,
   useOverlayColorMode,
 } from '../../recognition/overlayColorMode'
+import { useDevMode, setDevMode } from '../../devMode'
 import './SettingsView.css'
 
 const defaultRepo = new WordBankRepo(db)
@@ -21,6 +22,7 @@ export function SettingsView({ repo = defaultRepo }: { repo?: WordBankRepo }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [confident, setConfident] = useState<Set<string>>(new Set())
   const overlayColorMode = useOverlayColorMode()
+  const devMode = useDevMode()
 
   const reload = useCallback(async () => {
     await repo.ensureSeeded(fingerspellingModel.labels)
@@ -113,6 +115,30 @@ export function SettingsView({ repo = defaultRepo }: { repo?: WordBankRepo }) {
           onClick={() => setOverlayColorMode('per-finger', repo)}
         >
           A color per finger
+        </button>
+      </div>
+
+      <h2>Developer mode</h2>
+      <p className="settings-note">
+        Shows the developer surfaces (Practice, Learn, Signs, Camera) in the
+        navigation.
+      </p>
+      <div className="level-options" role="group" aria-label="Developer mode">
+        <button
+          type="button"
+          aria-pressed={devMode}
+          data-testid="dev-mode-on"
+          onClick={() => setDevMode(true, repo)}
+        >
+          On
+        </button>
+        <button
+          type="button"
+          aria-pressed={!devMode}
+          data-testid="dev-mode-off"
+          onClick={() => setDevMode(false, repo)}
+        >
+          Off
         </button>
       </div>
 

@@ -2,8 +2,7 @@ import { test, expect } from '@playwright/test'
 
 // The sign search feature lives behind the "Search" tab (P4M1, FR-19).
 async function openSearchTab(page: import('@playwright/test').Page) {
-  await page.goto('/')
-  await page.getByRole('link', { name: 'Search' }).click()
+  await page.goto('/search')
 }
 
 test('searching a shipped sign shows its reference and a practice prompt', async ({

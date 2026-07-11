@@ -67,6 +67,7 @@ describe('WordBankRepo', () => {
       sentencesUnlocked: false,
       overlayColorMode: 'classic',
       cameraExplainerSeen: false,
+      devMode: false,
     })
   })
 

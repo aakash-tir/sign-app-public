@@ -114,6 +114,14 @@ export function AlphabetPathView({
     return (
       <section className="words-path" aria-label="Alphabet path">
         <h2>Alphabet</h2>
+        <button
+          type="button"
+          className="exit-lesson"
+          data-testid="exit-lesson"
+          onClick={() => setActiveBatch(null)}
+        >
+          ← Exit lesson
+        </button>
         <LetterSession
           key={activeBatch.id}
           batch={activeBatch}

@@ -116,3 +116,17 @@
   margin: 0;
   font-size: 1.1rem;
 }
+
+.exit-lesson {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.exit-lesson:hover {
+  color: var(--text);
+}

@@ -222,6 +222,22 @@ describe('the recall phase', () => {
   })
 })
 
+describe('exiting a lesson (owner feedback, P6M7)', () => {
+  it('exits mid-session back to the path without completing the set', async () => {
+    renderView()
+    await startFirstSet()
+    fireEvent.click(screen.getByTestId('recall-valve'))
+    fireEvent.click(screen.getByTestId('exit-lesson'))
+
+    expect(await screen.findByTestId('words-path-progress')).toHaveTextContent(
+      /^0 of \d+ sets completed$/,
+    )
+    expect(await curriculumRepo.completedIds()).toEqual(new Set())
+    // The set is startable again.
+    expect(screen.getByTestId('set-start')).toBeInTheDocument()
+  })
+})
+
 describe('the sentence stage (P6M5)', () => {
   /** Complete the first set's recall via the valve, landing on the stage. */
   async function completeFirstSet() {

@@ -7,8 +7,7 @@ import { test, expect } from '@playwright/test'
 test('a fresh beginner sees the sentence unlock explainer', async ({
   page,
 }) => {
-  await page.goto('/')
-  await page.getByRole('link', { name: 'Sentences' }).click()
+  await page.goto('/sentences')
 
   const locked = page.getByTestId('sentences-locked')
   await expect(locked).toBeVisible()

@@ -38,6 +38,8 @@ export interface UserProfile {
   overlayColorMode: OverlayColorMode
   /** True once the one-time camera privacy explainer has been acknowledged (FR-15). */
   cameraExplainerSeen: boolean
+  /** Developer mode (Phase 6 Q2): shows the dev surfaces alongside the learner app. */
+  devMode: boolean
 }
 
 export function defaultProfile(): UserProfile {
@@ -46,6 +48,7 @@ export function defaultProfile(): UserProfile {
     sentencesUnlocked: false,
     overlayColorMode: 'classic',
     cameraExplainerSeen: false,
+    devMode: false,
   }
 }
 

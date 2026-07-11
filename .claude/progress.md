@@ -233,12 +233,33 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | P6M4 — Words path UI | ☑ merged [#53](https://github.com/aakash-tir/sign-app/pull/53) — `/course` route: teach → recall → complete, Dexie v4, clean learner video | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☑ merged [#54](https://github.com/aakash-tir/sign-app/pull/54) — shared `SentenceDrill`; also fixed the Dexie teardown flake for good | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☑ merged [#55](https://github.com/aakash-tir/sign-app/pull/55) — `/course/alphabet`: 8 batches → recall → spell-words stage | `milestone/P6M6-alphabet-path` |
-| P6M7 — Learner shell + new look | ☐ not started | `milestone/P6M7-learner-shell` |
+| P6M7 — Learner shell + new look | ◐ in progress (implemented; PR pending) | `milestone/P6M7-learner-shell` |
 | P6M8 — Progress & polish | ☐ not started | `milestone/P6M8-progress` |
 | P6M9 — Store release (owner-gated) | ☐ not started | `milestone/P6M9-store-release` |
 
 ## Log
 
+- **2026-07-11** — **P6M7: the learner shell + new look + dev mode** (branch
+  `milestone/P6M7-learner-shell`). **The learner app is now the app.** `/` →
+  **`LearnerHome`** ("continue where you left off": hero + Continue, per-path progress
+  cards with next set/batch, Sentences/Search cards). **Learner-first nav** (Home ·
+  Course · Sentences · Search · Settings); the dev tabs appear only with the new
+  **Settings → Developer mode** toggle (Q2; `profile.devMode` + a `useSyncExternalStore`
+  module store mirroring `overlayColorMode`; dev routes stay URL-reachable). **The Q7
+  look, first pass:** a scoped `LearnerLayout`/`.learner-theme` design layer — teal
+  identity, light+dark with a contrast-fixed `--on-accent`, hero/card styling — over
+  learner surfaces only (dev keeps indigo). **Owner feedback (from the live check)
+  folded in: "← Exit lesson"** on every session screen, both paths — abandons the
+  session without marking the set complete (committed attempts stay, ADR-008).
+  e2e reworked for the shell flip: dev-surface specs use direct URLs; the FR-15
+  camera cross-tab tests enable dev mode for real client-side nav (a `goto()` reload
+  drops the shared stream — caught when the rewrite broke them). Tests: **+11 vitest**
+  (dev-mode store, LearnerHome ×3, exit-lesson ×2, Settings toggle, App nav gating ×2,
+  profile-shape updates) and **+3 playwright** (`home.spec.ts`: default shell + no dev
+  tabs, dev-mode toggle persists, exit-lesson). Hardened two more load-race test
+  assertions found while stress-testing. All gates green: prettier / eslint / tsc /
+  **319 vitest** (0 failures across 6 full-parallel runs) / **29 playwright**.
+  **Next: PR + merge.**
 - **2026-07-10** — **Phase-6 verification pass (owner-requested) — everything green,
   one real bug found + fixed.** Re-ran every gate on `main`: ml (ruff/mypy/**108
   pytest**) and frontend (prettier/eslint/tsc/vitest/**26 playwright**) all green. Drove

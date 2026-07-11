@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test'
 // loop (which don't need a real camera sign).
 
 test('shows a target letter to sign', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/practice') // dev surface (the default view is now the learner home)
   await expect(page.getByTestId('practice-target')).toBeVisible()
   await expect(page.getByTestId('i-forgot')).toBeVisible()
 })
@@ -12,7 +12,7 @@ test('shows a target letter to sign', async ({ page }) => {
 test('"I forgot" -> "That\'s what I did" (correct) advances', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/practice') // dev surface (the default view is now the learner home)
   await expect(page.getByTestId('practice-target')).toBeVisible()
   await page.getByTestId('i-forgot').click()
   await expect(page.getByTestId('reveal')).toBeVisible()
@@ -25,7 +25,7 @@ test('"I forgot" -> "That\'s what I did" (correct) advances', async ({
 test('"I forgot" -> "Next" (wrong) advances with no incorrect screen', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/practice') // dev surface (the default view is now the learner home)
   await expect(page.getByTestId('practice-target')).toBeVisible()
   await page.getByTestId('i-forgot').click()
   await page.getByTestId('reveal-next').click()

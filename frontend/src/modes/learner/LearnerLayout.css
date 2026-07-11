@@ -1,0 +1,23 @@
+/* The learner design language (Phase 6 Q7): a warm teal identity scoped to
+   learner surfaces; developer surfaces keep the original indigo tokens. */
+.learner-theme {
+  --accent: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-soft: rgba(13, 148, 136, 0.12);
+  --ring: rgba(13, 148, 136, 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  .learner-theme {
+    --accent: #2dd4bf;
+    --accent-hover: #14b8a6;
+    --accent-soft: rgba(45, 212, 191, 0.16);
+    --ring: rgba(45, 212, 191, 0.45);
+    /* Teal-300 needs dark text for contrast (the indigo default is white). */
+    --on-accent: #073b36;
+  }
+}
+
+.learner-theme h2 {
+  font-size: 1.35rem;
+}

@@ -129,6 +129,21 @@ milestone as they land; every milestone ships tests (working agreement).
   the learner app becomes the **default**; today's tabs move behind a **dev
   mode** setting (Q2); overlay hidden for learners (a new "off" draw mode —
   today the overlay always draws; dev mode keeps it).
+- **Result (2026-07-11):** shipped. **`/` is now `LearnerHome`** ("continue where
+  you left off": hero + Continue, per-path progress cards with the next set/batch,
+  Sentences + Search cards). **Nav is learner-first** (Home · Course · Sentences ·
+  Search · Settings); the dev tabs (Practice/Learn/Signs/Camera) appear only with
+  the new **Settings → Developer mode** toggle (persisted `profile.devMode` via a
+  module store mirroring `overlayColorMode`; routes stay URL-reachable either way).
+  **The learner look (Q7)** is a scoped design layer (`LearnerLayout` layout route +
+  `.learner-theme`): a teal identity (light + dark, contrast-checked `--on-accent`)
+  over the learner surfaces only — dev surfaces keep the original indigo tokens.
+  **Owner feedback folded in: "← Exit lesson"** on every session screen (words teach/
+  recall/sentence-stage + letter sessions) — exits abandon the session without
+  marking the set (recorded attempts stay recorded, ADR-008). e2e updated for the
+  shell flip (dev surfaces via direct URL or the dev-mode toggle; the FR-15
+  camera cross-tab tests re-enable the tabs since a `goto()` reload would drop the
+  shared stream). Visual polish beyond this first pass = owner-review input.
 
 ### P6M8 — Progress & polish
 
@@ -170,7 +185,7 @@ milestone as they land; every milestone ships tests (working agreement).
 | P6M4 — Words path UI | ☑ merged [#53](https://github.com/aakash-tir/sign-app/pull/53) — `/course` route: teach → recall → complete, Dexie v4, clean learner video | `milestone/P6M4-words-path` |
 | P6M5 — Sentence stage | ☑ merged [#54](https://github.com/aakash-tir/sign-app/pull/54) — shared `SentenceDrill`; also fixed the Dexie teardown flake for good | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☑ merged [#55](https://github.com/aakash-tir/sign-app/pull/55) — `/course/alphabet`: 8 batches → recall → spell-words stage | `milestone/P6M6-alphabet-path` |
-| P6M7 — Learner shell + new look | ☐ not started | `milestone/P6M7-learner-shell` |
+| P6M7 — Learner shell + new look | ◐ in progress (implemented; PR pending) | `milestone/P6M7-learner-shell` |
 | P6M8 — Progress & polish | ☐ not started | `milestone/P6M8-progress` |
 | P6M9 — Store release (owner-gated) | ☐ not started | `milestone/P6M9-store-release` |
 
