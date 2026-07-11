@@ -40,6 +40,12 @@ test('teach → recall → set complete via the valve; progress survives reload'
     await page.getByTestId('recall-valve').click()
   }
 
+  // The sentence stage follows (P6M5): use the new words in "want eat".
+  await expect(page.getByTestId('sentence-stage')).toBeVisible()
+  await expect(page.getByTestId('sentence-words')).toContainText('want')
+  await page.getByTestId('sentence-got-it').click() // want
+  await page.getByTestId('sentence-got-it').click() // eat → complete
+
   await expect(page.getByTestId('set-complete')).toBeVisible()
   await page.getByTestId('back-to-path').click()
   await expect(page.getByTestId('words-path-progress')).toContainText(

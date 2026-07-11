@@ -9,6 +9,7 @@ import {
   learnedPool,
   sentencesBuildableFrom,
   routeConstructibility,
+  stageSentenceCandidates,
   priorityWords,
   type CurriculumUnit,
 } from './curriculum'
@@ -162,6 +163,26 @@ describe('routeConstructibility', () => {
     const phRoute = [curriculumSetOf(['you', 'me'])]
     const phBank = [sentenceOf(['you', 'me'])]
     expect(routeConstructibility(phRoute, phBank, recognized)).toEqual([false])
+  })
+})
+
+describe('stageSentenceCandidates', () => {
+  it('prefers buildable sentences that use a just-learned sign', () => {
+    const pool = new Set(['want', 'eat', 'drink', 'water'])
+    const picked = stageSentenceCandidates(bank, pool, ['drink', 'water'])
+    expect(picked.map((s) => s.id)).toEqual(['drink water', 'want drink water'])
+  })
+
+  it('falls back to any buildable sentence when none use the new signs', () => {
+    const pool = new Set(['want', 'eat', 'more'])
+    const picked = stageSentenceCandidates(bank, pool, ['more'])
+    expect(picked.map((s) => s.id)).toEqual(['want eat'])
+  })
+
+  it('is empty when nothing is buildable from the pool', () => {
+    expect(stageSentenceCandidates(bank, new Set(['want']), ['want'])).toEqual(
+      [],
+    )
   })
 })
 

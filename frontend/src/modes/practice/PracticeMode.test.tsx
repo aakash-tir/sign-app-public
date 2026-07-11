@@ -50,6 +50,12 @@ beforeEach(async () => {
 
 afterEach(async () => {
   cleanup() // unmount before closing the db to avoid late db access
+  // Drain in-flight fire-and-forget writes before deleting: an empty rw
+  // transaction over the tables queues behind them (IndexedDB serializes
+  // overlapping scopes in creation order). Deleting mid-write rejects them
+  // as unhandled DatabaseClosedError — the CI failure on PR #54, and the
+  // long-standing "Dexie parallel flake" in these suites.
+  await database.transaction('rw', database.tables, async () => {})
   await database.delete()
 })
 

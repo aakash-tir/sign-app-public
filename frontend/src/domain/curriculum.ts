@@ -130,6 +130,27 @@ export function routeConstructibility(
 }
 
 /**
+ * Sentences to stage right after a set completes (plan.md §2.3 path 2 —
+ * "after a set completes, use those words in sentences"): buildable from the
+ * learner's pool, preferring sentences that **use at least one just-learned
+ * sign**; when none exist (not every set's words appear in the bank), any
+ * buildable sentence is still useful pool practice. Note the course pool is
+ * the **learned** pool — the standalone Sentences tab keeps its stricter
+ * all-`confident` eligibility (ADR-009).
+ */
+export function stageSentenceCandidates(
+  bank: readonly SignSentence[],
+  pool: ReadonlySet<string>,
+  newSigns: readonly string[],
+): SignSentence[] {
+  const buildable = sentencesBuildableFrom(bank, pool)
+  const usesNew = buildable.filter((sentence) =>
+    sentence.signs.some((sign) => newSigns.includes(sign)),
+  )
+  return usesNew.length > 0 ? usesNew : buildable
+}
+
+/**
  * The placeholder words in route order, deduped (a word's first slot wins) —
  * the **priority queue** for the next model-vocabulary expansion (plan.md
  * §2.1; the MS-ASL download → retrain → honest-gate pipeline).

@@ -228,7 +228,7 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | P6M2 — Store-wrap feasibility spike | ☑ merged [#51](https://github.com/aakash-tir/sign-app/pull/51) (squash `b41c15e`) — **GO**; real-device check = owner follow-up | `milestone/P6M2-store-spike` |
 | P6M3 — Recall engine (pure domain) | ☑ merged [#52](https://github.com/aakash-tir/sign-app/pull/52) — teach → 3× recall, pool review every 3rd prompt | `milestone/P6M3-recall-engine` |
 | P6M4 — Words path UI | ☑ merged [#53](https://github.com/aakash-tir/sign-app/pull/53) — `/course` route: teach → recall → complete, Dexie v4, clean learner video | `milestone/P6M4-words-path` |
-| P6M5 — Sentence stage | ☐ not started | `milestone/P6M5-sentence-stage` |
+| P6M5 — Sentence stage | ◐ in progress (implemented; PR pending) | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☐ not started | `milestone/P6M6-alphabet-path` |
 | P6M7 — Learner shell + new look | ☐ not started | `milestone/P6M7-learner-shell` |
 | P6M8 — Progress & polish | ☐ not started | `milestone/P6M8-progress` |
@@ -236,6 +236,24 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 ## Log
 
+- **2026-07-10** — **P6M5: the sentence stage at set completion** (branch
+  `milestone/P6M5-sentence-stage`). Completing a course set now flows into **"use your
+  new words in a sentence"** (plan §2.3 path 2) before the set-complete screen.
+  **Extracted the per-word sentence drill out of `SentencesView` into a shared
+  `SentenceDrill`** (chips + reference + stage + valve + rising-edge advance; keyed
+  per drill run — extraction surfaced a real reset bug when the same sentence is
+  re-picked, fixed with a round-counter key; the existing SentencesView tests were the
+  regression guard, all green unchanged). New pure `stageSentenceCandidates(bank, pool,
+  newSigns)` in `domain/curriculum.ts`: buildable-from-pool, **preferring sentences that
+  use a just-learned sign**, falling back to any buildable (not every set's words appear
+  in the bank); the course stage keys off the **learned pool** while the Sentences tab
+  keeps its stricter all-`confident` ADR-009 eligibility. Stage completions **record via
+  `SentenceRepo`** (one source of truth with the Sentences tab; `pickSentence` freshness
+  bias applies); skippable ("Skip for now"). Learner overlay stays off. Tests: **+6
+  vitest** (3 domain candidates, 3 view: stage appears with `want eat`, drilling records
+  + lands on set-complete, skip records nothing) and the words-path e2e now drills the
+  staged sentence for real. All gates green: prettier / eslint / tsc / **301 vitest** /
+  **25 playwright**. **Next: PR + merge.**
 - **2026-07-10** — **P6M4: words path UI — the first learner surface** (branch
   `milestone/P6M4-words-path`). New `/course` route + nav tab (**additive** — the
   current app stays the default until the P6M7 shell flip). `modes/learner/

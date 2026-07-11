@@ -85,7 +85,8 @@
 
 .teach-card,
 .recall-reveal,
-.set-complete {
+.set-complete,
+.sentence-stage {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

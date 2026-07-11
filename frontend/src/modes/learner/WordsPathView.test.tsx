@@ -33,11 +33,13 @@ import { WordsPathView } from './WordsPathView'
 import { SignAppDB } from '../../data/db'
 import { WordBankRepo } from '../../data/wordBankRepo'
 import { CurriculumRepo } from '../../data/curriculumRepo'
+import { SentenceRepo } from '../../data/sentenceRepo'
 
 let counter = 0
 let database: SignAppDB
 let repo: WordBankRepo
 let curriculumRepo: CurriculumRepo
+let sentenceRepo: SentenceRepo
 
 beforeEach(async () => {
   Object.assign(mocks.state, { target: null, accepted: false })
@@ -49,10 +51,17 @@ beforeEach(async () => {
   await database.open()
   repo = new WordBankRepo(database)
   curriculumRepo = new CurriculumRepo(database)
+  sentenceRepo = new SentenceRepo(database)
 })
 
 afterEach(async () => {
   cleanup()
+  // Drain in-flight fire-and-forget writes (recordAttempt / markCompleted /
+  // recordCompletion) before deleting: an empty rw transaction over the
+  // written tables queues behind them (IndexedDB serializes overlapping
+  // scopes in creation order). Deleting mid-write rejects them as unhandled
+  // DatabaseClosedError — exactly what failed CI on PR #54.
+  await database.transaction('rw', database.tables, async () => {})
   await database.delete()
 })
 
@@ -61,6 +70,7 @@ function renderView() {
     <WordsPathView
       repo={repo}
       curriculumRepo={curriculumRepo}
+      sentenceRepo={sentenceRepo}
       rng={mulberry32(1)}
     />,
   )
@@ -188,12 +198,17 @@ describe('the recall phase', () => {
     for (let i = 0; i < 2 * RECALL_TARGET_REPS; i++) {
       fireEvent.click(screen.getByTestId('recall-valve'))
     }
+    await vi.waitFor(async () => {
+      expect(await curriculumRepo.completedIds()).toEqual(new Set(['want eat']))
+    })
+
+    // The sentence stage comes first (P6M5); skip it here.
+    expect(screen.getByTestId('sentence-stage')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('stage-skip'))
 
     expect(await screen.findByTestId('set-complete')).toHaveTextContent(
       /set complete/i,
     )
-    expect(await curriculumRepo.completedIds()).toEqual(new Set(['want eat']))
-
     fireEvent.click(screen.getByTestId('back-to-path'))
     expect(await screen.findByTestId('words-path-progress')).toHaveTextContent(
       /^1 of \d+ sets completed$/,
@@ -201,5 +216,50 @@ describe('the recall phase', () => {
     const sets = screen.getAllByTestId('path-set')
     expect(sets[0]?.dataset.state).toBe('completed')
     expect(sets[1]?.dataset.state).toBe('current')
+  })
+})
+
+describe('the sentence stage (P6M5)', () => {
+  /** Complete the first set's recall via the valve, landing on the stage. */
+  async function completeFirstSet() {
+    renderView()
+    await startFirstSet()
+    for (let i = 0; i < 2 * RECALL_TARGET_REPS; i++) {
+      fireEvent.click(screen.getByTestId('recall-valve'))
+    }
+  }
+
+  it('stages a sentence built from the new words after the set completes', async () => {
+    await completeFirstSet()
+
+    // Pool = {want, eat} → the only buildable sentence is "want eat".
+    const stage = screen.getByTestId('sentence-stage')
+    expect(stage).toBeInTheDocument()
+    const words = screen.getAllByTestId('sentence-word')
+    expect(words.map((w) => w.textContent)).toEqual(['want', 'eat'])
+    expect(words[0]).toHaveClass('current')
+    expect(mocks.state.setTarget).toHaveBeenLastCalledWith('want')
+  })
+
+  it('drilling the sentence records it and lands on set-complete', async () => {
+    await completeFirstSet()
+
+    fireEvent.click(screen.getByTestId('sentence-got-it')) // want
+    fireEvent.click(screen.getByTestId('sentence-got-it')) // eat → complete
+
+    expect(await screen.findByTestId('set-complete')).toBeInTheDocument()
+    await vi.waitFor(async () => {
+      expect(await sentenceRepo.getProgress('want eat')).toMatchObject({
+        timesCompleted: 1,
+      })
+    })
+  })
+
+  it('skipping the stage records nothing', async () => {
+    await completeFirstSet()
+
+    fireEvent.click(screen.getByTestId('stage-skip'))
+    expect(await screen.findByTestId('set-complete')).toBeInTheDocument()
+    expect(await sentenceRepo.getProgress('want eat')).toBeUndefined()
   })
 })

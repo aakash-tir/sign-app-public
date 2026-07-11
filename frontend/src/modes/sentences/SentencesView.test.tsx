@@ -52,6 +52,12 @@ beforeEach(async () => {
 
 afterEach(async () => {
   cleanup()
+  // Drain in-flight fire-and-forget writes before deleting: an empty rw
+  // transaction over the tables queues behind them (IndexedDB serializes
+  // overlapping scopes in creation order). Deleting mid-write rejects them
+  // as unhandled DatabaseClosedError — the CI failure on PR #54, and the
+  // long-standing "Dexie parallel flake" in these suites.
+  await database.transaction('rw', database.tables, async () => {})
   await database.delete()
 })
 
@@ -144,11 +150,18 @@ describe('SentencesView drilling', () => {
     expect(await screen.findByTestId('sentences-progress')).toHaveTextContent(
       '0 of 1 sentences completed',
     )
+    // The progress line renders before the first sentence is picked — wait
+    // for the drill like the sibling tests do (the pick lands an effect later).
+    await screen.findAllByTestId('sentence-word')
     fireEvent.click(screen.getByTestId('sentence-got-it'))
     fireEvent.click(screen.getByTestId('sentence-got-it'))
     await screen.findByTestId('sentence-done')
-    expect(await screen.findByTestId('sentences-progress')).toHaveTextContent(
-      '1 of 1 sentences completed',
+    // The count lands after the async recordCompletion resolves — the element
+    // exists immediately (findBy won't wait), so poll for the text itself.
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('sentences-progress')).toHaveTextContent(
+        '1 of 1 sentences completed',
+      ),
     )
   })
 

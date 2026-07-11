@@ -2,18 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDynamicSignRecognition } from '../../recognition/useDynamicSignRecognition'
 import { DynamicSignStage } from '../../recognition/DynamicSignStage'
 import { SignReferencePlayer } from '../../recognition/SignReferencePlayer'
+import { SentenceDrill } from '../sentences/SentenceDrill'
 import { db } from '../../data/db'
 import { WordBankRepo } from '../../data/wordBankRepo'
 import { CurriculumRepo } from '../../data/curriculumRepo'
+import { SentenceRepo } from '../../data/sentenceRepo'
 import { WORD_UNITS } from '../../content/curriculum'
+import { SIGN_SENTENCES } from '../../content/signSentences'
 import { SHIPPED_GLOSSES } from '../../content/dynamicVocab'
 import {
   flattenRoute,
   learnedPool,
   routeAccess,
+  stageSentenceCandidates,
   wordStatus,
   type CurriculumSet,
 } from '../../domain/curriculum'
+import { pickSentence, type SignSentence } from '../../domain/sentences'
 import {
   confirmTaught,
   nextRecallPrompt,
@@ -28,6 +33,7 @@ import './WordsPathView.css'
 
 const defaultWordRepo = new WordBankRepo(db)
 const defaultCurriculumRepo = new CurriculumRepo(db)
+const defaultSentenceRepo = new SentenceRepo(db)
 
 const RECOGNIZED = new Set(SHIPPED_GLOSSES)
 const ROUTE = flattenRoute(WORD_UNITS)
@@ -35,6 +41,7 @@ const ROUTE = flattenRoute(WORD_UNITS)
 interface WordsPathViewProps {
   repo?: WordBankRepo
   curriculumRepo?: CurriculumRepo
+  sentenceRepo?: SentenceRepo
   /** Injected for deterministic tests (frontend rules); UI entry uses Math.random. */
   rng?: Rng
 }
@@ -52,6 +59,7 @@ interface WordsPathViewProps {
 export function WordsPathView({
   repo = defaultWordRepo,
   curriculumRepo = defaultCurriculumRepo,
+  sentenceRepo = defaultSentenceRepo,
   rng = Math.random,
 }: WordsPathViewProps) {
   const recognition = useDynamicSignRecognition()
@@ -62,17 +70,28 @@ export function WordsPathView({
   )
   const [session, setSession] = useState<RecallSession | null>(null)
   const [revealedSign, setRevealedSign] = useState<string | null>(null)
+  // The sentence stage offered after a set completes (P6M5, plan §2.3 path 2).
+  const [stageSentence, setStageSentence] = useState<SignSentence | null>(null)
+  const [sentenceDoneIds, setSentenceDoneIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  )
   const recordingRef = useRef(false)
+  const stageRecordingRef = useRef(false)
 
   useEffect(() => {
     let active = true
-    void curriculumRepo.completedIds().then((ids) => {
-      if (active) setCompletedIds(ids)
+    void Promise.all([
+      curriculumRepo.completedIds(),
+      sentenceRepo.completedIds(),
+    ]).then(([setIds, sentenceIds]) => {
+      if (!active) return
+      setCompletedIds(setIds)
+      setSentenceDoneIds(sentenceIds)
     })
     return () => {
       active = false
     }
-  }, [curriculumRepo])
+  }, [curriculumRepo, sentenceRepo])
 
   const access = useMemo(
     () => (completedIds ? routeAccess(ROUTE, completedIds, RECOGNIZED) : null),
@@ -103,12 +122,16 @@ export function WordsPathView({
       ? session.teaching
       : (session?.prompt?.sign ?? null))
   useEffect(() => {
+    // While the sentence stage is up, the SentenceDrill owns the target.
+    if (stageSentence) return
     setTarget(sessionTarget)
-  }, [sessionTarget, setTarget])
+  }, [sessionTarget, setTarget, stageSentence])
 
   const handleStartSet = useCallback((set: CurriculumSet) => {
     recordingRef.current = false
+    stageRecordingRef.current = false
     setRevealedSign(null)
+    setStageSentence(null)
     setSession(startRecallSession(set, RECOGNIZED))
   }, [])
 
@@ -141,6 +164,18 @@ export function WordsPathView({
       const next = recordRecallOutcome(session, outcome)
       if (next.phase === 'complete') {
         finishSet(next.setId)
+        // Stage a sentence that uses the new words (plan §2.3 path 2): the
+        // pool for the stage includes the set just finished; `pickSentence`
+        // prefers un-completed ones. `null` (nothing buildable) skips the
+        // stage entirely.
+        const stagePool = new Set([...pool, ...next.newSigns])
+        const candidates = stageSentenceCandidates(
+          SIGN_SENTENCES,
+          stagePool,
+          next.newSigns,
+        )
+        stageRecordingRef.current = false
+        setStageSentence(pickSentence(candidates, sentenceDoneIds, rng))
         setSession(next)
         return
       }
@@ -153,8 +188,22 @@ export function WordsPathView({
       }
       setSession(nextRecallPrompt(next, pool, rng))
     },
-    [session, repo, pool, rng, finishSet],
+    [session, repo, pool, rng, finishSet, sentenceDoneIds],
   )
+
+  const handleStageComplete = useCallback(() => {
+    if (!stageSentence || stageRecordingRef.current) return
+    stageRecordingRef.current = true
+    const id = stageSentence.id
+    void sentenceRepo.recordCompletion(id).then(() => {
+      setSentenceDoneIds((prev) => new Set(prev).add(id))
+    })
+    setStageSentence(null)
+  }, [stageSentence, sentenceRepo])
+
+  const handleStageSkip = useCallback(() => {
+    setStageSentence(null)
+  }, [])
 
   const handleRevealContinue = useCallback(() => {
     if (!session) return
@@ -181,6 +230,38 @@ export function WordsPathView({
   // ---- Session screens ----------------------------------------------------
 
   if (session && session.phase === 'complete') {
+    // P6M5: before the completion screen, use the new words in a sentence
+    // (skippable; the standalone Sentences tab remains the volume drill).
+    if (stageSentence) {
+      return (
+        <section className="words-path" aria-label="Words path">
+          <h2>Words</h2>
+          <div className="sentence-stage" data-testid="sentence-stage">
+            <p className="recall-cue">
+              Nice — now use your new words in a sentence:
+            </p>
+            <SentenceDrill
+              key={`stage-${stageSentence.id}`}
+              sentence={stageSentence}
+              recognition={recognition}
+              onComplete={handleStageComplete}
+              showOverlay={false}
+              secondaryAction={
+                <button
+                  type="button"
+                  className="recall-secondary"
+                  data-testid="stage-skip"
+                  onClick={handleStageSkip}
+                >
+                  Skip for now
+                </button>
+              }
+            />
+          </div>
+        </section>
+      )
+    }
+
     return (
       <section className="words-path" aria-label="Words path">
         <h2>Words</h2>

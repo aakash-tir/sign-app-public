@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDynamicSignRecognition } from '../../recognition/useDynamicSignRecognition'
-import { DynamicSignStage } from '../../recognition/DynamicSignStage'
-import { SignReferencePlayer } from '../../recognition/SignReferencePlayer'
+import { SentenceDrill } from './SentenceDrill'
 import { db } from '../../data/db'
 import { WordBankRepo } from '../../data/wordBankRepo'
 import { SentenceRepo } from '../../data/sentenceRepo'
@@ -40,15 +39,16 @@ export function SentencesView({
   rng = Math.random,
 }: SentencesViewProps) {
   const recognition = useDynamicSignRecognition()
-  const { setTarget, accepted } = recognition
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [confident, setConfident] = useState<ReadonlySet<string>>(new Set())
   const [confidentCount, setConfidentCount] = useState(0)
   const [completed, setCompleted] = useState<ReadonlySet<string>>(new Set())
   const [sentence, setSentence] = useState<SignSentence | null>(null)
-  const [index, setIndex] = useState(0)
   const [isDone, setIsDone] = useState(false)
+  // Bumped per drill run: keys the SentenceDrill so a recycled pick of the
+  // same sentence still remounts it (resetting its word index).
+  const [round, setRound] = useState(0)
   const recordingRef = useRef(false)
 
   const eligible = useMemo(
@@ -61,8 +61,8 @@ export function SentencesView({
 
   const beginSentence = useCallback((next: SignSentence | null) => {
     setSentence(next)
-    setIndex(0)
     setIsDone(false)
+    setRound((r) => r + 1)
     recordingRef.current = false
   }, [])
 
@@ -103,13 +103,8 @@ export function SentencesView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, eligible, rng])
 
-  // Lock the recognizer's target to the current word of the sequence.
-  const currentSign =
-    !isDone && sentence ? (sentence.signs[index] ?? null) : null
-  useEffect(() => {
-    setTarget(currentSign)
-  }, [currentSign, setTarget])
-
+  // Per-word advance + rising-edge accept live in the shared SentenceDrill
+  // (P6M5); this view keeps selection, gating, and persistence.
   const finishSentence = useCallback(() => {
     if (!sentence || recordingRef.current) return
     recordingRef.current = true
@@ -118,25 +113,6 @@ export function SentencesView({
       setCompleted((prev) => new Set(prev).add(sentence.id))
     })
   }, [sentence, sentenceRepo])
-
-  // Advance one word: next word in the sequence, or completion.
-  const advance = useCallback(() => {
-    if (!sentence || isDone) return
-    const next = index + 1
-    if (next >= sentence.signs.length) finishSentence()
-    else setIndex(next)
-  }, [sentence, isDone, index, finishSentence])
-
-  // The recognizer accepted the current word (per-sign bar, ADR-025) → advance.
-  // Rising-edge only: after an advance the hook resets `accepted` on the new
-  // target, but that reset lands a render later — without the edge guard the
-  // still-true flag would advance a second time and skip a word.
-  const prevAcceptedRef = useRef(false)
-  useEffect(() => {
-    const wasAccepted = prevAcceptedRef.current
-    prevAcceptedRef.current = accepted
-    if (accepted && !wasAccepted && currentSign !== null) advance()
-  }, [accepted, currentSign, advance])
 
   const handleNext = useCallback(() => {
     beginSentence(pickSentence(eligible, completed, rng, sentence?.id ?? null))
@@ -194,66 +170,35 @@ export function SentencesView({
       {sentence && (
         <>
           <p className="sentences-cue">Sign these words in order</p>
-          <div className="sentence-words" data-testid="sentence-words">
-            {sentence.signs.map((sign, i) => (
-              <span
-                key={`${sign}-${i}`}
-                data-testid="sentence-word"
-                className={
-                  i < index || isDone
-                    ? 'sentence-word done'
-                    : i === index
-                      ? 'sentence-word current'
-                      : 'sentence-word'
-                }
-              >
-                {sign}
-              </span>
-            ))}
-          </div>
-
-          {isDone ? (
-            <div className="sentences-feedback" data-testid="sentence-done">
-              <p className="feedback-text">Nice — whole sentence! 🎉</p>
-              <button
-                type="button"
-                data-testid="sentence-next"
-                onClick={handleNext}
-              >
-                Next sentence
-              </button>
-            </div>
-          ) : (
-            <>
-              {currentSign && (
-                <div className="sentences-reference">
-                  <SignReferencePlayer gloss={currentSign} />
-                </div>
-              )}
-              <DynamicSignStage
-                recognition={recognition}
-                ariaLabel={`Sign the word “${currentSign ?? ''}”`}
-                showReference={false}
-              />
-              <div className="sentences-actions">
+          <SentenceDrill
+            key={`${round}-${sentence.id}`}
+            sentence={sentence}
+            recognition={recognition}
+            onComplete={finishSentence}
+            isDone={isDone}
+            feedback={
+              <div className="sentences-feedback" data-testid="sentence-done">
+                <p className="feedback-text">Nice — whole sentence! 🎉</p>
                 <button
                   type="button"
-                  data-testid="sentence-got-it"
-                  onClick={advance}
-                >
-                  That&apos;s what I did
-                </button>
-                <button
-                  type="button"
-                  className="sentences-secondary"
-                  data-testid="sentence-skip"
+                  data-testid="sentence-next"
                   onClick={handleNext}
                 >
-                  Skip sentence
+                  Next sentence
                 </button>
               </div>
-            </>
-          )}
+            }
+            secondaryAction={
+              <button
+                type="button"
+                className="sentences-secondary"
+                data-testid="sentence-skip"
+                onClick={handleNext}
+              >
+                Skip sentence
+              </button>
+            }
+          />
         </>
       )}
     </section>
