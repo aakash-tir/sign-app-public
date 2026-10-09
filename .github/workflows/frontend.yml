@@ -1,17 +1,29 @@
-name: CI
+# Frontend: Prettier, ESLint, typecheck, Vitest unit tests and Playwright e2e.
+#
+# Kept lean on Actions minutes: pull requests only (the merge to main re-runs nothing,
+# the PR already tested it), and only when a file this check depends on changed.
+# Docs-only changes (docs/, logs/, graphify-out/, *.md) run no CI at all. Run it by
+# hand from the Actions tab (workflow_dispatch) when needed.
+name: frontend
 
 on:
-  push:
-    branches: [main]
   pull_request:
     # milestone/** covers PRs into phase integration branches (e.g. Phase 5's
     # milestone/P5-sentences), so sub-milestone PRs get the same gates as main.
     branches: [main, 'milestone/**']
+    paths:
+      - 'frontend/**'
+      # Generated Capacitor project: Prettier, ESLint and tsc all ignore it.
+      - '!frontend/android/**'
+      - '.github/workflows/frontend.yml'
+  workflow_dispatch:
 
-# Cancel superseded runs on the same ref.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: frontend-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   frontend:
@@ -49,32 +61,3 @@ jobs:
 
       - name: E2E tests (Playwright)
         run: npm run test:e2e
-
-  ml:
-    name: ML pipeline (Python)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ml
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Ruff format
-        run: uv run ruff format --check .
-
-      - name: Ruff lint
-        run: uv run ruff check .
-
-      - name: Mypy
-        run: uv run mypy .
-
-      - name: Pytest
-        run: uv run pytest

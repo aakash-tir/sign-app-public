@@ -48,6 +48,8 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 2. A milestone merges **only when all tests pass and all quality gates are green**:
    - Python (`ml/`): `ruff format` + `ruff check` + `mypy .` + `pytest`.
    - Frontend (`frontend/`): Prettier + ESLint + `tsc --noEmit` + Vitest + Playwright.
+   CI is path-filtered and PR-only: every check that started must be green; a docs-only
+   PR with no checks may merge (see [`rules/workflow.md`](rules/workflow.md) → CI).
 3. Every milestone ships **tests proving its features work**.
 4. Keep `.claude/` docs current — especially [`progress.md`](progress.md).
 5. The repo is **private**.

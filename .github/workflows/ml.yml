@@ -1,0 +1,56 @@
+# ML pipeline: ruff format, ruff lint, mypy and pytest for ml/.
+#
+# Kept lean on Actions minutes: pull requests only (the merge to main re-runs nothing,
+# the PR already tested it), and only when a file this check depends on changed.
+# Docs-only changes (docs/, logs/, graphify-out/, *.md) run no CI at all. Run it by
+# hand from the Actions tab (workflow_dispatch) when needed.
+name: ml
+
+on:
+  pull_request:
+    # milestone/** covers PRs into phase integration branches (e.g. Phase 5's
+    # milestone/P5-sentences), so sub-milestone PRs get the same gates as main.
+    branches: [main, 'milestone/**']
+    paths:
+      - 'ml/**'
+      # TS<->Python parity fixtures the ml tests read from the frontend tree.
+      - 'frontend/src/recognition/fixtures/**'
+      - '.github/workflows/ml.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ml-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ml:
+    name: ML pipeline (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Ruff format
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Mypy
+        run: uv run mypy .
+
+      - name: Pytest
+        run: uv run pytest

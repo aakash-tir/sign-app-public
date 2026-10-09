@@ -46,15 +46,17 @@ full secret values in logs, commits, or chat.
 3. Open a **PR into `main`** with a summary of the milestone (what shipped, how
    it was tested, any decisions/open-question resolutions).
 4. Merge **only via squash-merge**, and **only when all gates are green** (below).
-5. After merge, update [`../progress.md`](../progress.md) (status + PR link) and
-   any affected docs.
+5. **Before merge, in the same PR** (the PR number is known once it's open), update
+   [`../progress.md`](../progress.md) (status + PR link) and any affected docs. Never a
+   separate follow-up doc-sync PR or push: each one costs a CI run.
 
 > The owner has granted permission to make code edits and merge the PRs — but the
 > green-gates rule is absolute: never merge red.
 
 ## Quality gates (every milestone, before merge)
 
-Run locally **and** in CI. A milestone is not done until all pass.
+Run locally **and** in CI (for the lanes whose files changed). A milestone is not done
+until all pass.
 
 **Frontend (`frontend/`):**
 - `prettier --check .`
@@ -71,8 +73,15 @@ Run locally **and** in CI. A milestone is not done until all pass.
 
 ## CI
 
-- GitHub Actions runs **two independent lanes** (frontend, ml) on every PR.
-- A PR is mergeable only when both lanes are green.
+- GitHub Actions runs **two independent lanes**, one workflow each
+  (`.github/workflows/frontend.yml`, `ml.yml`).
+- **CI is lean on Actions minutes**: the lanes run on pull requests only (into `main`
+  or `milestone/**`), and only when a file that lane depends on changed (`frontend/`,
+  or `ml/` plus the shared parity fixtures in `frontend/src/recognition/fixtures/`).
+  Nothing runs on the merge to `main`. Docs-only PRs (`docs/`, `.claude/`, `*.md`) run
+  no CI and may merge without checks.
+- Any other PR is mergeable only when **every check that started** is green;
+  `gh pr checks` lists only those.
 - Cache `node_modules` / `uv` env for speed; keep ML tests on tiny fixtures.
 
 ## Tests are part of the deliverable
