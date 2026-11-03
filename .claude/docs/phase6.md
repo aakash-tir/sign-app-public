@@ -186,7 +186,7 @@ milestone as they land; every milestone ships tests (working agreement).
 | P6M5 — Sentence stage | ☑ merged [#54](https://github.com/aakash-tir/sign-app/pull/54) — shared `SentenceDrill`; also fixed the Dexie teardown flake for good | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☑ merged [#55](https://github.com/aakash-tir/sign-app/pull/55) — `/course/alphabet`: 8 batches → recall → spell-words stage | `milestone/P6M6-alphabet-path` |
 | P6M7 — Learner shell + new look | ☑ merged [#57](https://github.com/aakash-tir/sign-app/pull/57) — `/` = LearnerHome, dev-mode toggle, teal learner theme, exit-lesson | `milestone/P6M7-learner-shell` |
-| P6M8 — Progress & polish | ☐ not started | `milestone/P6M8-progress` |
-| P6M9 — Store release (owner-gated) | ☐ not started | `milestone/P6M9-store-release` |
+| P6M8 — Progress & polish | ☐ not started | GitHub milestone `P6M8` → one `<type>/<issue#>-<slug>` branch per issue |
+| P6M9 — Store release (owner-gated) | ☐ not started | GitHub milestone `P6M9` → one `<type>/<issue#>-<slug>` branch per issue |
 
 Legend: ☐ not started · ◐ in progress · ☑ merged

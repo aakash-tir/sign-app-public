@@ -9,7 +9,7 @@
 > Kept **separate from** [`milestones.md`](milestones.md) (phase 1) and
 > [`phase2.md`](phase2.md). The owner's phase-3 plan is in
 > [`../../plan.md`](../../plan.md); per-item analysis is in
-> [`../../output.md`](../../output.md).
+> [`docs/history/phase2-analysis.md`](../../docs/history/phase2-analysis.md).
 
 ## Source of the plan
 
@@ -21,7 +21,7 @@ three ideas; **two are carried forward, one is dropped**:
 | --- | --- |
 | **MS-ASL download → retrain** for more clips-per-sign | ✅ Carried — **P3M2** (was the parked P2M5c); now **one candidate among owner-curated datasets** (see *Dataset sourcing & review* below). |
 | Apply **modifiers (blur, etc.)** to the data | ✅ Carried but **reframed** — augmentation belongs in **landmark space, not pixel space** (we don't train on pixels). Expanded into **P3M3**. |
-| **Scrape the internet** for ASL videos | ❌ **Dropped** (owner decision). Open-web video is unlabeled continuous signing, not isolated glosses; segmenting/labeling it is its own research problem, label noise wrecks a small model, and the license footing is far weaker than C-UDA-cleared MS-ASL. See [`../../output.md`](../../output.md) §2. **Replaced by** owner-curated, reviewed datasets (below). |
+| **Scrape the internet** for ASL videos | ❌ **Dropped** (owner decision). Open-web video is unlabeled continuous signing, not isolated glosses; segmenting/labeling it is its own research problem, label noise wrecks a small model, and the license footing is far weaker than C-UDA-cleared MS-ASL. See [`docs/history/phase2-analysis.md`](../../docs/history/phase2-analysis.md) §2. **Replaced by** owner-curated, reviewed datasets (below). |
 
 One milestone is **added ahead of both**: before chasing accuracy we must be able to
 **measure it honestly** (today's headline CV number overstates real-camera accuracy).

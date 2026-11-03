@@ -5,19 +5,127 @@ is in [`docs/milestones.md`](docs/milestones.md).
 
 ## Current state
 
-> **Live now (2026-07-10):** Phases 1–5 + the Phase-6 learner surfaces deployed —
-> **24 fingerspelling letters + 103 dynamic signs** (114-class BiGRU+attention+ls0.15
-> model, T=0.80, per-sign accept bars), the **Sentences** section (Phase 5: 59-sentence
-> bank, ADR-028), and the **learner course** (Phase 6 P6M1–P6M6: `/course` words path
-> with teach→recall + sentence stage, `/course/alphabet` with the spell-words stage,
-> placeholder slots, Dexie v4 progress — not yet the default shell, that's P6M7).
-> Latest milestone: **Phase 5** (P5M1–P5M3, [`docs/phase5.md`](docs/phase5.md)) merged +
-> deployed + **owner-verified in real use (2026-07-10)**. **Phase 6 (the learner app)
-> is underway** — [`docs/phase6.md`](docs/phase6.md), ADR-029; **P6M1 (syllabus) merged
-> [#50](https://github.com/aakash-tir/sign-app/pull/50); P6M2 (store-wrap spike) is next.**
-> The authoritative status hub is [`CLAUDE.md`](CLAUDE.md) §Status; the
-> milestone table + Log below are the running record. The bullets that follow are the
-> historical Phase 2→3 narrative (kept for context, not the current truth).
+> **Authoritative status (moved here from `CLAUDE.md` on 2026-11-03).** The bullets
+> after this block are the historical Phase 2→3 narrative, kept for context.
+
+**Phases 1–5 are complete/paused and deployed** — the PWA is live on Cloudflare with
+**24 fingerspelling letters + 103 dynamic signs**, a per-finger overlay option, a
+persistent shared camera, a redesigned UI, offline in-app sign references, a **Search
+tab** (typo/stem-tolerant with a fingerspelling fallback + as-you-type autocomplete, P4M9/P4M11),
+and a **Sentences section** (Phase 5). See
+[`progress.md`](progress.md); Phase 2 detail in [`docs/phase2.md`](docs/phase2.md).
+
+**✅ Phase 3 (accuracy & vocabulary depth) — all merged + deployed.** Grew the dynamic
+recognizer to an **81-gloss MS-ASL ∪ WLASL model** (3583 samples / 163 signers); the
+honest ≥ 0.50 gate shipped 63 signs at honest top-1 0.615. *(Superseded by Phase 4 —
+now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-setup`.
+
+**✅ Phase 4 — discovery shipped; accuracy track ongoing.** Detail in
+[`docs/phase4.md`](docs/phase4.md); §6.7–6.15 in [`docs/recognition.md`](docs/recognition.md).
+
+- **Discovery — P4M1 Search tab** ([#26](https://github.com/aakash-tir/sign-app/pull/26))
+  + **P4M9 search UX** ([#33](https://github.com/aakash-tir/sign-app/pull/33)):
+  type a sign → reference animation + a camera that recognizes it, else "not in the system
+  yet". Exact + synonym + **stem + typo-tolerant suggestions**, with a **fingerspelling
+  fallback** for spellable misses; reuses `DynamicSignStage` + `SignReferencePlayer`
+  (ADR-021, FR-19). P4M9 resolved the P4M1 fuzzy/fingerspell deferrals (frontend-only).
+  **P4M11 search autocomplete** adds an as-you-type ranked combobox dropdown (pure
+  `autocomplete()` ranker: prefix → substring → fuzzy; keyboard-navigable), resolving
+  the last P4M9 deferral (frontend-only).
+- **Accuracy + vocabulary track (P4M2–P4M17).** **The recognizer grew from 63 → 103
+  shipped signs with per-sign calibrated acceptance — all live.** (Aggregate honest CV
+  peaked at 0.732 over the 81-class model; it's 0.691 over the current 114-class model —
+  more classes are a harder task, not a regression.)
+  - **P4M17 — drop the 3 confusers** ([#42](https://github.com/aakash-tir/sign-app/pull/42)):
+    P4M16's new `dance`/`paper`/`slow` were stealing probability mass from shipped signs.
+    Dropping them as *trained* classes (→ **114 classes, 103 published**) restored
+    `stand` 0.47→0.63 and `car` 0.43→0.57; `school` 0.42→0.49 (improved, kept — grandfathered).
+    No new demotions. Re-calibrated **T=0.80**. ADR-019 gate, §6.15.
+  - **P4M16 — MS-ASL download → 100+ signs**: fetched 36 everyday glosses, trained a
+    117-gloss model; the honest gate cleared 27 new → **79 + 27 = 106 published signs**
+    (aggregate 0.696 over 117; the original 79 hold at 0.718; no demotions). Needed a
+    download fix first (yt-dlp-ejs + Deno for YouTube's n-challenge, [#40](https://github.com/aakash-tir/sign-app/pull/40)). §6.14, docs/reaching-100-signs.md.
+  - **P4M10 — label smoothing** ([#34](https://github.com/aakash-tir/sign-app/pull/34)): a label-smoothing loss (0.15)
+    lifted honest CV **0.687 → 0.732**, **71 → 79 signs, no demotions** (`hungry` recovers).
+    Loss-only, no runtime/spec/size change. ADR-027, §6.12.
+  - **P4M5 — the win** ([#29](https://github.com/aakash-tir/sign-app/pull/29)):
+    **bidirectional GRU + masked attention pooling** (read the whole sign, not just the
+    last timestep) → **0.687**, 71 signs. ONNX 690 KB. ADR-024, §6.9.
+  - **P4M7 — runtime confidence** ([#30](https://github.com/aakash-tir/sign-app/pull/30)):
+    per-sign acceptance thresholds + temperature calibration (T=1.6) + 3-window voting; no
+    retrain. ADR-025, §6.10.
+  - **P4M2 diagnose** ([#27](https://github.com/aakash-tir/sign-app/pull/27)): the 18 low
+    signs are **under-separated, not data-starved** — which is why the modeling lever
+    (P4M5) won and the cheap data/loss tweaks didn't. §6.7.
+  - **P4M4 motion** ([#28](https://github.com/aakash-tir/sign-app/pull/28)) and **P4M3
+    mirroring + class-weighted loss** ([#31](https://github.com/aakash-tir/sign-app/pull/31)):
+    both **tested, honest-negative, not shipped** — kept as opt-in tooling. (P4M3 notably
+    *proved* mirroring is parity-correct, refuting the P3M3 deferral.) ADR-022/023, §6.8/6.11.
+
+- **P4M8 — SSL pretraining: tested, honest-negative, NOT shipped** (2026-06-29, ADR-026,
+  §6.16): the last/heaviest lever. Built the full masked-pose mechanism (pretrain the **same**
+  BiGRU encoder, no arch swap) + extracted the **full on-disk pool (15,811 seq / ~2,200
+  glosses)**. A strict pretrain↔eval signer holdout collapses the pool to 376 clips, so ran the
+  **optimistic upper bound** (full pool): **0.689 vs 0.691 baseline — flat, the ceiling → shelve.**
+  Tooling kept opt-in. **This closes the Phase-4 accuracy track** — every lever explored.
+
+**✅ Phase 5 — the Sentences section (2026-07-01, [`docs/phase5.md`](docs/phase5.md), ADR-028,
+FR-20).** Promoted sentences from the minimal P2M7 Learn drill to a **top-level `/sentences`
+tab**: a **59-sentence bank** (2–4 signs over the 103-gloss vocab), pure domain
+eligibility/selection (all-confident ∩ per-level length bands; seeded RNG preferring
+un-completed), **persisted completion progress** (Dexie v3 + `SentenceRepo`), per-sign
+camera verification (ADR-025 acceptance, rising-edge advance) with the "That's what I did"
+valve, and ADR-009 gating with locked/empty explainers. In-Learn drill removed. Built as
+sub-milestones off an integration branch: P5M1 [#46](https://github.com/aakash-tir/sign-app/pull/46) ·
+P5M2 [#47](https://github.com/aakash-tir/sign-app/pull/47) · P5M3 [#48](https://github.com/aakash-tir/sign-app/pull/48)
+→ main [#49](https://github.com/aakash-tir/sign-app/pull/49). Frontend-only; no model change.
+
+**✅ Owner-verified (2026-07-10): the Sentences feature works in real use.** Checked
+against a locally seeded bank (all 103 dynamic signs forced `confident` via a temporary
+dev-only scaffold, since reaching the ADR-009 gate organically needs ≥20 confident words);
+`/sentences` unlocked and drilled correctly. Scaffold removed, not committed. **Phase 5 is
+closed.** P4M8 tested-negative closed the accuracy track.
+
+**▶ Phase 6 — the learner app (underway; P6M1–P6M6 merged + deployed).** All seven plan
+questions answered (owner, 2026-07-10) — plan in [`../plan.md`](../plan.md), milestones
+in [`docs/phase6.md`](docs/phase6.md) (P6M1–P6M9, **ADR-029**): store-first native wrap,
+today's tabs behind a dev mode, linear-with-review progression, bucket-based recall,
+24 letters (J/Z wait), placeholder slots for missing words, a new learner-facing look.
+
+- **P6M1 syllabus** [#50](https://github.com/aakash-tir/sign-app/pull/50) — 11 units /
+  62 sets (all 103 glosses + 13 placeholders → `PRIORITY_WORDS`), 8 letter batches;
+  owner review welcome (`frontend/src/content/curriculum.ts`).
+- **P6M2 store-wrap spike** [#51](https://github.com/aakash-tir/sign-app/pull/51) —
+  **GO**: Capacitor Android wrap; camera + MediaPipe WASM + onnxruntime-web run in the
+  WebView. Owner follow-up: sustained-recognition on a **real phone** (`./gradlew
+  assembleDebug` with JAVA_HOME = Android Studio's jbr, then `adb install
+  frontend/android/app/build/outputs/apk/debug/app-debug.apk`).
+- **P6M3 recall engine** [#52](https://github.com/aakash-tir/sign-app/pull/52) — pure
+  teach → recall machine (`domain/recall.ts`; 3× reps, pool review every 3rd prompt).
+- **P6M4 words path** [#53](https://github.com/aakash-tir/sign-app/pull/53) — the
+  `/course` tab: teach → recall sessions, placeholder stubs, Dexie v4, clean learner
+  video (`showOverlay={false}`).
+- **P6M5 sentence stage** [#54](https://github.com/aakash-tir/sign-app/pull/54) — set
+  completion flows into a sentence (shared `SentenceDrill`); also root-caused + fixed
+  the historic Dexie teardown flake.
+- **P6M6 alphabet path** [#55](https://github.com/aakash-tir/sign-app/pull/55) —
+  `/course/alphabet`: 8 batches → recall → the spell-words stage; Words|Alphabet switch.
+
+- **P6M7 learner shell** [#57](https://github.com/aakash-tir/sign-app/pull/57) — `/` =
+  LearnerHome ("continue where you left off"), learner-first nav, **Settings → Developer
+  mode** toggle for the dev tabs (Q2), the teal learner theme (Q7 first pass, scoped),
+  and "← Exit lesson" everywhere (owner feedback).
+
+The learner feature set is **functionally complete and verified** (2026-07-10 pass: all
+gates, real-browser drive, live-site probes; one ADR-018 camera privacy edge found +
+fixed). **Next: owner review of the new look, then P6M8 (progress & polish), P6M9 (store release, owner-gated).**
+Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
+drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
+bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.
+Also: `SIGN_SENTENCES` has no count assertion, so the bank size drifted from the docs
+undetected (57 → 59) — worth pinning in `signSentences.test.ts`.
+
+### Historical narrative (Phase 2 → 3)
 
 - **🎉 Phase 2 (depth & polish) COMPLETE — all 5 plan items merged + deploying.**
   P2M1 overlay-color toggle ([#13]) · P2M2 shared camera + explainer ([#14]) · P2M3
@@ -234,8 +342,8 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | P6M5 — Sentence stage | ☑ merged [#54](https://github.com/aakash-tir/sign-app/pull/54) — shared `SentenceDrill`; also fixed the Dexie teardown flake for good | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☑ merged [#55](https://github.com/aakash-tir/sign-app/pull/55) — `/course/alphabet`: 8 batches → recall → spell-words stage | `milestone/P6M6-alphabet-path` |
 | P6M7 — Learner shell + new look | ☑ merged [#57](https://github.com/aakash-tir/sign-app/pull/57) — `/` = LearnerHome, dev-mode toggle, teal learner theme, exit-lesson | `milestone/P6M7-learner-shell` |
-| P6M8 — Progress & polish | ☐ not started | `milestone/P6M8-progress` |
-| P6M9 — Store release (owner-gated) | ☐ not started | `milestone/P6M9-store-release` |
+| P6M8 — Progress & polish | ☐ not started | GitHub milestone `P6M8` (issue branches) |
+| P6M9 — Store release (owner-gated) | ☐ not started | GitHub milestone `P6M9` (issue branches) |
 
 ## Log
 

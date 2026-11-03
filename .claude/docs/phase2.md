@@ -8,7 +8,7 @@
 > This file is kept **separate from** [`milestones.md`](milestones.md) (phase 1) so
 > neither grows unwieldy. The owner's phase-2 plan is in
 > [`../../plan.md`](../../plan.md); per-section analysis is in
-> [`../../output.md`](../../output.md).
+> [`docs/history/phase2-analysis.md`](../../docs/history/phase2-analysis.md).
 
 ## Source of the plan
 
@@ -65,7 +65,7 @@ holistic overlays. This is the cheapest, most isolated phase-2 win: **pure rende
   works from normalized coordinates and never sees the overlay, so this **does not
   change recognition accuracy** — it helps the *learner* self-correct and helps *us*
   debug confusable signs. (Expectation correction from
-  [`../../output.md`](../../output.md) §5.)
+  [`docs/history/phase2-analysis.md`](../../docs/history/phase2-analysis.md) §5.)
 - Two draw paths exist and both must be updated:
   - `frontend/src/recognition/drawLandmarks.ts` (`drawHands`) — static letter view,
     used by `useSignRecognition`. Currently one connection color + one landmark
@@ -251,7 +251,7 @@ and is proven on the current data before any new dataset is added.**
   (`label, source, clip_id, signer_id, split, video_path`), a `DatasetAdapter`
   Protocol, `canonical_label` (lowercase/whitespace + synonym map), `merge`,
   `vocabulary`, `coverage_by_label`, and **`assign_signer_disjoint_splits`** — the
-  key correction from [`../../output.md`](../../output.md) §1: standardize the
+  key correction from [`docs/history/phase2-analysis.md`](../../docs/history/phase2-analysis.md) §1: standardize the
   **output contract** (canonical labels + **signer-disjoint splits**), not pixel
   size. Signer-disjoint splits prevent the train/test signer leakage that inflates
   held-out accuracy.

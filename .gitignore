@@ -67,3 +67,6 @@ npm-debug.log*
 
 # Local scratch (pasted logs, notes)
 /input.md
+
+# ---- graphify: the graph is tracked; dated backups from manual rebuilds are not ----
+graphify-out/20*/

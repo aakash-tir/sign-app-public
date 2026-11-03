@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign App Architecture Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      margin-bottom: 2rem;
+    }
+    
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #22d3ee;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      margin-left: 1.75rem;
+    }
+    
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+    
+    svg {
+      width: 100%;
+      min-width: 900px;
+      display: block;
+    }
+    
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.cyan { background: #22d3ee; }
+    
+    .card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .card ul {
+      list-style: none;
+      color: #94a3b8;
+      font-size: 0.75rem;
+    }
+    
+    .card li {
+      margin-bottom: 0.375rem;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.75rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .toolbar-toggle {
+      background: transparent;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      transition: color 0.2s, background 0.2s;
+    }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30, 41, 59, 0.5); }
+    .toolbar-actions {
+      display: none;
+      gap: 0.5rem;
+    }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.375rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .toolbar-actions button:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: white;
+      border-color: #475569;
+    }
+
+    @media print {
+      body { background: #020617; padding: 1rem; }
+      .toolbar { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Sign App Architecture</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">ASL-teaching PWA (React + TS + Vite) · runs in the browser or a Capacitor WebView · no video leaves the device · on-device MediaPipe + classifiers · Python training pipeline · Cloudflare + Capacitor delivery</p>
+    </div>
+
+    <!-- Main Diagram -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 1200 932">
+        <defs>
+          <marker id="ah-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker><marker id="ah-em" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker><marker id="ah-vi" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker><marker id="ah-am" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker><marker id="ah-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker><marker id="ah-sl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+<rect x="20" y="40" width="880" height="610" rx="12" fill="#22d3ee" fill-opacity="0.03" stroke="#22d3ee" stroke-width="1" stroke-dasharray="8,4"/><text x="34" y="58" fill="#22d3ee" font-size="10" font-weight="600">ON-DEVICE RUNTIME · frontend/src · offline</text>
+<rect x="930" y="40" width="250" height="610" rx="12" fill="#fbbf24" fill-opacity="0.03" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/><text x="944" y="58" fill="#fbbf24" font-size="10" font-weight="600">DELIVERY & HOSTING</text>
+<rect x="20" y="690" width="1160" height="200" rx="12" fill="#34d399" fill-opacity="0.03" stroke="#34d399" stroke-width="1" stroke-dasharray="8,4"/><text x="34" y="708" fill="#34d399" font-size="10" font-weight="600">BUILD-TIME ML PIPELINE · Python 3.12 + uv (ml/src/sign_ml) · never runs in the app · ADR-004</text>
+<path d="M 210 122 L 248 122" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ah-cyan)"/>
+<path d="M 440 122 L 478 122" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 650 100 L 688 100" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 650 150 L 670 150 L 670 218 L 688 218" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 880 90 L 892 90 L 892 290 L 868 290 L 868 304" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 845 268 L 845 304" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 580 372 L 580 416" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 795 372 L 795 416" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 300 418 L 300 290" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 180 418 L 180 382" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ah-sl)"/>
+<path d="M 140 514 L 140 560" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-vi)"/>
+<path d="M 240 595 L 268 595" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-vi)"/>
+<path d="M 440 466 L 478 466" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ah-sl)"/>
+<path d="M 945 96 L 918 96 L 918 30 L 430 30 L 430 74" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ah-am)"/>
+<path d="M 945 602 L 912 602 L 912 640 L 30 640 L 30 100 L 38 100" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ah-cyan)"/>
+<path d="M 1055 318 L 1055 274" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#ah-am)"/>
+<path d="M 1055 404 L 1055 448" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ah-sl)"/>
+<path d="M 1165 229 L 1174 229 L 1174 602 L 1167 602" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#ah-am)"/>
+<path d="M 230 772 L 268 772" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-vi)"/>
+<path d="M 470 772 L 508 772" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 710 772 L 748 772" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 950 772 L 988 772" fill="none" stroke="#fb7185" stroke-width="1.5" marker-end="url(#ah-rose)"/>
+<path d="M 1077 726 L 1077 708 L 924 708 L 924 218 L 882 218" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 924 120 L 882 120" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-em)"/>
+<path d="M 924 218 L 924 120" fill="none" stroke="#34d399" stroke-width="1.5"/>
+<path d="M 490 838 L 490 820" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ah-sl)"/>
+<rect x="40" y="76" width="170" height="92" rx="6" fill="#0f172a"/>
+<rect x="40" y="76" width="170" height="92" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="125.0" y="94" fill="white" font-size="11" font-weight="600" text-anchor="middle">CameraProvider</text>
+<text x="125.0" y="109.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">cameraProvider.tsx</text>
+<text x="125.0" y="121.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">one shared MediaStream</text>
+<text x="125.0" y="134.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">mounted above the router</text>
+<text x="125.0" y="146.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">useCamera / useCameraContext</text>
+<text x="125.0" y="161" fill="#22d3ee" font-size="7.5" text-anchor="middle">ADR-018</text>
+<rect x="250" y="76" width="190" height="92" rx="6" fill="#0f172a"/>
+<rect x="250" y="76" width="190" height="92" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="345.0" y="94" fill="white" font-size="11" font-weight="600" text-anchor="middle">MediaPipe Tasks Vision</text>
+<text x="345.0" y="109.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">HandLandmarker</text>
+<text x="345.0" y="121.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">mediapipeDetector.ts (letters)</text>
+<text x="345.0" y="134.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">HolisticLandmarker</text>
+<text x="345.0" y="146.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">holisticDetector.ts (signs)</text>
+<text x="345.0" y="161" fill="#34d399" font-size="7.5" text-anchor="middle">WASM + .task from CDN · GPU</text>
+<rect x="480" y="76" width="170" height="92" rx="6" fill="#0f172a"/>
+<rect x="480" y="76" width="170" height="92" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="565.0" y="94" fill="white" font-size="11" font-weight="600" text-anchor="middle">Normalization</text>
+<text x="565.0" y="109.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">normalization.ts (hand)</text>
+<text x="565.0" y="121.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">dynamicNormalization.ts</text>
+<text x="565.0" y="134.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">pose-shoulder-hands-v1</text>
+<text x="565.0" y="146.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">FrameWindow · 30 frames</text>
+<text x="565.0" y="161" fill="#34d399" font-size="7.5" text-anchor="middle">golden-vector parity</text>
+<rect x="690" y="66" width="190" height="76" rx="6" fill="#0f172a"/>
+<rect x="690" y="66" width="190" height="76" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="785.0" y="84" fill="white" font-size="11" font-weight="600" text-anchor="middle">Static MLP</text>
+<text x="785.0" y="99.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">mlpClassifier.ts · signClassifier.ts</text>
+<text x="785.0" y="111.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">models/fingerspelling.json</text>
+<text x="785.0" y="124.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">24 letters (J, Z excluded)</text>
+<text x="785.0" y="135" fill="#34d399" font-size="7.5" text-anchor="middle">JSON-weights MLP · ADR-011</text>
+<rect x="690" y="168" width="190" height="100" rx="6" fill="#0f172a"/>
+<rect x="690" y="168" width="190" height="100" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="785.0" y="186" fill="white" font-size="11" font-weight="600" text-anchor="middle">Dynamic ONNX</text>
+<text x="785.0" y="201.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">onnxDynamicClassifier.ts</text>
+<text x="785.0" y="213.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">onnxruntime-web (WASM)</text>
+<text x="785.0" y="226.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">BiGRU + attention · 715 KB</text>
+<text x="785.0" y="238.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">114 classes · 103 published</text>
+<text x="785.0" y="251.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">temperature 0.8 · per-sign bars</text>
+<text x="785.0" y="261" fill="#34d399" font-size="7.5" text-anchor="middle">ADR-015 / 024 / 025</text>
+<rect x="40" y="206" width="400" height="82" rx="6" fill="#0f172a"/>
+<rect x="40" y="206" width="400" height="82" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="240.0" y="224" fill="white" font-size="11" font-weight="600" text-anchor="middle">Domain · pure TS (src/domain)</text>
+<text x="240.0" y="239.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">buckets · selection · levels · recall (teach → recall)</text>
+<text x="240.0" y="251.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">curriculum · sentences · signSearch · fingerspell</text>
+<text x="240.0" y="264.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">seeded rng.ts · framework-free</text>
+<text x="240.0" y="281" fill="#34d399" font-size="7.5" text-anchor="middle">unit-tested in Vitest</text>
+<rect x="40" y="320" width="400" height="60" rx="6" fill="#0f172a"/>
+<rect x="40" y="320" width="400" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="240.0" y="338" fill="white" font-size="11" font-weight="600" text-anchor="middle">Content (src/content)</text>
+<text x="240.0" y="353.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">curriculum.ts: 11 units / 62 sets · dynamicVocab</text>
+<text x="240.0" y="365.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">signSentences (59) · words · signSynonyms</text>
+<rect x="480" y="306" width="400" height="66" rx="6" fill="#0f172a"/>
+<rect x="480" y="306" width="400" height="66" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="680.0" y="324" fill="white" font-size="11" font-weight="600" text-anchor="middle">Recognition hooks</text>
+<text x="680.0" y="339.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">useSignRecognition · useDynamicSignRecognition</text>
+<text x="680.0" y="351.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">useUnifiedSignRecognition · LabelStabilizer · 3-window vote</text>
+<text x="680.0" y="365" fill="#34d399" font-size="7.5" text-anchor="middle">emits { label, confidence } · accept prompted gloss</text>
+<rect x="40" y="418" width="400" height="96" rx="6" fill="#0f172a"/>
+<rect x="40" y="418" width="400" height="96" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="240.0" y="436" fill="white" font-size="11" font-weight="600" text-anchor="middle">Learner routes · LearnerLayout</text>
+<text x="240.0" y="451.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">/  LearnerHome (continue where you left off)</text>
+<text x="240.0" y="463.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">/course  WordsPathView · /course/alphabet  AlphabetPathView</text>
+<text x="240.0" y="476.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">/sentences  SentencesView · /search  SearchView</text>
+<text x="240.0" y="488.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">/settings  SettingsView (Developer mode toggle)</text>
+<text x="240.0" y="507" fill="#22d3ee" font-size="7.5" text-anchor="middle">React Router · learner theme · ADR-029</text>
+<rect x="480" y="418" width="200" height="96" rx="6" fill="#0f172a"/>
+<rect x="480" y="418" width="200" height="96" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="580.0" y="436" fill="white" font-size="11" font-weight="600" text-anchor="middle">Dev routes</text>
+<text x="580.0" y="451.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">/practice  PracticeMode</text>
+<text x="580.0" y="463.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">/learn  LearnMode</text>
+<text x="580.0" y="476.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">/signs  DynamicSignView</text>
+<text x="580.0" y="488.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">/camera  CameraView</text>
+<text x="580.0" y="507" fill="#22d3ee" font-size="7.5" text-anchor="middle">nav tabs shown in dev mode</text>
+<rect x="710" y="418" width="170" height="96" rx="6" fill="#0f172a"/>
+<rect x="710" y="418" width="170" height="96" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="795.0" y="436" fill="white" font-size="11" font-weight="600" text-anchor="middle">Shared stages</text>
+<text x="795.0" y="451.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">DynamicSignStage</text>
+<text x="795.0" y="463.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">FingerspellStage</text>
+<text x="795.0" y="476.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">SignReferencePlayer</text>
+<text x="795.0" y="488.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">SentenceDrill</text>
+<text x="795.0" y="507" fill="#22d3ee" font-size="7.5" text-anchor="middle">reference/*.json clips</text>
+<rect x="40" y="562" width="200" height="66" rx="6" fill="#0f172a"/>
+<rect x="40" y="562" width="200" height="66" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="140.0" y="580" fill="white" font-size="11" font-weight="600" text-anchor="middle">Repositories (src/data)</text>
+<text x="140.0" y="595.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">WordBankRepo · SentenceRepo</text>
+<text x="140.0" y="607.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">CurriculumRepo</text>
+<text x="140.0" y="621" fill="#a78bfa" font-size="7.5" text-anchor="middle">only path to IndexedDB</text>
+<rect x="270" y="562" width="270" height="66" rx="6" fill="#0f172a"/>
+<rect x="270" y="562" width="270" height="66" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="405.0" y="580" fill="white" font-size="11" font-weight="600" text-anchor="middle">Dexie · IndexedDB (db.ts v4)</text>
+<text x="405.0" y="595.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">words · progress · profile</text>
+<text x="405.0" y="607.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">sentences · curriculumSets</text>
+<text x="405.0" y="621" fill="#a78bfa" font-size="7.5" text-anchor="middle">local-first · ADR-005</text>
+<rect x="570" y="562" width="310" height="66" rx="6" fill="#0f172a"/>
+<rect x="570" y="562" width="310" height="66" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="725.0" y="580" fill="white" font-size="11" font-weight="600" text-anchor="middle">Service worker · vite-plugin-pwa</text>
+<text x="725.0" y="595.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">Workbox precache: shell, model.onnx, metadata, reference</text>
+<text x="725.0" y="607.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">CacheFirst: CDN WASM + MediaPipe .task models</text>
+<text x="725.0" y="621" fill="#fbbf24" font-size="7.5" text-anchor="middle">offline after first load</text>
+<rect x="945" y="70" width="220" height="74" rx="6" fill="#0f172a"/>
+<rect x="945" y="70" width="220" height="74" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="1055.0" y="88" fill="white" font-size="11" font-weight="600" text-anchor="middle">CDNs (runtime fetch)</text>
+<text x="1055.0" y="103.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">cdn.jsdelivr.net: tasks-vision</text>
+<text x="1055.0" y="115.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">+ onnxruntime-web WASM</text>
+<text x="1055.0" y="128.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">storage.googleapis.com: .task</text>
+<rect x="945" y="186" width="220" height="86" rx="6" fill="#0f172a"/>
+<rect x="945" y="186" width="220" height="86" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="1055.0" y="204" fill="white" font-size="11" font-weight="600" text-anchor="middle">Cloudflare</text>
+<text x="1055.0" y="219.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">Workers Static Assets</text>
+<text x="1055.0" y="231.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">(successor to Pages)</text>
+<text x="1055.0" y="244.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">wrangler.jsonc · dist/ · SPA fallback</text>
+<text x="1055.0" y="265" fill="#fbbf24" font-size="7.5" text-anchor="middle">sign-app.*.workers.dev · HTTPS</text>
+<rect x="945" y="318" width="220" height="86" rx="6" fill="#0f172a"/>
+<rect x="945" y="318" width="220" height="86" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="1055.0" y="336" fill="white" font-size="11" font-weight="600" text-anchor="middle">GitHub (private repo)</text>
+<text x="1055.0" y="351.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">main · branch → PR → squash</text>
+<text x="1055.0" y="363.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">Actions: frontend.yml · ml.yml</text>
+<text x="1055.0" y="376.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">pull_request + paths filters</text>
+<text x="1055.0" y="397" fill="#94a3b8" font-size="7.5" text-anchor="middle">push to main → auto build</text>
+<rect x="945" y="450" width="220" height="86" rx="6" fill="#0f172a"/>
+<rect x="945" y="450" width="220" height="86" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="1055.0" y="468" fill="white" font-size="11" font-weight="600" text-anchor="middle">Capacitor Android wrap</text>
+<text x="1055.0" y="483.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">frontend/android · webDir dist</text>
+<text x="1055.0" y="495.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">com.aakashtir.signapp</text>
+<text x="1055.0" y="508.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">P6M2 spike: GO</text>
+<text x="1055.0" y="529" fill="#fbbf24" font-size="7.5" text-anchor="middle">P6M9 store release · pending</text>
+<rect x="945" y="576" width="220" height="52" rx="6" fill="#0f172a"/>
+<rect x="945" y="576" width="220" height="52" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="1055.0" y="594" fill="white" font-size="11" font-weight="600" text-anchor="middle">Learner</text>
+<text x="1055.0" y="609.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">browser / phone · camera</text>
+<rect x="40" y="726" width="190" height="92" rx="6" fill="#0f172a"/>
+<rect x="40" y="726" width="190" height="92" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="135.0" y="744" fill="white" font-size="11" font-weight="600" text-anchor="middle">Datasets · ml/data/</text>
+<text x="135.0" y="759.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">gitignored, local only</text>
+<text x="135.0" y="771.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">WLASL · MS-ASL (yt-dlp)</text>
+<text x="135.0" y="784.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">Kaggle ASL Alphabet</text>
+<text x="135.0" y="796.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">wlasl.py · msasl.py</text>
+<rect x="270" y="726" width="200" height="92" rx="6" fill="#0f172a"/>
+<rect x="270" y="726" width="200" height="92" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="370.0" y="744" fill="white" font-size="11" font-weight="600" text-anchor="middle">Extract landmarks</text>
+<text x="370.0" y="759.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">extract.py (images → hand)</text>
+<text x="370.0" y="771.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">dynamic_extract.py (video)</text>
+<text x="370.0" y="784.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">ingest.py: canonical vocab,</text>
+<text x="370.0" y="796.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">signer-disjoint splits</text>
+<text x="370.0" y="811" fill="#34d399" font-size="7.5" text-anchor="middle">MediaPipe (Python)</text>
+<rect x="510" y="726" width="200" height="92" rx="6" fill="#0f172a"/>
+<rect x="510" y="726" width="200" height="92" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="610.0" y="744" fill="white" font-size="11" font-weight="600" text-anchor="middle">Train</text>
+<text x="610.0" y="759.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">model.py: scikit-learn MLP</text>
+<text x="610.0" y="771.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">dynamic_model.py: PyTorch</text>
+<text x="610.0" y="784.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">BiGRU + attention pooling</text>
+<text x="610.0" y="796.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">label smoothing 0.15</text>
+<text x="610.0" y="811" fill="#34d399" font-size="7.5" text-anchor="middle">pipeline.py · dynamic_pipeline.py</text>
+<rect x="750" y="726" width="200" height="92" rx="6" fill="#0f172a"/>
+<rect x="750" y="726" width="200" height="92" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+<text x="850.0" y="744" fill="white" font-size="11" font-weight="600" text-anchor="middle">Crossval · calibrate</text>
+<text x="850.0" y="759.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">eval.py · honest signer-</text>
+<text x="850.0" y="771.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">disjoint gate ≥ 0.50/sign</text>
+<text x="850.0" y="784.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">temperature + per-sign</text>
+<text x="850.0" y="796.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">accept thresholds</text>
+<text x="850.0" y="811" fill="#fb7185" font-size="7.5" text-anchor="middle">ADR-019 gate</text>
+<rect x="990" y="726" width="175" height="92" rx="6" fill="#0f172a"/>
+<rect x="990" y="726" width="175" height="92" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="1077.5" y="744" fill="white" font-size="11" font-weight="600" text-anchor="middle">Export</text>
+<text x="1077.5" y="759.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">export.py → JSON (mlp-1)</text>
+<text x="1077.5" y="771.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">dynamic_export.py → ONNX</text>
+<text x="1077.5" y="784.0" fill="#94a3b8" font-size="8.5" text-anchor="middle">+ metadata.json</text>
+<text x="1077.5" y="796.5" fill="#94a3b8" font-size="8.5" text-anchor="middle">reference_export.py</text>
+<text x="1077.5" y="811" fill="#34d399" font-size="7.5" text-anchor="middle">committed artifacts</text>
+<rect x="270" y="838" width="440" height="40" rx="6" fill="#0f172a"/>
+<rect x="270" y="838" width="440" height="40" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="490.0" y="856" fill="white" font-size="11" font-weight="600" text-anchor="middle">Golden fixtures · golden_dynamic.py → fixtures/*.golden.json</text>
+<rect x="750" y="838" width="415" height="40" rx="6" fill="#0f172a"/>
+<rect x="750" y="838" width="415" height="40" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="957.5" y="856" fill="white" font-size="11" font-weight="600" text-anchor="middle">CI gates: ruff · mypy · pytest · tsc · Vitest · Playwright</text>
+<text x="229" y="116" fill="#94a3b8" font-size="8" text-anchor="middle">frames</text>
+<text x="459" y="116" fill="#94a3b8" font-size="8" text-anchor="middle">points</text>
+<text x="669" y="94" fill="#94a3b8" font-size="8" text-anchor="middle">hand</text>
+<text x="666" y="212" fill="#94a3b8" font-size="8" text-anchor="end">window</text>
+<text x="885" y="180" fill="#94a3b8" font-size="8" text-anchor="middle" transform="rotate(90 885 180)">letter</text>
+<text x="839" y="290" fill="#94a3b8" font-size="8" text-anchor="end">sign probs</text>
+<text x="586" y="398" fill="#94a3b8" font-size="8" text-anchor="start">prediction</text>
+<text x="801" y="398" fill="#94a3b8" font-size="8" text-anchor="start">accept / advance</text>
+<text x="306" y="404" fill="#94a3b8" font-size="8" text-anchor="start">calls</text>
+<text x="186" y="404" fill="#94a3b8" font-size="8" text-anchor="start">reads</text>
+<text x="146" y="542" fill="#94a3b8" font-size="8" text-anchor="start">progress</text>
+<text x="459" y="460" fill="#94a3b8" font-size="8" text-anchor="middle">dev</text>
+<text x="680" y="25" fill="#94a3b8" font-size="8" text-anchor="middle">WASM + .task models, runtime-cached by the service worker</text>
+<text x="470" y="636" fill="#94a3b8" font-size="8" text-anchor="middle">camera frames (getUserMedia, on device)</text>
+<text x="1061" y="300" fill="#94a3b8" font-size="8" text-anchor="start">build + deploy</text>
+<text x="1061" y="430" fill="#94a3b8" font-size="8" text-anchor="start">npx cap sync</text>
+<text x="1167" y="420" fill="#94a3b8" font-size="8" text-anchor="middle" transform="rotate(90 1167 420)">serves the PWA</text>
+<text x="489" y="766" fill="#94a3b8" font-size="8" text-anchor="middle">cache</text>
+<text x="969" y="766" fill="#94a3b8" font-size="8" text-anchor="middle">≥ 0.50</text>
+<text x="1000" y="703" fill="#94a3b8" font-size="8" text-anchor="middle">artifacts → frontend/</text>
+<text x="496" y="832" fill="#94a3b8" font-size="8" text-anchor="start">parity tests</text>
+<text x="40" y="918" fill="white" font-size="10" font-weight="600">Legend</text>
+<rect x="100" y="909" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/><text x="122" y="918" fill="#94a3b8" font-size="8">UI / camera</text>
+<rect x="230" y="909" width="16" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/><text x="252" y="918" fill="#94a3b8" font-size="8">Processing code</text>
+<rect x="360" y="909" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/><text x="382" y="918" fill="#94a3b8" font-size="8">Data / storage</text>
+<rect x="490" y="909" width="16" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/><text x="512" y="918" fill="#94a3b8" font-size="8">Platform / hosting</text>
+<rect x="620" y="909" width="16" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/><text x="642" y="918" fill="#94a3b8" font-size="8">Accuracy gate</text>
+<rect x="750" y="909" width="16" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/><text x="772" y="918" fill="#94a3b8" font-size="8">External / generic</text>
+<line x1="880" y1="914" x2="896" y2="914" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3"/><text x="902" y="918" fill="#94a3b8" font-size="8">dashed = runtime-cached / optional / pending</text>
+      </svg>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>On-device recognition</h3></div>
+        <ul>
+          <li>• One shared camera stream (CameraProvider, ADR-018); MediaPipe Hand + Holistic landmarkers</li>
+          <li>• Static: JSON-weights MLP, 24 letters · Dynamic: BiGRU + attention ONNX, 103 of 114 classes published</li>
+          <li>• Temperature 0.8, per-sign accept bars, 3-window vote, 3-frame label stabilizer</li>
+          <li>• No TF.js; no video or landmarks leave the device</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot emerald"></div><h3>Build-time ML (Python, uv)</h3></div>
+        <ul>
+          <li>• WLASL + MS-ASL video and Kaggle ASL Alphabet images, local under ml/data/ (gitignored)</li>
+          <li>• dynamic_pipeline stages: extract · extract-combined · assemble-combined · pretrain · train · crossval · calibrate · diagnose</li>
+          <li>• Signer-disjoint honest gate (≥ 0.50 per sign) decides what ships</li>
+          <li>• Golden-vector fixtures keep TS and Python normalization identical</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot amber"></div><h3>Delivery &amp; storage</h3></div>
+        <ul>
+          <li>• Push to main → Cloudflare Workers Static Assets builds frontend/ and serves dist/</li>
+          <li>• CI: frontend.yml + ml.yml, pull_request only, with path filters</li>
+          <li>• Capacitor Android wrap proven (P6M2); store release is P6M9, owner-gated</li>
+          <li>• Progress is local-first in Dexie (v4), accessed only through repositories</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="footer">
+      Sign App • Phase 6 learner app (P6M1–P6M7 merged) • sources: .claude/docs, docs/deployment.md, frontend/src, ml/src/sign_ml • 2026-11-03
+    </p>
+  </div>
+
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPNG(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a');
+        link.download = 'diagram.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPDF(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('diagram.pdf');
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>

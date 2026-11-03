@@ -13,3 +13,6 @@
 *.task binary
 *.tflite binary
 *.bin binary
+
+# One log file per day; parallel PRs append to the same file, so union-merge it.
+logs/*.md merge=union

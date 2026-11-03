@@ -23,8 +23,10 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 | [`docs/decisions.md`](docs/decisions.md) | **Decision log (ADRs)** + open questions. |
 | [`docs/hosting.md`](docs/hosting.md) | **Hosting** — what Cloudflare Pages is and how we deploy. |
 | [`progress.md`](progress.md) | **Live status** — which milestone we're on, what's done. |
-| [`rules/`](rules/) | **Coding standards** — frontend, Python, and git/CI workflow. |
-| [`../plan.md`](../plan.md) | The owner's plan. **Now holds the Phase 6 learner-app plan** (reformatted 2026-07-10); earlier phase plans live in git history + these `.claude` docs. Phase-2 per-item analysis is in [`../output.md`](../output.md). |
+| [`rules/`](rules/) | **Coding standards** — frontend, Python, and the issue → PR → CI workflow. |
+| [`../plan.md`](../plan.md) | The owner's plan. **Now holds the Phase 6 learner-app plan** (reformatted 2026-07-10); earlier phase plans live in git history + these `.claude` docs. Phase-2 per-item analysis is in [`../docs/history/phase2-analysis.md`](../docs/history/phase2-analysis.md). |
+| [`../docs/`](../docs/README.md) | **Human-readable walkthrough** (architecture, ML, runtime, deployment) + [`architecture/architecture-diagram.html`](../docs/architecture/architecture-diagram.html) + [`future.md`](../docs/future.md) (backlog). |
+| [`../logs/`](../logs/) | **Dated change log** — one `YYYY-MM-DD.md` per day of changes (what / why / how). |
 
 ## The 60-second summary
 
@@ -43,8 +45,9 @@ codebase; a Python pipeline (build-time only) trains the recognition model.
 
 ## Working agreement (from the plan — non-negotiable)
 
-1. Work in **milestones**; each milestone is a **branch → PR → squash-merge** into
-   `main`.
+1. Work in **milestones**, each tracked as a **GitHub issue**; each issue is a
+   **branch → PR → squash-merge** into `main` (full loop in
+   [`rules/workflow.md`](rules/workflow.md)).
 2. A milestone merges **only when all tests pass and all quality gates are green**:
    - Python (`ml/`): `ruff format` + `ruff check` + `mypy .` + `pytest`.
    - Frontend (`frontend/`): Prettier + ESLint + `tsc --noEmit` + Vitest + Playwright.
@@ -62,119 +65,107 @@ and the secrets/credentials policy.
 
 ## Status
 
-**Phases 1–5 are complete/paused and deployed** — the PWA is live on Cloudflare with
-**24 fingerspelling letters + 103 dynamic signs**, a per-finger overlay option, a
-persistent shared camera, a redesigned UI, offline in-app sign references, a **Search
-tab** (typo/stem-tolerant with a fingerspelling fallback + as-you-type autocomplete, P4M9/P4M11),
-and a **Sentences section** (Phase 5). See
-[`progress.md`](progress.md); Phase 2 detail in [`docs/phase2.md`](docs/phase2.md).
+**Live:** Phases 1–5 + the Phase-6 learner shell (P6M1–P6M7) are merged and deployed on
+Cloudflare (Workers Static Assets): **24 fingerspelling letters + 103 dynamic signs**,
+the learner app (`/` home, `/course` words, `/course/alphabet`, `/sentences`,
+`/search`), and the dev tabs (`/practice`, `/learn`, `/signs`, `/camera`) behind
+**Settings → Developer mode**. The Phase-4 accuracy track
+is closed: every lever was explored, and P4M8 SSL came out flat.
 
-**✅ Phase 3 (accuracy & vocabulary depth) — all merged + deployed.** Grew the dynamic
-recognizer to an **81-gloss MS-ASL ∪ WLASL model** (3583 samples / 163 signers); the
-honest ≥ 0.50 gate shipped 63 signs at honest top-1 0.615. *(Superseded by Phase 4 —
-now 71 signs at 0.687.)* MS-ASL fetch mechanics are in memory `msasl-download-setup`.
+**Next:** owner review of the new look → **P6M8** (progress & polish) → **P6M9** (store
+release, owner-gated). Open work lives in [`../docs/future.md`](../docs/future.md) and
+GitHub issues.
 
-**✅ Phase 4 — discovery shipped; accuracy track ongoing.** Detail in
-[`docs/phase4.md`](docs/phase4.md); §6.7–6.15 in [`docs/recognition.md`](docs/recognition.md).
+The full, authoritative status, with per-milestone PR links and the running log, is in
+[`progress.md`](progress.md). Per-day reasoning since 2026-11-03 is in `../logs/`.
 
-- **Discovery — P4M1 Search tab** ([#26](https://github.com/aakash-tir/sign-app/pull/26))
-  + **P4M9 search UX** ([#33](https://github.com/aakash-tir/sign-app/pull/33)):
-  type a sign → reference animation + a camera that recognizes it, else "not in the system
-  yet". Exact + synonym + **stem + typo-tolerant suggestions**, with a **fingerspelling
-  fallback** for spellable misses; reuses `DynamicSignStage` + `SignReferencePlayer`
-  (ADR-021, FR-19). P4M9 resolved the P4M1 fuzzy/fingerspell deferrals (frontend-only).
-  **P4M11 search autocomplete** adds an as-you-type ranked combobox dropdown (pure
-  `autocomplete()` ranker: prefix → substring → fuzzy; keyboard-navigable), resolving
-  the last P4M9 deferral (frontend-only).
-- **Accuracy + vocabulary track (P4M2–P4M17).** **The recognizer grew from 63 → 103
-  shipped signs with per-sign calibrated acceptance — all live.** (Aggregate honest CV
-  peaked at 0.732 over the 81-class model; it's 0.691 over the current 114-class model —
-  more classes are a harder task, not a regression.)
-  - **P4M17 — drop the 3 confusers** ([#42](https://github.com/aakash-tir/sign-app/pull/42)):
-    P4M16's new `dance`/`paper`/`slow` were stealing probability mass from shipped signs.
-    Dropping them as *trained* classes (→ **114 classes, 103 published**) restored
-    `stand` 0.47→0.63 and `car` 0.43→0.57; `school` 0.42→0.49 (improved, kept — grandfathered).
-    No new demotions. Re-calibrated **T=0.80**. ADR-019 gate, §6.15.
-  - **P4M16 — MS-ASL download → 100+ signs**: fetched 36 everyday glosses, trained a
-    117-gloss model; the honest gate cleared 27 new → **79 + 27 = 106 published signs**
-    (aggregate 0.696 over 117; the original 79 hold at 0.718; no demotions). Needed a
-    download fix first (yt-dlp-ejs + Deno for YouTube's n-challenge, [#40](https://github.com/aakash-tir/sign-app/pull/40)). §6.14, docs/reaching-100-signs.md.
-  - **P4M10 — label smoothing** ([#34](https://github.com/aakash-tir/sign-app/pull/34)): a label-smoothing loss (0.15)
-    lifted honest CV **0.687 → 0.732**, **71 → 79 signs, no demotions** (`hungry` recovers).
-    Loss-only, no runtime/spec/size change. ADR-027, §6.12.
-  - **P4M5 — the win** ([#29](https://github.com/aakash-tir/sign-app/pull/29)):
-    **bidirectional GRU + masked attention pooling** (read the whole sign, not just the
-    last timestep) → **0.687**, 71 signs. ONNX 690 KB. ADR-024, §6.9.
-  - **P4M7 — runtime confidence** ([#30](https://github.com/aakash-tir/sign-app/pull/30)):
-    per-sign acceptance thresholds + temperature calibration (T=1.6) + 3-window voting; no
-    retrain. ADR-025, §6.10.
-  - **P4M2 diagnose** ([#27](https://github.com/aakash-tir/sign-app/pull/27)): the 18 low
-    signs are **under-separated, not data-starved** — which is why the modeling lever
-    (P4M5) won and the cheap data/loss tweaks didn't. §6.7.
-  - **P4M4 motion** ([#28](https://github.com/aakash-tir/sign-app/pull/28)) and **P4M3
-    mirroring + class-weighted loss** ([#31](https://github.com/aakash-tir/sign-app/pull/31)):
-    both **tested, honest-negative, not shipped** — kept as opt-in tooling. (P4M3 notably
-    *proved* mirroring is parity-correct, refuting the P3M3 deferral.) ADR-022/023, §6.8/6.11.
+## Git workflow (required)
+`main` is protected by rule. The repo is private on GitHub Free, so server-side branch
+protection is unavailable, and these rules plus the hook are the gate:
+- **Never commit directly on `main`** and never merge into it locally. Changes reach
+  `main` only by merging a GitHub PR (`gh pr merge --squash --delete-branch`), and
+  only when its CI is green.
+- Enforced locally by `.claude/hooks/protect-main.sh` (wired as a PreToolUse hook in
+  `.claude/settings.json`), which denies `git commit`/`git merge`/`git push` against
+  `main`. Create the branch in its own command *before* any commit.
+- Workflow: branch → commit → push the branch → open a PR → merge the PR → pull `main`.
+- **Merge one PR at a time.** PRs share the day's `logs/` file and `graphify-out/`, so
+  a merge can leave other open PRs conflicting. Check `gh pr view <N> --json mergeable`.
+  If it's `CONFLICTING`, run `git merge origin/main` (never rebase or force-push). Log
+  entries combine on their own (`logs/*.md merge=union`). Take either side of
+  `graphify-out/` and rerun `graphify update .`. Then re-run the gates and wait for CI.
 
-- **P4M8 — SSL pretraining: tested, honest-negative, NOT shipped** (2026-06-29, ADR-026,
-  §6.16): the last/heaviest lever. Built the full masked-pose mechanism (pretrain the **same**
-  BiGRU encoder, no arch swap) + extracted the **full on-disk pool (15,811 seq / ~2,200
-  glosses)**. A strict pretrain↔eval signer holdout collapses the pool to 376 clips, so ran the
-  **optimistic upper bound** (full pool): **0.689 vs 0.691 baseline — flat, the ceiling → shelve.**
-  Tooling kept opt-in. **This closes the Phase-4 accuracy track** — every lever explored.
+## Issues, PRs and CI (required)
+All development is driven by GitHub issues and lands through PRs gated by CI. The full
+loop is in [`rules/workflow.md`](rules/workflow.md). Follow it in every session.
+- **One issue = one thing**, one PR in size. A milestone (e.g. P6M8) is a GitHub
+  milestone holding several issues.
+- **One PR per issue.** Branch `<type>/<issue#>-<slug>`, PR body starts `Closes #<n>`.
+- **Never merge unless every CI check that started is green**
+  (`gh pr checks <pr> --watch`).
+- **CI is lean on Actions minutes** (`.github/workflows/`): one workflow per area
+  (`frontend`, `ml`), on pull requests only (plus `workflow_dispatch`), and only when
+  a file that area depends on changed. Nothing runs on the merge to `main`. Docs-only
+  PRs (`docs/`, `logs/`, `graphify-out/`, `*.md`, `.claude/`) run no CI and may merge
+  without checks. Don't add a `push: main` trigger or a separate follow-up PR for docs
+  or the graph: each one costs a CI run.
+- **Out-of-scope bugs found mid-branch become new issues**, not fixes in the current PR.
 
-**✅ Phase 5 — the Sentences section (2026-07-01, [`docs/phase5.md`](docs/phase5.md), ADR-028,
-FR-20).** Promoted sentences from the minimal P2M7 Learn drill to a **top-level `/sentences`
-tab**: a **59-sentence bank** (2–4 signs over the 103-gloss vocab), pure domain
-eligibility/selection (all-confident ∩ per-level length bands; seeded RNG preferring
-un-completed), **persisted completion progress** (Dexie v3 + `SentenceRepo`), per-sign
-camera verification (ADR-025 acceptance, rising-edge advance) with the "That's what I did"
-valve, and ADR-009 gating with locked/empty explainers. In-Learn drill removed. Built as
-sub-milestones off an integration branch: P5M1 [#46](https://github.com/aakash-tir/sign-app/pull/46) ·
-P5M2 [#47](https://github.com/aakash-tir/sign-app/pull/47) · P5M3 [#48](https://github.com/aakash-tir/sign-app/pull/48)
-→ main [#49](https://github.com/aakash-tir/sign-app/pull/49). Frontend-only; no model change.
+## Before every PR merge (required)
+Two artifacts must be kept current, together, **in the same PR** (no separate follow-up
+PR: each one costs a CI run):
+1. **Knowledge graph** — run `graphify update .` on the branch once the code is final
+   and commit the refreshed `graphify-out/` to that PR. This is the only refresh:
+   there are no graphify git hooks.
+2. **Architecture diagram** — update `docs/architecture/architecture-diagram.html`
+   whenever the merged PR changed the architecture: components, stages,
+   data stores/collections, external services, flows, schedules, or
+   retention rules. Use the `architecture-diagram` skill's MANUAL
+   workflow (hand-placed layout per its design system) and verify the
+   render with a headless-browser screenshot before committing —
+   auto-generated output is a draft scaffold only. Docs-only or purely
+   cosmetic merges don't need a diagram update, but say so in the
+   changelog entry.
 
-**✅ Owner-verified (2026-07-10): the Sentences feature works in real use.** Checked
-against a locally seeded bank (all 103 dynamic signs forced `confident` via a temporary
-dev-only scaffold, since reaching the ADR-009 gate organically needs ≥20 confident words);
-`/sentences` unlocked and drilled correctly. Scaffold removed, not committed. **Phase 5 is
-closed.** P4M8 tested-negative closed the accuracy track.
+**Deploys are automatic:** Cloudflare (Workers Static Assets, the successor to Pages)
+builds and deploys `main` on every merge (see [`../docs/deployment.md`](../docs/deployment.md)). After a merge that touches `frontend/`, verify
+the live site serves the change. Don't assume it does.
 
-**▶ Phase 6 — the learner app (underway; P6M1–P6M6 merged + deployed).** All seven plan
-questions answered (owner, 2026-07-10) — plan in [`../plan.md`](../plan.md), milestones
-in [`docs/phase6.md`](docs/phase6.md) (P6M1–P6M9, **ADR-029**): store-first native wrap,
-today's tabs behind a dev mode, linear-with-review progression, bucket-based recall,
-24 letters (J/Z wait), placeholder slots for missing words, a new learner-facing look.
+## Backlog (required)
+All future work — bugs, known gaps, feature ideas, scaling items — is recorded in
+`docs/future.md` (dated bullet under the matching section). When you find or defer an
+issue, add it there; when one is COMPLETE, remove it — `logs/` and the PR history are
+the record of finished work (no Done section). Scheduled work is a GitHub issue, not a
+`future.md` bullet.
 
-- **P6M1 syllabus** [#50](https://github.com/aakash-tir/sign-app/pull/50) — 11 units /
-  62 sets (all 103 glosses + 13 placeholders → `PRIORITY_WORDS`), 8 letter batches;
-  owner review welcome (`frontend/src/content/curriculum.ts`).
-- **P6M2 store-wrap spike** [#51](https://github.com/aakash-tir/sign-app/pull/51) —
-  **GO**: Capacitor Android wrap; camera + MediaPipe WASM + onnxruntime-web run in the
-  WebView. Owner follow-up: sustained-recognition on a **real phone** (`./gradlew
-  assembleDebug` with JAVA_HOME = Android Studio's jbr, then `adb install
-  frontend/android/app/build/outputs/apk/debug/app-debug.apk`).
-- **P6M3 recall engine** [#52](https://github.com/aakash-tir/sign-app/pull/52) — pure
-  teach → recall machine (`domain/recall.ts`; 3× reps, pool review every 3rd prompt).
-- **P6M4 words path** [#53](https://github.com/aakash-tir/sign-app/pull/53) — the
-  `/course` tab: teach → recall sessions, placeholder stubs, Dexie v4, clean learner
-  video (`showOverlay={false}`).
-- **P6M5 sentence stage** [#54](https://github.com/aakash-tir/sign-app/pull/54) — set
-  completion flows into a sentence (shared `SentenceDrill`); also root-caused + fixed
-  the historic Dexie teardown flake.
-- **P6M6 alphabet path** [#55](https://github.com/aakash-tir/sign-app/pull/55) —
-  `/course/alphabet`: 8 batches → recall → the spell-words stage; Words|Alphabet switch.
+## Where things belong (required)
+- `.claude/` — everything Claude reads: `CLAUDE.md`, `project-context.md`,
+  `progress.md`, `rules/`, `docs/` (the working notebook: plans, ADRs, recognition
+  research), project agents and skills, settings and hooks.
+- `docs/` (repo root) — everything a person reads: the explanatory walkthrough,
+  `architecture/` (the diagram), `future.md`, `history/`, and later `plans/`,
+  `research/`, `runbooks/`.
+- `logs/` — the dated record (below).
+- The repo root stays clean: only `CLAUDE.md`, `README.md`, `plan.md`, the two
+  workspaces (`frontend/`, `ml/`), and `tools/`.
 
-- **P6M7 learner shell** [#57](https://github.com/aakash-tir/sign-app/pull/57) — `/` =
-  LearnerHome ("continue where you left off"), learner-first nav, **Settings → Developer
-  mode** toggle for the dev tabs (Q2), the teal learner theme (Q7 first pass, scoped),
-  and "← Exit lesson" everywhere (owner feedback).
+If Claude must load it to work correctly it goes in `.claude/`; if a person reads it to
+understand or operate the project it goes in `docs/`. When both are true, the full
+version lives in `docs/` and `.claude/CLAUDE.md` points at it.
 
-The learner feature set is **functionally complete and verified** (2026-07-10 pass: all
-gates, real-browser drive, live-site probes; one ADR-018 camera privacy edge found +
-fixed). **Next: owner review of the new look, then P6M8 (progress & polish), P6M9 (store release, owner-gated).**
-Remaining/parked: push `school` back over 0.50 (find its new confuser via `diagnose`, then
-drop/fetch — low priority, it's published); **P4M6** targeted data (low-value — data isn't the
-bottleneck); tune the Phase-5 level length bands / grow the sentence bank as vocabulary grows.
-Also: `SIGN_SENTENCES` has no count assertion, so the bank size drifted from the docs
-undetected (57 → 59) — worth pinning in `signSentences.test.ts`.
+## Change log (required)
+Every day that content is added, there is exactly **one** log file: `logs/YYYY-MM-DD.md`.
+Check whether today's file exists; create it if missing, append to it otherwise. Never a
+file per change, never one growing log. A day with no changes has no file.
+
+Each entry is a `##` heading naming what was done, followed by:
+**What we did** · **The reason** (root cause, for fixes) · **How it was solved**.
+
+Write the reasoning, not the diff — git already has the code. For a fix, include the
+evidence that identified the root cause (traceback, version pin, timeline). Say
+explicitly when a change was docs-only or cosmetic and needed no diagram update.
+
+## Don't commit secrets
+Keep `.env`, credentials, and tokens gitignored. Never hardcode API keys in source.
+Dataset credentials (MS-ASL `cookies.txt`) stay outside the repo. See
+[`rules/workflow.md`](rules/workflow.md) for the stop-and-ask policy.

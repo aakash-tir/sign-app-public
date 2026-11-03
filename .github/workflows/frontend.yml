@@ -1,20 +1,20 @@
-# Frontend: Prettier, ESLint, typecheck, Vitest unit tests and Playwright e2e.
+# Frontend (PWA): format, lint, types, unit tests, e2e.
 #
 # Kept lean on Actions minutes: pull requests only (the merge to main re-runs nothing,
 # the PR already tested it), and only when a file this check depends on changed.
 # Docs-only changes (docs/, logs/, graphify-out/, *.md) run no CI at all. Run it by
 # hand from the Actions tab (workflow_dispatch) when needed.
+#
+# frontend/android/ (the Capacitor wrap) and Markdown files don't affect the web
+# gates, so they start nothing.
 name: frontend
 
 on:
   pull_request:
-    # milestone/** covers PRs into phase integration branches (e.g. Phase 5's
-    # milestone/P5-sentences), so sub-milestone PRs get the same gates as main.
-    branches: [main, 'milestone/**']
     paths:
       - 'frontend/**'
-      # Generated Capacitor project: Prettier, ESLint and tsc all ignore it.
       - '!frontend/android/**'
+      - '!frontend/**/*.md'
       - '.github/workflows/frontend.yml'
   workflow_dispatch:
 
@@ -26,31 +26,35 @@ permissions:
   contents: read
 
 jobs:
+  # "frontend" and "ml" are the gate: a PR merges only when every check that started
+  # is green (rule in .claude/rules/workflow.md; GitHub Free has no branch protection
+  # on private repos).
   frontend:
-    name: Frontend (React + TS)
+    name: frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Prettier
+      - name: Format check
         run: npm run format
 
-      - name: ESLint
+      - name: Lint
         run: npm run lint
 
-      - name: Typecheck
+      - name: Type check
         run: npm run typecheck
 
       - name: Unit tests (Vitest)
@@ -61,3 +65,12 @@ jobs:
 
       - name: E2E tests (Playwright)
         run: npm run test:e2e
+
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
