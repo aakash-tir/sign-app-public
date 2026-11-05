@@ -77,7 +77,7 @@ only one runs at a time per view:
 | Hook | What it does |
 | --- | --- |
 | `useSignRecognition` | Letters only — static MLP. |
-| `useDynamicSignRecognition` | Words only — GRU on a 30-frame window. |
+| `useDynamicSignRecognition` | Words only — TCN on a 30-frame window. |
 | `useUnifiedSignRecognition` | Both — picks the right path per prompted word. This is what Practice + Learn use. |
 
 The loop, simplified, looks like this:
@@ -337,7 +337,7 @@ hook picks the right *classifier* per prompted word:
 - If the prompt is a letter (`isDynamicGloss(prompted) === false`), feed the
   detected hand to the static MLP.
 - If the prompt is a word, feed the windowed pose+hands feature to the
-  dynamic GRU.
+  dynamic TCN.
 
 Why: switching detectors per prompt would cause noticeable lag (each detector
 needs to warm up). Running Holistic continuously and reusing its hand

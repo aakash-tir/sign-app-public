@@ -40,8 +40,9 @@ Applies to `ml/` (build-time training & tooling only — see ADR-004). This code
   `format: mlp-1`, ADR-011) and **ONNX** for the dynamic model (trained in
   PyTorch, exported via `torch.onnx.export`, loaded by `onnxruntime-web`,
   ADR-015). **Never TF.js.**
-- Keep models small (MLP for static, BiGRU + attention for dynamic) for fast
-  offline load; the on-device ONNX budget is **≤ ~1.5 MB** (shipped: 698 KB).
+- Keep models small (MLP for static, TCN + attention for dynamic, ADR-030) for fast
+  offline load; the on-device ONNX budget is **≤ ~1.5 MB** (shipped: 156 KB, int8
+  weights via `train --int8`).
 - Record dataset, subset, and **measured accuracy** alongside each exported model;
   vocabulary expansion is gated on these numbers (ADR-007).
 

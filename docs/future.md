@@ -13,16 +13,14 @@ is done, delete it: `logs/` and the PR history are the record of finished work.
   `adb install frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Recognition / model track
-- 2026-11-05 — Ship the bake-off's TCN (int8 weights) as the dynamic model, pending
-  owner review of `ml/experiments/RESULTS.md` (#64). It scored honest top-1 0.741 against
-  0.698, at 156 KB against 698 KB. Needs `sign_ml` export, an app runtime check,
-  per-sign gate numbers and on-camera checks.
+- 2026-11-05 — The #64 bake-off harness measured the TCN 2.4 pts below the pipeline
+  (seed 42: 0.739 against 0.763), although it reproduced the BiGRU within 0.4. Find the
+  harness/pipeline difference before trusting harness numbers for the next bake-off.
+- 2026-11-05 — On-camera check of the TCN model (#66) on a real phone/webcam, especially
+  `bus` (0.47 honest, kept under no-demote) and `grandmother` (0.14, n = 7).
 - 2026-11-05 — A CUDA PyTorch build (in a separate environment, so the `ml/` lock is
   unchanged) would speed up the ~5 h CPU cross-validation runs, if more bake-off rounds
   are planned.
-- 2026-11-03 — Push `school` back over the honest 0.50 gate (published, grandfathered at
-  0.49). Find its new confuser with `dynamic_pipeline diagnose`, then drop or fetch.
-  Low priority.
 - 2026-11-03 — P4M6 targeted data collection. Low value: P4M2 showed the low signs are
   under-separated, not data-starved.
 - 2026-11-03 — J and Z fingerspelling (motion letters). They're excluded from the 24-letter

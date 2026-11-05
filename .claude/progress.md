@@ -347,6 +347,11 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 ## Log
 
+- **2026-11-05** — **The TCN replaces the BiGRU as the dynamic model (#66, ADR-030).**
+  Honest signer-disjoint CV goes from **0.691 to 0.763**. Published signs at or above
+  0.50 go from 95 to 98 of 103, with no demotions (`bus` dips 0.53 → 0.47 and is kept).
+  The ONNX shrinks from 698 KB to **156 KB** with int8 weights, and the runtime contract
+  is unchanged. Six unpublished signs now clear the gate (#67). recognition.md §6.17.
 - **2026-11-05** — **Classifier bake-off (#64), experiment only, nothing shipped.**
   The baseline and each candidate were trained on 5 signer-disjoint folds × 3 seeds.
   **The TCN beats the shipped BiGRU recipe**: honest top-1 0.741 against 0.698

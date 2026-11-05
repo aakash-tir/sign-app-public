@@ -81,12 +81,12 @@ def _weight_only(src: Path, dst: Path, mode: str) -> str | None:
                 keep.append(
                     numpy_helper.from_array(scale.astype(np.float32), name + "_s")
                 )
-                attrs = {"axis": axis} if w.ndim > 1 else {}
-                new_nodes.append(
-                    helper.make_node(
-                        "DequantizeLinear", [name + "_q", name + "_s"], [name], **attrs
-                    )
+                node = helper.make_node(
+                    "DequantizeLinear", [name + "_q", name + "_s"], [name]
                 )
+                if w.ndim > 1:
+                    node.attribute.append(helper.make_attribute("axis", axis))
+                new_nodes.append(node)
         del g.initializer[:]
         g.initializer.extend(keep)
         nodes = new_nodes + list(g.node)

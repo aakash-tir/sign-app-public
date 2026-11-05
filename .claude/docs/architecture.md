@@ -57,7 +57,7 @@ files over HTTPS.
 | Camera | **getUserMedia / WebRTC** | cross-platform camera access |
 | Landmarks | **`@mediapipe/tasks-vision`** | Hand Landmarker / Gesture Recognizer, on-device WASM/WebGL |
 | Inference (static) | **hand-written MLP** over bundled JSON weights | zero-dep, offline (ADR-011) |
-| Inference (dynamic) | **`onnxruntime-web`** over a bundled ONNX model | BiGRU + attention, code-split out of the main bundle (ADR-015) |
+| Inference (dynamic) | **`onnxruntime-web`** over a bundled ONNX model | TCN + attention (ADR-030), int8 weights, code-split out of the main bundle (ADR-015) |
 | Storage | **IndexedDB** via **Dexie** | word bank, progress, proficiency |
 | Lint/format | **ESLint + Prettier** | |
 | Types | **tsc --noEmit** | gate |
@@ -71,7 +71,7 @@ files over HTTPS.
 | Env/deps | **uv** | fast, reproducible |
 | Landmark extraction | **MediaPipe (Python)** | same landmark topology as the web runtime |
 | Training (static) | **scikit-learn** `MLPClassifier` | the fingerspelling MLP (ADR-011) |
-| Training (dynamic) | **PyTorch** (`torch>=2.4`) | BiGRU + attention sequence model. *Not* TensorFlow — see ADR-015 |
+| Training (dynamic) | **PyTorch** (`torch>=2.4`) | TCN + attention sequence model (ADR-030; BiGRU kept as `--arch gru`). *Not* TensorFlow — see ADR-015 |
 | Export | plain **JSON weights** (static, `format: mlp-1`); **`torch.onnx.export`** → ONNX (dynamic) | the two formats the frontend loads |
 | Format/lint | **ruff** (`ruff format` + `ruff check`) | gate |
 | Types | **mypy .** | gate |

@@ -23,7 +23,7 @@
 │     ├─ camera (getUserMedia, one shared MediaStream)                   │
 │     ├─ MediaPipe Tasks Vision  → 21 hand landmarks + body pose         │
 │     ├─ static classifier (hand-written MLP on JSON weights)            │
-│     ├─ dynamic classifier (GRU, ONNX Runtime Web, 30-frame window)     │
+│     ├─ dynamic classifier (TCN, ONNX Runtime Web, 30-frame window)     │
 │                                                                        │
 │   Persistence                                                          │
 │     ├─ IndexedDB (Dexie) — word bank, progress, profile                │
@@ -68,7 +68,7 @@ Two things to notice:
 | Camera | **`getUserMedia`** (browser API) | One cross-platform way to access webcams from the web. |
 | Landmark extraction | **`@mediapipe/tasks-vision`** (Hand + Holistic Landmarkers) | On-device WASM/WebGL — runs locally, no upload. Returns hand and body skeleton keypoints. |
 | Static recognition | **Hand-written MLP** over bundled JSON weights | The letters classifier is tiny. Zero ML runtime dependency. (ADR-011) |
-| Dynamic recognition | **ONNX Runtime Web** running a PyTorch-trained GRU | A recurrent sequence model needs a real runtime; ONNX is portable. (ADR-015) |
+| Dynamic recognition | **ONNX Runtime Web** running a PyTorch-trained TCN | A sequence model needs a real runtime; ONNX is portable. (ADR-015) |
 | Storage | **IndexedDB via Dexie** | Local-first; survives offline; per-device. (ADR-005) |
 | Lint / format | **ESLint + Prettier** | Quality gate. |
 | Types | **`tsc --noEmit`** | Quality gate. |
@@ -82,7 +82,7 @@ Two things to notice:
 | Env / deps | **`uv`** | Fast, reproducible dependency management. |
 | Landmark extraction | **MediaPipe Python** | Same landmark topology as the browser → no train/serve skew. |
 | Static training | **scikit-learn** (MLPClassifier) | Tiny model; exported as JSON weights, not as a TF/ONNX file. (ADR-011) |
-| Dynamic training | **PyTorch** | Trains the GRU; exports to ONNX natively via `torch.onnx`. (ADR-015) |
+| Dynamic training | **PyTorch** | Trains the TCN; exports to ONNX natively via `torch.onnx`. (ADR-015) |
 | Dynamic export | **ONNX** | Portable model format the browser can run via ONNX Runtime Web. |
 | Format / lint | **ruff** (`ruff format` + `ruff check`) | Quality gate. |
 | Types | **mypy** | Quality gate. |
@@ -165,7 +165,7 @@ sign-app/
 │     ├─ ingest.py               canonical labels, signer-disjoint splits
 │     ├─ dynamic_extract.py      MediaPipe Holistic over clips → landmark arrays
 │     ├─ dynamic_normalization.py  mirrors frontend dynamic normalization
-│     ├─ dynamic_model.py        GRU + training + augmentation + cross-validation
+│     ├─ dynamic_model.py        TCN/GRU + training + augmentation + cross-validation
 │     ├─ dynamic_export.py       PyTorch → ONNX export with metadata
 │     ├─ dynamic_pipeline.py     dynamic CLI driver (extract / train / crossval)
 │     ├─ reference_export.py     per-gloss reference clip exporter
@@ -199,7 +199,7 @@ What happens between a user pointing their camera at it and the app saying
                  → fixed 161-d feature vector
    c. Classifier inference:
       - Static (letters): one frame → MLP forward pass → 24-way softmax
-      - Dynamic (words):  push frame into 30-frame window → GRU → 20-way softmax
+      - Dynamic (words):  push frame into 30-frame window → TCN → 114-way softmax
    d. Debounce: require N consecutive high-confidence agreeing frames before
       emitting {label, confidence} upstream
 
@@ -232,7 +232,7 @@ What happens between a user pointing their camera at it and the app saying
 | Landmark source | MediaPipe Hand Landmarker | MediaPipe Holistic Landmarker (pose + hands) |
 | Feature per frame | 63 numbers (21 × xyz) | 161 numbers (pose + each hand + presence flags) |
 | Time window | 1 frame | 30 frames (~1 second) |
-| Model | Hand-written MLP, JSON weights | GRU, ONNX file |
+| Model | Hand-written MLP, JSON weights | TCN, ONNX file (int8 weights) |
 | Runtime size | Tiny (a few KB JSON) | ~296 KB ONNX |
 | Inference cost | Negligible | A few ms per window (cached ONNX session, throttled to 30 FPS) |
 | Why this split | Letters are single-pose; an MLP is the right tool and the ML runtime saves both download and complexity. | Words involve movement and location, which only a sequence model captures. |

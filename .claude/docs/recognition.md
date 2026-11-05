@@ -687,6 +687,71 @@ label-smoothing already extracts the separable structure SSL would have to add. 
 real payoff regime (orders-of-magnitude more diverse unlabeled data) isn't reachable
 from the on-disk corpus. This closes the Phase-4 accuracy track's last big swing.
 
+### 6.17 Temporal-conv (TCN) encoder replaces the BiGRU (#64 bake-off → #66, shipped)
+
+The #64 bake-off ([`../../ml/experiments/RESULTS.md`](../../ml/experiments/RESULTS.md))
+compared encoders under identical frozen signer-disjoint folds, 3 seeds and the shipped
+recipe. A dilated **1D temporal-conv net** beat the BiGRU + attention by **+0.043 top-1**
+(95% CI [+0.028, +0.058], ahead in 15 of 15 paired runs). Rotation-invariant hand-shape
+features gave nothing (within noise). ADR-030.
+
+**Model:** pointwise projection 161 → 96, then 4 residual Conv1d blocks (kernel 3,
+dilation 1/2/4/8, so the receptive field of 31 frames covers the window), GroupNorm +
+ReLU + dropout 0.2, with padding frames re-zeroed after every block. Then the **same**
+masked attention pooling + 64-unit head as the BiGRU. That's 141k params against 177k.
+Hyperparameters were fixed a priori in the bake-off, never tuned on a test fold.
+`sign_ml.dynamic_model.build_tcn_model`; `--arch tcn` on `train` / `crossval` /
+`calibrate`. The BiGRU remains `--arch gru`, the default.
+
+**Shipped recipe:** same 114-gloss `combined` cache (4680 samples, 180 signers) and the
+same `--aug --label-smoothing 0.15`. `train --arch tcn --int8`, then `calibrate --arch
+tcn` (P4M7 temperature + per-sign accept bars).
+
+| Honest signer-disjoint CV (5-fold, seed 42) | BiGRU (P4M17, shipped until #66) | **TCN (#66)** |
+|---|---|---|
+| Top-1, all 114 trained glosses | 0.691 | **0.763** |
+| Top-5, all 114 | 0.875 | **0.905** |
+| Top-1 pooled over the 103 published glosses | 0.708 | **0.778** |
+| Published glosses ≥ 0.50 | 95 / 103 | **98 / 103** |
+| Test-split top-1 / top-5 (the `train` fit) | 0.724 / 0.890 | **0.766 / 0.917** |
+| Temperature · sub-0.5 accept bars | 0.80 · 96 | 0.80 · 79 |
+| ONNX size | 698 KB (fp32) | **156 KB** (int8 weights) |
+
+**Per-sign audit of the 103 published glosses:** 77 up, 12 down, 14 unchanged.
+- Largest gains: `school` 0.49 → 0.80, `need` 0.42 → 0.73, `doctor` 0.46 → 0.77,
+  `now` 0.63 → 0.93, `fish` 0.56 → 0.82, `come` 0.62 → 0.85, `pink` 0.33 → 0.56,
+  `thank you` 0.54 → 0.74.
+- Largest drops: `grandmother` 0.29 → 0.14 (n = 7), `name` 0.90 → 0.77, `good`
+  0.59 → 0.50, `nice` 0.73 → 0.67, `bus` 0.53 → 0.47.
+
+**Re-gate: no demotions; 103 stay published.**
+- **`bus`** is the only sign that newly falls below 0.50 (0.53 → 0.47, about 2 of 36
+  clips). It's **kept** under the established no-demote-on-noise policy (P2M5b).
+- **Already below 0.50 and still kept** (grandfathered):
+  - `grandmother` 0.14 (n = 7): the thinnest class; a data fetch is the fix.
+  - `meet` 0.33.
+  - `sleep` 0.44, up from 0.36.
+  - `woman` 0.49.
+- **Unpublished trained glosses that now clear 0.50:** `cat` 0.67, `draw` 0.63, `lost`
+  0.56, `same` 0.56, `stop` 0.53 (n = 15), `nurse` 0.50. Publishing them needs reference
+  clips and curriculum slots, so it's a follow-up issue, not part of this swap.
+- Still below: `dog` 0.38, `green` 0.30, `pencil` 0.25, `table` 0.20, `night` 0.00.
+
+**Why the gain is bigger here than in the bake-off:** the pipeline's own numbers
+(0.691 → 0.763, +7.2) beat the bake-off's controlled delta (+4.3, harness seed 42: TCN
+0.739, GRU 0.695). The harness reproduced the BiGRU's pipeline figure within 0.4 points
+but the TCN's only within 2.4, and the cause isn't identified yet (backlog). Treat
+**+4.3 as the conservative estimate**. The pipeline figures above are what the gate and
+calibration actually ran on.
+
+**On-device:** no runtime or spec change. It's the same `sequence` 30×161 input,
+`logits` 114 output, normalization id, `featureDim` 161 and onnxruntime-web 1.26 WASM.
+The **int8 weight-only** export (`quantize_weights_int8`: per-channel symmetric int8 +
+`DequantizeLinear`, compute in fp32) is 4.5× smaller than the old file. In headless
+Chromium with the app's onnxruntime-web build, its top-1 on 20 real held-out windows
+matched onnxruntime CPU exactly. Bake-off latency for this architecture: 0.6 ms p50 /
+0.9 ms p95 per prediction.
+
 ## 7. Python training pipeline (build-time only)
 
 Lives in `ml/` (see [`architecture.md`](architecture.md) §3). Stages:

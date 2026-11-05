@@ -510,6 +510,120 @@ def test_export_onnx_writes_files(tmp_path: Path) -> None:
     assert (tmp_path / "metadata.json").exists()
 
 
+def test_build_tcn_model_forward_shape_and_padding_mask() -> None:
+    pytest.importorskip("torch")
+    import torch
+
+    from sign_ml.dynamic_model import build_tcn_model
+
+    model = build_tcn_model(3, feat=6, seed=0)
+    model.eval()
+    x = torch.zeros(2, 8, 6, dtype=torch.float32)
+    x[0, -3:, :] = 1.0  # 3 real frames at the end, rest front-padding
+    # row 1 is entirely padding: the attention mask must not produce NaN
+    with torch.no_grad():
+        out = model(x)
+    assert out.shape == (2, 3)
+    assert torch.isfinite(out).all()
+    # Front padding is masked out: changing the padded rows of row 0 is a no-op
+    # only if they stay all-zero, so check that real-frame content does matter.
+    x2 = x.clone()
+    x2[0, -1, :] = 2.0
+    with torch.no_grad():
+        assert not torch.allclose(model(x2)[0], out[0])
+
+
+def test_build_model_dispatches_and_rejects_bad_options() -> None:
+    pytest.importorskip("torch")
+    from sign_ml.dynamic_model import build_model
+
+    gru = build_model("gru", 3, feat=6, seed=0, pooling="attention")
+    assert hasattr(gru, "gru")
+    tcn = build_model("tcn", 3, feat=6, seed=0)
+    assert hasattr(tcn, "blocks")
+    with pytest.raises(ValueError, match="GRU-only"):
+        build_model("tcn", 3, feat=6, init_gru_state={})
+    with pytest.raises(ValueError, match="unknown arch"):
+        build_model("lstm", 3, feat=6)
+
+
+def test_train_and_eval_tcn_runs() -> None:
+    pytest.importorskip("torch")
+    from sign_ml.dynamic_model import train_and_eval
+
+    rng = np.random.default_rng(3)
+    n, window, feat, classes = 24, 8, 6, 3
+    x = rng.standard_normal((n, window, feat))
+    y = rng.integers(0, classes, n).astype(np.int64)
+    splits = np.array(["train"] * n, dtype=np.str_)
+    _model, metrics = train_and_eval(
+        x, y, splits, n_classes=classes, seed=0, epochs=3, batch_size=8, arch="tcn"
+    )
+    assert 0.0 <= metrics["top1"] <= 1.0
+
+
+def _export_fp32_and_int8(tmp_path: Path, arch: str) -> tuple[Any, Path, Path]:
+    from sign_ml.dynamic_export import export_onnx
+    from sign_ml.dynamic_model import build_model
+
+    model = build_model(arch, 3, feat=6, seed=0, pooling="attention")
+    fp32_dir, int8_dir = tmp_path / "fp32", tmp_path / "int8"
+    export_onnx(model, fp32_dir, ["a", "b", "c"], window=8, feat=6)
+    export_onnx(model, int8_dir, ["a", "b", "c"], window=8, feat=6, int8=True)
+    return model, fp32_dir / "model.onnx", int8_dir / "model.onnx"
+
+
+@pytest.mark.parametrize("arch", ["gru", "tcn"])
+def test_export_onnx_int8_weights_dequantize_to_fp32(tmp_path: Path, arch: str) -> None:
+    pytest.importorskip("torch")
+    onnx = pytest.importorskip("onnx")
+    from onnx import numpy_helper
+
+    _model, fp32_path, int8_path = _export_fp32_and_int8(tmp_path, arch)
+    fp32 = {
+        i.name: numpy_helper.to_array(i)
+        for i in onnx.load(str(fp32_path)).graph.initializer
+    }
+    graph = onnx.load(str(int8_path)).graph
+    inits = {i.name: numpy_helper.to_array(i) for i in graph.initializer}
+    dequant = [n for n in graph.node if n.op_type == "DequantizeLinear"]
+    assert dequant, "no weight was quantized"
+    assert int8_path.stat().st_size < 0.5 * fp32_path.stat().st_size
+
+    for node in dequant:
+        q, scale = inits[node.input[0]], inits[node.input[1]]
+        assert q.dtype == np.int8
+        original = fp32[node.output[0]]
+        axis = next((a.i for a in node.attribute if a.name == "axis"), None)
+        shape = [1] * q.ndim
+        if axis is not None:
+            shape[axis] = -1
+        restored = q.astype(np.float32) * scale.reshape(shape)
+        # Symmetric rounding: every weight lands within half a quantization step.
+        step = np.broadcast_to(scale.reshape(shape), original.shape)
+        assert np.all(np.abs(restored - original) <= 0.5 * step + 1e-7)
+    # Small tensors (biases, norms) stay fp32 and untouched.
+    untouched = set(fp32) & set(inits)
+    assert all(np.array_equal(fp32[k], inits[k]) for k in untouched)
+
+
+@pytest.mark.parametrize("arch", ["gru", "tcn"])
+def test_export_onnx_int8_runs_close_to_torch(tmp_path: Path, arch: str) -> None:
+    pytest.importorskip("torch")
+    pytest.importorskip("onnx")
+    ort = pytest.importorskip("onnxruntime")
+    import torch
+
+    model, _fp32_path, int8_path = _export_fp32_and_int8(tmp_path, arch)
+    x = np.zeros((1, 8, 6), dtype=np.float32)
+    x[:, -4:, :] = np.random.default_rng(0).standard_normal((1, 4, 6))
+    with torch.no_grad():
+        ref = model.eval()(torch.from_numpy(x)).numpy()
+    sess = ort.InferenceSession(str(int8_path), providers=["CPUExecutionProvider"])
+    out = sess.run(None, {"sequence": x})[0]
+    np.testing.assert_allclose(out, ref, atol=0.05)
+
+
 def test_confusion_matrix_counts_and_skips_sentinel() -> None:
     y_true = np.array([0, 0, 1, 2], dtype=np.int64)
     y_pred = np.array([0, 1, 1, -1], dtype=np.int64)  # last never predicted in CV

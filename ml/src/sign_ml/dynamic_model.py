@@ -513,6 +513,94 @@ def build_sequence_model(
     return model
 
 
+ARCHS = ("gru", "tcn")
+
+
+def build_tcn_model(
+    n_classes: int, feat: int, hidden: int = 96, seed: int = 42
+) -> Any:  # pragma: no cover - needs torch
+    """A dilated 1D temporal-conv classifier (logits output), the #64 bake-off winner.
+
+    Pointwise projection → 4 residual blocks (kernel 3, dilation 1/2/4/8, so the
+    receptive field of 31 frames covers the 30-frame window) → the **same** masked
+    attention pooling + head as the BiGRU. Padding frames (all-zero input) are
+    re-zeroed after every block so front padding can't leak into the pooled context.
+    ``GroupNorm(1, C)`` is a LayerNorm over (C, T) that exports cleanly to ONNX.
+    ~141k params at 114 classes (BiGRU: ~177k). Hyperparameters were fixed a priori
+    in the bake-off, never tuned on a test fold."""
+    import torch
+    from torch import nn
+
+    torch.manual_seed(seed)
+
+    class Block(nn.Module):  # type: ignore[misc]
+        def __init__(self, dilation: int) -> None:
+            super().__init__()
+            self.conv = nn.Conv1d(
+                hidden, hidden, 3, padding=dilation, dilation=dilation
+            )
+            self.norm = nn.GroupNorm(1, hidden)
+            self.drop = nn.Dropout(0.2)
+
+        def forward(self, h: Any, real: Any) -> Any:
+            out = self.drop(torch.relu(self.norm(self.conv(h))))
+            return (h + out) * real
+
+    class TCNClassifier(nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.proj = nn.Conv1d(feat, hidden, 1)
+            self.blocks = nn.ModuleList([Block(d) for d in (1, 2, 4, 8)])
+            self.attn = nn.Linear(hidden, 1)
+            self.head = nn.Sequential(
+                nn.Linear(hidden, 64),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+                nn.Linear(64, n_classes),
+            )
+
+        def forward(self, x: Any) -> Any:
+            real_bt = (x.abs().sum(dim=2) > 0).float()  # (B, T)
+            real = real_bt.unsqueeze(1)  # (B, 1, T)
+            h = self.proj(x.transpose(1, 2)) * real  # (B, C, T)
+            for block in self.blocks:
+                h = block(h, real)
+            out = h.transpose(1, 2)  # (B, T, C)
+            scores = self.attn(out).squeeze(-1).masked_fill(real_bt == 0, -1e9)
+            weights = torch.softmax(scores, dim=1).unsqueeze(-1)
+            return self.head((out * weights).sum(dim=1))
+
+    return TCNClassifier()
+
+
+def build_model(
+    arch: str,
+    n_classes: int,
+    feat: int,
+    seed: int = 42,
+    pooling: str = "last",
+    bidirectional: bool = False,
+    init_gru_state: Any | None = None,
+) -> Any:  # pragma: no cover - needs torch
+    """Dispatch on ``arch``: ``"gru"`` (:func:`build_sequence_model`, which takes the
+    ``pooling``/``bidirectional``/``init_gru_state`` options) or ``"tcn"``
+    (:func:`build_tcn_model`, fixed attention pooling; those options don't apply)."""
+    if arch == "gru":
+        return build_sequence_model(
+            n_classes,
+            feat,
+            seed=seed,
+            pooling=pooling,
+            bidirectional=bidirectional,
+            init_gru_state=init_gru_state,
+        )
+    if arch == "tcn":
+        if init_gru_state is not None:
+            raise ValueError("init_gru_state (P4M8 pretraining) is GRU-only")
+        return build_tcn_model(n_classes, feat, seed=seed)
+    raise ValueError(f"unknown arch {arch!r} (expected one of {ARCHS})")
+
+
 def mask_frames(
     x: FloatArray, rng: np.random.Generator, mask_prob: float = 0.15
 ) -> tuple[FloatArray, BoolArray]:
@@ -683,8 +771,10 @@ def train_and_eval(
     class_weight: bool = False,
     label_smoothing: float = 0.0,
     init_gru_state: Any | None = None,
+    arch: str = "gru",
 ) -> tuple[Any, dict[str, Any]]:  # pragma: no cover - needs torch
-    """Train the GRU with early stopping on val loss; report top-1/top-5 on test.
+    """Train the ``arch`` model (:func:`build_model`) with early stopping on val loss;
+    report top-1/top-5 on test.
 
     ``aug`` passes the P3M3 landmark-space preset (rotation / per-joint dropout /
     time-warp) through to :func:`augment_sequences` so the exported model is trained
@@ -709,7 +799,8 @@ def train_and_eval(
     train, val, test = resolve_splits(splits, seed)
     xt_val, xt_test = prep(x_np[val]), prep(x_np[test])
 
-    model = build_sequence_model(
+    model = build_model(
+        arch,
         n_classes,
         feat,
         seed=seed,
@@ -798,6 +889,7 @@ def cross_validate(
     class_weight: bool = False,
     label_smoothing: float = 0.0,
     init_gru_state: Any | None = None,
+    arch: str = "gru",
 ) -> dict[str, Any]:  # pragma: no cover - needs torch
     """k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL
     test split is ~1 clip/gloss. Each sample is predicted exactly once (in its
@@ -841,7 +933,8 @@ def cross_validate(
         val_idx, train_idx = pool[:n_val], pool[n_val:]
 
         torch.manual_seed(seed + fold)
-        model = build_sequence_model(
+        model = build_model(
+            arch,
             n_classes,
             feat,
             seed=seed + fold,
@@ -920,6 +1013,7 @@ def cross_validate(
         "fold_kind": fold_kind,
         "aug": aug or {},
         "motion": motion,
+        "arch": arch,
         "pooling": pooling,
         "bidirectional": bidirectional,
         "class_weight": class_weight,

@@ -2,8 +2,9 @@
  * Dynamic-sign glosses the app **prompts** (see `.claude/docs/recognition.md` §6.6).
  *
  * The model is trained on **114 glosses** (vocab50 ∪ a 36-gloss MS-ASL download,
- * minus the 3 P4M17 confusers; 4680 samples) with the P3M3 landmark-space augmentation, a bidirectional
- * GRU + attention pooling (P4M5), and a label-smoothing loss 0.15 (P4M10).
+ * minus the 3 P4M17 confusers; 4680 samples) with the P3M3 landmark-space augmentation, a
+ * temporal-conv (TCN) encoder + attention pooling (#66, ADR-030; it replaced the P4M5
+ * bidirectional GRU), and a label-smoothing loss 0.15 (P4M10).
  * Membership here is decided by the **honest signer-disjoint** gate (per-gloss
  * top-1 ≥ 0.50, ADR-019): **103 glosses ship** — the 79 from P4M10 (all kept) plus
  * 24 new download glosses. (P4M17 dropped 3 new glosses — `dance`/`paper`/`slow` —

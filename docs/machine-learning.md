@@ -39,7 +39,7 @@ camera frame  ─►  MediaPipe Tasks Vision  ─►  hand landmarks + body pose
                                               │
    ┌──────────────────────────────────────────┴──────────────────────────────┐
    ▼  STATIC (held handshapes, alphabet)              ▼  DYNAMIC (word signs)
-   1 frame → 63 features → tiny MLP             30 frames × 161 features → GRU
+   1 frame → 63 features → tiny MLP             30 frames × 161 features → TCN
                                               │
                                               ▼
                                 {label, confidence}
@@ -98,16 +98,23 @@ enough.
 - **Input:** a sliding window of **30 frames × 161 features** (~1 second).
 - **The 161 features per frame:** see §5 — it's pose (33) + left hand shape
   (63) + right hand shape (63) + 2 presence flags.
-- **Model:** a **GRU** (Gated Recurrent Unit — a stripped-down LSTM). It reads
-  the 30 frames in order, then a final linear layer produces logits over the
-  20 vocabulary classes. Trained in PyTorch.
+- **Model:** a small **temporal convolutional network (TCN)**. Four stacked 1D
+  convolutions slide over the 30 frames, each one looking twice as far apart as
+  the last (dilation 1, 2, 4, 8), so the top layer sees the whole window. A
+  learned attention step then weighs the most telling frames, and a small head
+  produces logits over the 114 trained classes (103 are published). Trained in
+  PyTorch. It replaced a bidirectional GRU with the same attention step in #66,
+  after the #64 bake-off (`ml/experiments/RESULTS.md`) found it about 4 points
+  more accurate on unseen signers.
 - **Runtime:** the trained model is exported to **ONNX** and run in the
   browser via **`onnxruntime-web`**. ONNX is the portable model format that
-  lets us train in PyTorch and run in JavaScript. The bundled file is ~296 KB
-  — small enough to bundle and cache offline.
-- **Why a GRU and not a Transformer?** For a 30-step window with a small
-  vocabulary, a GRU is the right size: small, fast, easy to train on a small
-  dataset. A Transformer would be data-hungry overkill at this scale.
+  lets us train in PyTorch and run in JavaScript. The weights are stored as
+  int8 (compute stays fp32), so the bundled file is about 160 KB — small
+  enough to bundle and cache offline.
+- **Why a TCN and not a Transformer?** For a 30-step window and a few
+  thousand training clips, a small convolutional model is the right size: fast,
+  easy to train, and it measured better than the GRU it replaced. A Transformer
+  would be data-hungry overkill at this scale.
 
 ## 5. Normalization — the keystone
 
@@ -263,7 +270,7 @@ What we augment:
 - **In-plane rotation** (P3M3) — simulates camera roll / different head
   tilts.
 - **End-anchored time warp** (P3M3) — simulates faster/slower signing while
-  keeping the final frame (which the GRU reads) fixed.
+  keeping the final frame fixed.
 
 Effect on the honest gate: top-1 went from **0.570 → 0.601** (+3 points) on
 the starter set. It's a small set, so this is a *directional* signal; final
@@ -278,8 +285,8 @@ Two augmentations we deliberately **don't** do:
   pose-landmark pairs *and* re-canonicalizing each hand — error-prone
   enough that we defer it until there's a clear accuracy win that justifies
   the complexity.
-- **Time-shift.** Sequences are front-padded and the GRU reads the final
-  frame; naively shifting in time would corrupt that read.
+- **Time-shift.** Sequences are front-padded so the newest frame is always
+  last; naively shifting in time would break that alignment.
 
 ## 9. The training pipeline (Python side)
 
@@ -302,9 +309,12 @@ the frontend's MLP loader picks it up.
 
 ```
 uv run python -m sign_ml.dynamic_pipeline extract   # videos → landmark arrays
-uv run python -m sign_ml.dynamic_pipeline crossval  # signer-disjoint k-fold
-uv run python -m sign_ml.dynamic_pipeline train     # final GRU on all data
-                                                    # + ONNX export
+uv run python -m sign_ml.dynamic_pipeline crossval --arch tcn --aug --label-smoothing 0.15
+                                     # signer-disjoint k-fold (the honest gate)
+uv run python -m sign_ml.dynamic_pipeline train --arch tcn --int8 --aug --label-smoothing 0.15
+                                     # final model + int8 ONNX export
+uv run python -m sign_ml.dynamic_pipeline calibrate --arch tcn --aug --label-smoothing 0.15
+                                     # confidence temperature + per-sign bars
 ```
 
 Stages:
@@ -314,7 +324,8 @@ Stages:
 - **`ingest.py`** — turns raw dataset rows into `CanonicalSample`s with
   canonical labels and signer-disjoint splits. Multiple dataset adapters
   (`wlasl.py`, `msasl.py`) feed into this.
-- **`dynamic_model.py`** — GRU + training loop + cross-validation +
+- **`dynamic_model.py`** — the TCN (and the older GRU, `--arch gru`) +
+  training loop + cross-validation +
   augmentation (`augment_sequences`).
 - **`dynamic_export.py`** — `torch.onnx` → ONNX file + a `metadata.json`
   (labels, normalization id, window/feature shape). The frontend refuses to

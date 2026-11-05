@@ -675,6 +675,31 @@ consequences. Status is one of `accepted`, `open`, `superseded`.
 
 ---
 
+## ADR-030 — Dynamic encoder: temporal-conv (TCN) replaces the BiGRU, int8 weights
+
+- **Status:** accepted + **shipped** (owner, 2026-11-05). Issue #64 (bake-off) → #66.
+  Supersedes the encoder choice in ADR-024. ADR-024's masked attention pooling is kept.
+- **Context:** The Phase-4 accuracy track ended with every recipe lever explored
+  (P4M8 SSL flat). The owner asked for a controlled architecture bake-off: frozen
+  signer-disjoint folds, 3 seeds, the shipped recipe, and a decision rule pre-registered
+  before any result. A dilated 1D TCN won (+0.043 top-1, 95% CI [+0.028, +0.058],
+  15 of 15 paired runs). Hand-shape features were within noise.
+- **Decision:** Ship the TCN as the dynamic-sign encoder. Pointwise 161 → 96, then
+  4 residual Conv1d blocks (k 3, dilation 1/2/4/8), then the same masked attention
+  pooling + head. It's trained with the same `--aug --label-smoothing 0.15` recipe and
+  re-calibrated (P4M7). Weights are exported as **per-channel int8**, dequantized to fp32
+  at load (`train --int8`). onnxruntime's `quantize_dynamic` was rejected: 4× slower on
+  the TCN in WASM, and it leaves GRU weights fp32. The BiGRU stays selectable
+  (`--arch gru`, default) so older results reproduce.
+- **Consequences:** Honest signer-disjoint CV **0.691 → 0.763**. Published signs ≥ 0.50
+  go from 95 to 98 of 103, and there are no demotions: `bus` dips 0.53 → 0.47 and is kept
+  under no-demote-on-noise. The ONNX goes **698 KB → 156 KB**. No runtime, spec or
+  contract change: same 30×161 → 114 logits and the same normalization id and
+  onnxruntime-web runtime. Six unpublished trained glosses now clear the gate, a
+  vocabulary follow-up. Detail: recognition.md §6.17.
+
+---
+
 ## Open questions (non-blocking, revisit at the noted milestone)
 
 | # | Question | Default assumption | Revisit |

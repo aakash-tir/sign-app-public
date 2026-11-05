@@ -22,6 +22,7 @@ from typing import Any
 import numpy as np
 
 from .dynamic_extract import extract_dataset
+from .dynamic_model import ARCHS
 from .ingest import CanonicalSample
 from .wlasl import (
     CURATED_STARTER_GLOSSES,
@@ -465,6 +466,8 @@ def run_train(
     class_weight: bool = False,
     label_smoothing: float = 0.0,
     init_from: Path | None = None,
+    arch: str = "gru",
+    int8: bool = False,
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_export import export_onnx
     from .dynamic_model import train_and_eval
@@ -490,8 +493,11 @@ def run_train(
         class_weight=class_weight,
         label_smoothing=label_smoothing,
         init_gru_state=_load_encoder_state(init_from),
+        arch=arch,
     )
     metrics["glosses"] = glosses
+    metrics["arch"] = arch
+    metrics["int8_weights"] = int8
     metrics["pretrained_encoder"] = str(init_from) if init_from else None
     metrics["augmentation"] = aug or "baseline-jitter-only"
     metrics["motion_features"] = motion
@@ -504,7 +510,9 @@ def run_train(
     feat = x.shape[2] + (x.shape[2] - 2 if motion else 0)
     features_id = DYNAMIC_FEATURE_ID if motion else None
     out_dir = cache_dir / "onnx"
-    export_onnx(model, out_dir, glosses, x.shape[1], feat, features=features_id)
+    export_onnx(
+        model, out_dir, glosses, x.shape[1], feat, features=features_id, int8=int8
+    )
     (cache_dir / "metrics.json").write_text(
         json.dumps(metrics, indent=2), encoding="utf-8"
     )
@@ -524,6 +532,7 @@ def run_crossval(
     class_weight: bool = False,
     label_smoothing: float = 0.0,
     init_from: Path | None = None,
+    arch: str = "gru",
 ) -> None:  # pragma: no cover - heavy path
     from .dynamic_model import cross_validate
 
@@ -556,6 +565,7 @@ def run_crossval(
         class_weight=class_weight,
         label_smoothing=label_smoothing,
         init_gru_state=_load_encoder_state(init_from),
+        arch=arch,
     )
     report["pretrained_encoder"] = str(init_from) if init_from else None
     (cache_dir / "cv_metrics.json").write_text(
@@ -565,7 +575,7 @@ def run_crossval(
         f"CV [{report['fold_kind']}] "
         f"top-1 {report['cv_top1']:.3f} | top-5 {report['cv_top5']:.3f} "
         f"({report['folds']}-fold, n={report['n_samples']}) "
-        f"pooling={pooling} bidir={bidirectional} motion={motion} "
+        f"arch={arch} pooling={pooling} bidir={bidirectional} motion={motion} "
         f"cw={class_weight} ls={label_smoothing} "
         f"mirror={'mirror_prob' in (aug or {})}"
     )
@@ -583,6 +593,7 @@ def run_calibrate(
     pooling: str = "attention",
     bidirectional: bool = True,
     label_smoothing: float = 0.0,
+    arch: str = "gru",
 ) -> None:  # pragma: no cover - heavy path
     """P4M7: fit runtime confidence calibration on the honest held-out folds and merge
     it into the exported model metadata — a softmax ``temperature`` (honest confidence)
@@ -612,8 +623,15 @@ def run_calibrate(
         bidirectional=bidirectional,
         calibrate=True,
         label_smoothing=label_smoothing,
+        arch=arch,
     )
     cal = report["calibration"]
+    # The calibration CV *is* the honest signer-disjoint gate for the shipped model:
+    # keep its aggregate + per-gloss numbers next to the metadata it produced.
+    (cache_dir / "calibrate_metrics.json").write_text(
+        json.dumps({k: v for k, v in report.items() if k != "confusion"}, indent=2),
+        encoding="utf-8",
+    )
 
     meta_path = cache_dir / "onnx" / "metadata.json"
     metadata = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -779,6 +797,18 @@ def main() -> None:  # pragma: no cover - CLI
     )
 
     tr = sub.add_parser("train", help="train + eval + export ONNX from cache")
+    tr.add_argument(
+        "--arch",
+        choices=ARCHS,
+        default="gru",
+        help="sequence encoder: gru (pooling/bidirectional apply) or tcn "
+        "(#64 bake-off winner, the shipped model since #66)",
+    )
+    tr.add_argument(
+        "--int8",
+        action="store_true",
+        help="store the exported ONNX weights as per-channel int8 (compute stays fp32)",
+    )
     tr.add_argument("--cache", type=Path, default=CACHE_DIR)
     tr.add_argument("--seed", type=int, default=42)
     tr.add_argument(
@@ -831,6 +861,13 @@ def main() -> None:  # pragma: no cover - CLI
 
     cv = sub.add_parser(
         "crossval", help="signer-disjoint k-fold CV (the honest ship gate, ADR-019)"
+    )
+    cv.add_argument(
+        "--arch",
+        choices=ARCHS,
+        default="gru",
+        help="sequence encoder: gru (pooling/bidirectional apply) or tcn "
+        "(#64 bake-off winner, the shipped model since #66)",
     )
     cv.add_argument("--cache", type=Path, default=CACHE_DIR)
     cv.add_argument("--seed", type=int, default=42)
@@ -892,6 +929,13 @@ def main() -> None:  # pragma: no cover - CLI
         "calibrate",
         help="P4M7: fit per-sign acceptance thresholds + confidence temperature "
         "into the model metadata (defaults to the shipped BiGRU+attention arch)",
+    )
+    cal.add_argument(
+        "--arch",
+        choices=ARCHS,
+        default="gru",
+        help="sequence encoder: gru (pooling/bidirectional apply) or tcn "
+        "(#64 bake-off winner, the shipped model since #66)",
     )
     cal.add_argument("--cache", type=Path, default=COMBINED_CACHE_DIR)
     cal.add_argument("--seed", type=int, default=42)
@@ -985,6 +1029,7 @@ def main() -> None:  # pragma: no cover - CLI
             class_weight=args.class_weight,
             label_smoothing=args.label_smoothing,
             init_from=args.init_from,
+            arch=args.arch,
         )
     elif args.stage == "calibrate":
         run_calibrate(
@@ -996,6 +1041,7 @@ def main() -> None:  # pragma: no cover - CLI
             pooling=args.pooling,
             bidirectional=args.bidirectional,
             label_smoothing=args.label_smoothing,
+            arch=args.arch,
         )
     elif args.stage == "diagnose":
         run_diagnose(
@@ -1020,6 +1066,8 @@ def main() -> None:  # pragma: no cover - CLI
             class_weight=args.class_weight,
             label_smoothing=args.label_smoothing,
             init_from=args.init_from,
+            arch=args.arch,
+            int8=args.int8,
         )
 
 
