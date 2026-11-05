@@ -13,6 +13,13 @@ is done, delete it: `logs/` and the PR history are the record of finished work.
   `adb install frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Recognition / model track
+- 2026-11-05 — Ship the bake-off's TCN (int8 weights) as the dynamic model, pending
+  owner review of `ml/experiments/RESULTS.md` (#64). It scored honest top-1 0.741 against
+  0.698, at 156 KB against 698 KB. Needs `sign_ml` export, an app runtime check,
+  per-sign gate numbers and on-camera checks.
+- 2026-11-05 — A CUDA PyTorch build (in a separate environment, so the `ml/` lock is
+  unchanged) would speed up the ~5 h CPU cross-validation runs, if more bake-off rounds
+  are planned.
 - 2026-11-03 — Push `school` back over the honest 0.50 gate (published, grandfathered at
   0.49). Find its new confuser with `dynamic_pipeline diagnose`, then drop or fetch.
   Low priority.

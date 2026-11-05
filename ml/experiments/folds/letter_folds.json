@@ -1,0 +1,31 @@
+{
+  "method": "StratifiedKFold(5, shuffle=True, random_state=42) over images \u2014 NOT signer-disjoint (dataset has no signer ids)",
+  "n_samples": 10811,
+  "n_classes": 24,
+  "samples_per_class": {
+    "A": 456,
+    "B": 438,
+    "C": 488,
+    "D": 494,
+    "E": 459,
+    "F": 493,
+    "G": 475,
+    "H": 479,
+    "I": 469,
+    "K": 498,
+    "L": 438,
+    "M": 286,
+    "N": 167,
+    "O": 489,
+    "P": 495,
+    "Q": 482,
+    "R": 482,
+    "S": 500,
+    "T": 462,
+    "U": 458,
+    "V": 451,
+    "W": 411,
+    "X": 449,
+    "Y": 492
+  }
+}

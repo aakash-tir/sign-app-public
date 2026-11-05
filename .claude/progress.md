@@ -347,6 +347,15 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 ## Log
 
+- **2026-11-05** — **Classifier bake-off (#64), experiment only, nothing shipped.**
+  The baseline and each candidate were trained on 5 signer-disjoint folds × 3 seeds.
+  **The TCN beats the shipped BiGRU recipe**: honest top-1 0.741 against 0.698
+  (+0.043, CI [+0.028, +0.058], ahead in 15 of 15 paired runs), macro-F1 0.711 against
+  0.665. With int8 weights it's 156 KB, with no accuracy loss and under 1 ms per
+  prediction in WASM. Hand-shape features: no better. Letter MLP: 0.992, but that split
+  is by image, not signer, so it's an upper bound. Full write-up in
+  [`../ml/experiments/RESULTS.md`](../ml/experiments/RESULTS.md). Shipping the TCN waits for
+  owner review (backlog item in `docs/future.md`).
 - **2026-07-11** — **P6M7: the learner shell + new look + dev mode** (branch
   `milestone/P6M7-learner-shell`). **The learner app is now the app.** `/` →
   **`LearnerHome`** ("continue where you left off": hero + Continue, per-path progress

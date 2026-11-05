@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>classifier bench (#64)</title>
+    <!-- onnxruntime-web 1.26.0 from frontend/node_modules, served locally -->
+    <script src="/ort/ort.min.js"></script>
+  </head>
+  <body>
+    <pre id="out">ready</pre>
+    <script type="module">
+      import { runModel } from '/mlp.mjs'
+
+      // JS port of ml/experiments/bakeoff/common.py::_hand_shape (candidate B), so
+      // the hand-shape row's latency includes its on-device feature cost.
+      const FINGERS = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16], [17, 18, 19, 20]]
+      const TIPS = [4, 8, 12, 16, 20]
+      function handShape(f, off, out, o) {
+        let present = false
+        for (let i = 0; i < 63; i++) if (f[off + i] !== 0) { present = true; break }
+        if (!present) { for (let i = 0; i < 30; i++) out[o + i] = 0; return }
+        const p = (j, k) => f[off + j * 3 + k]
+        let n = 0
+        for (const [b, j1, j2, t] of FINGERS) {
+          const chain = [0, b, j1, j2, t]
+          for (let i = 0; i < 3; i++) {
+            const a = chain[i], m = chain[i + 1], c = chain[i + 2]
+            let uv = 0, uu = 0, vv = 0
+            for (let k = 0; k < 3; k++) {
+              const u = p(a, k) - p(m, k), v = p(c, k) - p(m, k)
+              uv += u * v; uu += u * u; vv += v * v
+            }
+            const d = Math.sqrt(uu) * Math.sqrt(vv)
+            out[o + n++] = d > 1e-9 ? Math.max(-1, Math.min(1, uv / Math.max(d, 1e-9))) : 0
+          }
+        }
+        for (let i = 0; i < 5; i++)
+          for (let j = i + 1; j < 5; j++) {
+            let s = 0
+            for (let k = 0; k < 3; k++) { const d = p(TIPS[i], k) - p(TIPS[j], k); s += d * d }
+            out[o + n++] = Math.sqrt(s)
+          }
+        for (const t of TIPS) {
+          let s = 0
+          for (let k = 0; k < 3; k++) s += p(t, k) ** 2
+          out[o + n++] = Math.sqrt(s)
+        }
+      }
+      function addHandShape(win, T) {
+        const out = new Float32Array(T * 221)
+        for (let t = 0; t < T; t++) {
+          for (let i = 0; i < 161; i++) out[t * 221 + i] = win[t * 161 + i]
+          handShape(win, t * 161 + 33, out, t * 221 + 161)
+          handShape(win, t * 161 + 96, out, t * 221 + 191)
+        }
+        return out
+      }
+
+      function stats(ms) {
+        const s = [...ms].sort((a, b) => a - b)
+        const mean = s.reduce((a, b) => a + b, 0) / s.length
+        return { mean, p50: s[Math.floor(s.length * 0.5)], p95: s[Math.floor(s.length * 0.95)], n: s.length }
+      }
+
+      window.bench = async ({ onnx, mlp, windows, parity, warmup, iters }) => {
+        ort.env.wasm.wasmPaths = '/ort/'
+        ort.env.wasm.numThreads = 1 // same as the app (onnxDynamicClassifier.ts)
+        const res = {}
+        // Parity of the JS hand-shape port vs the Python transform.
+        if (parity) {
+          const got = addHandShape(Float32Array.from(parity.raw), 30)
+          let maxDiff = 0
+          for (let i = 0; i < got.length; i++) maxDiff = Math.max(maxDiff, Math.abs(got[i] - parity.expected[i]))
+          res.handshapeParityMaxAbsDiff = maxDiff
+        }
+        const wins = windows.map((w) => Float32Array.from(w))
+        for (const m of onnx) {
+          const t0 = performance.now()
+          const session = await ort.InferenceSession.create(m.url, { executionProviders: ['wasm'] })
+          const loadMs = performance.now() - t0
+          const run = async (i) => {
+            const w = wins[i % wins.length]
+            const input = m.handshape ? addHandShape(w, 30) : w
+            const t = new ort.Tensor('float32', input, [1, 30, m.feat])
+            const out = await session.run({ sequence: t })
+            return out.logits.data
+          }
+          for (let i = 0; i < warmup; i++) await run(i)
+          const ms = []
+          for (let i = 0; i < iters; i++) {
+            const s = performance.now()
+            await run(i)
+            ms.push(performance.now() - s)
+          }
+          res[m.name] = { ...stats(ms), loadMs }
+          await session.release()
+        }
+        for (const m of mlp) {
+          const model = await (await fetch(m.url)).json()
+          const feats = Array.from({ length: 63 }, (_, i) => Math.sin(i))
+          for (let i = 0; i < warmup; i++) runModel(model, feats)
+          const ms = []
+          // One prediction is ~µs; time batches of 100 for timer resolution.
+          for (let i = 0; i < iters; i++) {
+            const s = performance.now()
+            for (let k = 0; k < 100; k++) runModel(model, feats)
+            ms.push((performance.now() - s) / 100)
+          }
+          res[m.name] = stats(ms)
+        }
+        return res
+      }
+      document.getElementById('out').textContent = 'loaded'
+    </script>
+  </body>
+</html>

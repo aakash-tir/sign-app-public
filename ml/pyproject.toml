@@ -61,7 +61,7 @@ files = ["src", "tests"]
 
 # Third-party packages without bundled type stubs.
 [[tool.mypy.overrides]]
-module = ["sklearn.*", "mediapipe.*", "cv2", "cv2.*", "onnx", "onnx.*", "yt_dlp", "yt_dlp.*", "imageio_ffmpeg", "imageio_ffmpeg.*"]
+module = ["sklearn.*", "mediapipe.*", "cv2", "cv2.*", "onnx", "onnx.*", "yt_dlp", "yt_dlp.*", "imageio_ffmpeg", "imageio_ffmpeg.*", "onnxruntime", "onnxruntime.*"]
 ignore_missing_imports = true
 
 # Torch: treat as untyped whether or not it is installed, so the gate behaves
