@@ -42,7 +42,7 @@ That's the whole story. The rest is detail.
 | Doc | What you'll learn |
 | --- | --- |
 | [`architecture.md`](architecture.md) | The big picture. ASCII diagram of all the parts, the tech stack with one line on each choice, where every folder lives. **Start here.** |
-| [`machine-learning.md`](machine-learning.md) | What is actually going on in the ML. Why landmarks instead of raw video, what models we use (a tiny MLP for letters; a GRU for words), what datasets, how training works, what accuracy we measured, and the honest caveats. |
+| [`machine-learning.md`](machine-learning.md) | What is actually going on in the ML. Why landmarks instead of raw video, what models we use (a tiny MLP for letters; a temporal convolutional network, TCN, for words), what datasets, how training works, what accuracy we measured, and the honest caveats. |
 | [`runtime.md`](runtime.md) | How the app works in the browser. Camera lifecycle, the recognition loop frame-by-frame, the "buckets" + word-selection algorithm, how progress is stored in IndexedDB, and the two modes (Learn and Practice). |
 | [`deployment.md`](deployment.md) | How the app gets from the repo onto the internet. Vite, the PWA service worker, offline caching, and Cloudflare Workers — written for someone newer to web hosting. |
 | [`sign-language-accuracy.xlsx`](sign-language-accuracy.xlsx) | **Per-word accuracy report** (Excel), sorted A→Z. Every trained sign with its honest accuracy and a colour-filled **Band** column — 🟩 Good (≥70%) · 🟨 Okay (50–70%) · 🟥 Bad (<50%) — marking deployed vs attempted-but-below-gate. Extensible — see its "How to update" sheet, or regenerate with [`tools/generate_accuracy_report.py`](../tools/generate_accuracy_report.py). |
