@@ -50,5 +50,23 @@ uv run pytest
 
 ## Status
 
-Early development. See [`.claude/progress.md`](.claude/progress.md) for the
-current milestone.
+A hobby project, not a product. The app is live with 24 fingerspelling letters
+and 100+ dynamic signs. See [`.claude/progress.md`](.claude/progress.md) for the
+detailed status.
+
+## License and training data
+
+The code is released under the [MIT License](LICENSE).
+
+The shipped models in `frontend/public/models/` were trained on public ASL
+datasets. **No dataset media (videos, images or extracted landmarks) is included
+in this repository**; the ML pipeline downloads them locally, and each dataset
+stays under its own terms:
+
+- **WLASL**: <https://github.com/dxli94/WLASL>
+- **MS-ASL**: <https://www.microsoft.com/en-us/research/project/ms-asl/>, under the
+  [Computational Use of Data Agreement](https://github.com/microsoft/Computational-Use-of-Data-Agreement)
+  (see ADR-016 in [`.claude/docs/decisions.md`](.claude/docs/decisions.md))
+- **ASL Alphabet** (Kaggle), for the static fingerspelling model
+
+If you reuse the models, check those terms for your use case.
