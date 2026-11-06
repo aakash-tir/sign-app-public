@@ -6,8 +6,9 @@
  * temporal-conv (TCN) encoder + attention pooling (#66, ADR-030; it replaced the P4M5
  * bidirectional GRU), and a label-smoothing loss 0.15 (P4M10).
  * Membership here is decided by the **honest signer-disjoint** gate (per-gloss
- * top-1 ≥ 0.50, ADR-019): **103 glosses ship** — the 79 from P4M10 (all kept) plus
- * 24 new download glosses. (P4M17 dropped 3 new glosses — `dance`/`paper`/`slow` —
+ * top-1 ≥ 0.50, ADR-019): **107 glosses ship** — the 79 from P4M10 (all kept), 24
+ * download glosses, and 4 trained-but-unpublished glosses the TCN lifted over the
+ * gate (#67). (P4M17 dropped 3 new glosses — `dance`/`paper`/`slow` —
  * that were confusing the existing `stand`/`school`; removing them as trained classes
  * restores those originals. §6.15.) Recognition misses are absorbed by the "That's
  * what I did" valve (ADR-007).
@@ -133,6 +134,14 @@ export const SHIPPED_GLOSSES: readonly string[] = [
   'bus',
   'beautiful',
   'purple',
+  // #67 (TCN encoder, #66): 4 trained-but-unpublished glosses now clear the honest
+  // signer-disjoint gate — `cat` 0.67, `draw` 0.63, `lost` 0.56, `same` 0.56. No
+  // retraining: they were already classes in the shipped model. `stop` 0.53 (n = 15)
+  // and `nurse` 0.50 also clear it, but wait on the owner's call. recognition.md §6.17.
+  'cat',
+  'draw',
+  'lost',
+  'same',
 ]
 
 /** Filter a model's labels to the shipped set, preserving the model's order. */

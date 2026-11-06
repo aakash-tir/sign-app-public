@@ -737,6 +737,15 @@ tcn` (P4M7 temperature + per-sign accept bars).
   clips and curriculum slots, so it's a follow-up issue, not part of this swap.
 - Still below: `dog` 0.38, `green` 0.30, `pencil` 0.25, `table` 0.20, `night` 0.00.
 
+**Re-gate follow-up (#67): 103 → 107 published.** `cat`, `draw`, `lost` and `same` are
+published with no retraining, since they were already among the model's 114 classes.
+Their reference clips come from local WLASL (`cat` 09525, `draw` 17594, `same` 49173).
+`lost` has no local WLASL clip, so `reference_export` now falls back to the downloaded
+MS-ASL clip with the lowest `clip_id` (`msasl:-IEFUtDrWCg_0_43`). Pass `--only` to
+export just the new glosses. **Held back for the owner:** `stop` 0.53 rests on only
+n = 15 clips, and `nurse` sits exactly on the 0.50 bar. Both are one line in
+`SHIPPED_GLOSSES` plus a reference export away from shipping.
+
 **Why the gain is bigger here than in the bake-off:** the pipeline's own numbers
 (0.691 → 0.763, +7.2) beat the bake-off's controlled delta (+4.3, harness seed 42: TCN
 0.739, GRU 0.695). The harness reproduced the BiGRU's pipeline figure within 0.4 points

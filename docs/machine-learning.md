@@ -102,7 +102,7 @@ enough.
   convolutions slide over the 30 frames, each one looking twice as far apart as
   the last (dilation 1, 2, 4, 8), so the top layer sees the whole window. A
   learned attention step then weighs the most telling frames, and a small head
-  produces logits over the 114 trained classes (103 are published). Trained in
+  produces logits over the 114 trained classes (107 are published). Trained in
   PyTorch. It replaced a bidirectional GRU with the same attention step in #66,
   after the #64 bake-off (`ml/experiments/RESULTS.md`) found it about 4 points
   more accurate on unseen signers.

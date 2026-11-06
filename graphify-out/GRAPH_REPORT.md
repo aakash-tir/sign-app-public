@@ -1,16 +1,16 @@
-# Graph Report - bakeoff-64  (2026-11-05)
+# Graph Report - feat-67-publish-tcn-signs  (2026-11-05)
 
 ## Corpus Check
-- 330 files · ~170,874 words
+- 334 files · ~171,975 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1717 nodes · 3111 edges · 171 communities (105 shown, 66 thin omitted)
-- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 172 edges (avg confidence: 0.76)
+- 1724 nodes · 2995 edges · 188 communities (116 shown, 72 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 178 edges (avg confidence: 0.76)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7cb10cdb`
+- Built from commit: `076803dc`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -62,7 +62,6 @@
 - Community 45
 - Community 46
 - Community 47
-- Community 48
 - Community 49
 - Community 50
 - Community 51
@@ -88,7 +87,6 @@
 - Community 74
 - Community 75
 - Community 76
-- Community 78
 - Community 79
 - Community 80
 - Community 81
@@ -164,9 +162,26 @@
 - Path
 - Protocol
 - Path
+- Any
+- FloatArray
 - Path
 - Path
 - Path
+- Path
+- IntArray
+- Path
+- ndarray
+- Any
+- ndarray
+- Path
+- Any
+- Path
+- Any
+- FloatArray
+- IntArray
+- NDArray
+- str_
+- Any
 - Path
 
 ## God Nodes (most connected - your core abstractions)
@@ -174,145 +189,145 @@
 2. `Decision Log (ADRs)` - 32 edges
 3. `useDynamicSignRecognition` - 30 edges
 4. `SignAppDB` - 28 edges
-5. `cross_validate()` - 22 edges
-6. `useUnifiedSignRecognition` - 21 edges
-7. `compilerOptions` - 20 edges
-8. `train_and_eval()` - 19 edges
-9. `CanonicalSample` - 19 edges
-10. `6. The central risk: word-level accuracy` - 19 edges
+5. `useUnifiedSignRecognition` - 21 edges
+6. `compilerOptions` - 20 edges
+7. `CanonicalSample` - 19 edges
+8. `6. The central risk: word-level accuracy` - 19 edges
+9. `compilerOptions` - 18 edges
+10. `cross_validate()` - 18 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `test_cross_validate_motion_runs()` --calls--> `cross_validate()`  [INFERRED]
+  ml/tests/test_dynamic_model.py → ml/src/sign_ml/dynamic_model.py
 - `test_pipeline_trains_and_exports()` --calls--> `run_synthetic_pipeline()`  [INFERRED]
   ml/tests/test_pipeline.py → ml/src/sign_ml/pipeline.py
 - `unit()` --indirect_call--> `curriculumSetOf()`  [INFERRED]
   frontend/src/content/curriculum.ts → frontend/src/domain/curriculum.ts
 - `ProfileRecord` --inherits--> `UserProfile`  [EXTRACTED]
   frontend/src/data/db.ts → frontend/src/domain/types.ts
-- `HolisticResultLike` --references--> `Landmark`  [EXTRACTED]
-  frontend/src/recognition/holisticDetector.ts → frontend/src/recognition/types.ts
-- `build_baseline()` --calls--> `build_sequence_model()`  [INFERRED]
-  ml/experiments/bakeoff/common.py → ml/src/sign_ml/dynamic_model.py
+- `renderView()` --calls--> `mulberry32()`  [EXTRACTED]
+  frontend/src/modes/sentences/SentencesView.test.tsx → frontend/src/domain/rng.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (171 total, 66 thin omitted)
+## Communities (188 total, 72 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.17
-Nodes (14): extract_clip(), extract_dataset(), _landmarks_or_none(), _load_holistic_detector(), Turn WLASL video clips into fixed-length normalized landmark sequences.  The Med, Extract all clips → ``(N, window, F)`` features, ``(N,)`` labels, ``(N,)``     s, MediaPipe Python returns a flat landmark list (empty if not detected)., Extract one clip → ``(window, FRAME_FEATURE_DIM)`` normalized sequence.      A * (+6 more)
+Cohesion: 0.14
+Nodes (23): _load_holistic_detector(), capture_raw_frames(), export_references(), Path, Export compact landmark-animation reference clips for the shipped dynamic gloss, A flat MediaPipe landmark list → ``[[x, y], ...]`` rounded, or ``None``., Pick one locally-available clip for ``gloss``, deterministically (lowest     ``, Fallback for glosses with no local WLASL clip (MS-ASL-download glosses such (+15 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (20): drawHand(), drawPose(), POSE_CONNECTIONS, FINGER_PALETTE, inFrame(), makeObservation(), drawHands(), inFrame() (+12 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.06
-Nodes (57): Factory, confused(), letters(), load_runs(), main(), paired(), Any, ndarray (+49 more)
+Cohesion: 0.05
+Nodes (46): confused(), letters(), load_runs(), main(), paired(), Aggregate every run into ml/experiments/results.json (issue #64). Pure read of m, mean ± std across all (seed, fold) runs, plus the std of the per-seed means, Top-10 confused pairs, counts averaged over the 3 seeds (each seed predicts (+38 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.07
 Nodes (41): make_synthetic_dataset(), Datasets for the fingerspelling classifier.  The synthetic generator produces a, Generate a deterministic synthetic landmark dataset.      Each class gets a dist, evaluate(), Evaluation metrics for the fingerspelling classifier., Return overall and per-class accuracy on ``(x, y)``., model_to_dict(), Export a trained MLP to plain JSON weights for the frontend.  The frontend runs (+33 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.10
-Nodes (19): ADR-0005, CurriculumRepo, ADR-0029, ProfileRecord, SignAppDB, ADR-0028, ADR-0029, SentenceRepo (+11 more)
+Cohesion: 0.11
+Nodes (13): ADR-0005, ProfileRecord, SignAppDB, ADR-0028, ADR-0029, SentenceRepo, ADR-0028, CurriculumSetProgress (+5 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.12
-Nodes (18): ADR-0010, LETTER_HINTS, spellableWords(), nextSentencesUnlocked(), sentencesEnabled(), ADR-0009, confidentIds(), defaultRepo (+10 more)
+Cohesion: 0.14
+Nodes (18): ADR-0010, ADR-0009, nextSentencesUnlocked(), sentencesEnabled(), ADR-0009, defaultProfile(), Level, OverlayColorMode (+10 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.09
-Nodes (36): add_motion_features(), normalize_frame(), normalize_pose(), Dynamic-sign frame normalization — mirror of ``frontend/src/recognition/dynamicN, Append per-frame **velocity** (first difference of the spatial coords) to a, Batched :func:`with_motion` over ``(N, T, F)`` windows → ``(N, T, 2F - 2)``., Shoulder-center + shoulder-width-scale the upper-body pose subset.      Returns, Flatten one holistic frame into the fixed ``FRAME_FEATURE_DIM`` vector. (+28 more)
+Cohesion: 0.05
+Nodes (59): extract_clip(), extract_dataset(), _landmarks_or_none(), normalize_clip(), Turn WLASL video clips into fixed-length normalized landmark sequences.  The Med, Extract all clips → ``(N, window, F)`` features, ``(N,)`` labels, ``(N,)``     s, Normalize each frame to the frozen 161-d feature → ``(T, FRAME_FEATURE_DIM)``., Shape a variable-length ``(T, F)`` sequence into exactly ``(window, F)``.      - (+51 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.10
-Nodes (32): class_weights(), confusion_matrix(), cross_validate(), distinct_signers_per_class(), fit_per_sign_thresholds(), fit_temperature(), mean_hand_presence_per_class(), FloatArray (+24 more)
+Cohesion: 0.06
+Nodes (32): ADR-001 — Sign language: ASL, ADR-002 — Recognition: landmark-based, on-device, ADR-003 — Delivery: PWA-first, single React + TS codebase, ADR-004 — Python is build-time only (hybrid stack), ADR-005 — Local-first persistence (IndexedDB), ADR-006 — Hosting: Cloudflare Pages, ADR-007 — MVP recognition scope = fingerspelling + curated signs, ADR-008 — Practice attempt resolution: deferred commit (no revert) (+24 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.10
-Nodes (27): App(), db, defaultRepo, emit(), getDevMode(), listeners, loadDevMode(), setDevMode() (+19 more)
+Cohesion: 0.20
+Nodes (12): App(), defaultRepo, emit(), getDevMode(), listeners, loadDevMode(), setDevMode(), subscribe() (+4 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.12
-Nodes (16): ADR-0015, accepts(), acceptThresholdFor(), assertMetadataCompatible(), averageProbs(), DynamicClassifier, DynamicModelMetadata, softmax() (+8 more)
+Cohesion: 0.17
+Nodes (20): ADR-0015, accepts(), acceptThresholdFor(), assertMetadataCompatible(), averageProbs(), DynamicClassifier, DynamicModelMetadata, DynamicPrediction (+12 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.15
-Nodes (15): ADR-0009, WordBankRepo, applyOutcome(), newWordProgress(), ADR-0008, AttemptOutcome, defaultProfile(), OverlayColorMode (+7 more)
+Cohesion: 0.24
+Nodes (4): applyOutcome(), newWordProgress(), ADR-0008, WordProgress
 
 ### Community 11 - "Community 11"
-Cohesion: 0.16
-Nodes (22): avoidLast(), confirmTaught(), dueNewSigns(), nextRecallPrompt(), RecallPhase, recallProgress(), RecallPrompt, RecallPromptKind (+14 more)
+Cohesion: 0.15
+Nodes (25): CurriculumSet, avoidLast(), confirmTaught(), dueNewSigns(), nextRecallPrompt(), RecallPhase, recallProgress(), RecallPrompt (+17 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.13
-Nodes (29): test_sanitize_replaces_unsafe_chars(), _build_combined_samples(), _clip_cache_path(), _clip_skip_path(), _extract_worker(), _load_encoder_state(), main(), Any (+21 more)
+Cohesion: 0.09
+Nodes (42): cross_validate(), Row-wise numerically-stable softmax (no torch)., k-fold CV → a trustworthy aggregate + per-gloss top-1, since the native WLASL, _softmax_np(), Tests for the synthetic training pipeline and the export schema., test_clip_cache_path_namespaces_by_source_and_sanitizes(), test_pipeline_trains_and_exports(), test_resolve_vocab_pretrain_unions_all_on_disk_glosses() (+34 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.08
 Nodes (25): compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, jsx, lib, module, moduleDetection, moduleResolution (+17 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.10
-Nodes (30): mirror_frames(), Horizontally mirror normalized **161-d** frames — parity-correct, **train-only**, augment_sequences(), drop_landmarks(), Zero individual landmarks (their whole ``x,y,z`` triplet) per frame with     pro, Rotate every landmark's ``(x, y)`` by a small **per-sample** angle (``z`` and, Per-sample speed warp: resample frames on a rate-warped timeline **anchored, Augment a batch of ``(B, T, F)`` windows — the main lever for the tiny     curat (+22 more)
+Cohesion: 0.12
+Nodes (24): augment_sequences(), drop_landmarks(), Zero individual landmarks (their whole ``x,y,z`` triplet) per frame with     pro, Per-sample speed warp: resample frames on a rate-warped timeline **anchored, Augment a batch of ``(B, T, F)`` windows — the main lever for the tiny     curat, time_warp(), _export_fp32_and_int8(), Tests for the dynamic-model helpers (pure parts run without TensorFlow). (+16 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.08
-Nodes (31): mulberry32(), Rng, PracticeSession, rememberRecent(), selectNextWord(), bankOf(), word(), eligibleSentences() (+23 more)
+Cohesion: 0.17
+Nodes (14): ADR-0009, ADR-0012, ADR-0028, eligibleSentences(), LEVEL_LENGTH_BANDS, pickSentence(), sentenceOf(), SignSentence (+6 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.08
 Nodes (23): compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib, module, moduleDetection, moduleResolution, noEmit (+15 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.06
-Nodes (32): ADR-001 — Sign language: ASL, ADR-002 — Recognition: landmark-based, on-device, ADR-003 — Delivery: PWA-first, single React + TS codebase, ADR-004 — Python is build-time only (hybrid stack), ADR-005 — Local-first persistence (IndexedDB), ADR-006 — Hosting: Cloudflare Pages, ADR-007 — MVP recognition scope = fingerspelling + curated signs, ADR-008 — Practice attempt resolution: deferred commit (no revert) (+24 more)
-
-### Community 18 - "Community 18"
-Cohesion: 0.06
-Nodes (31): 1. The core problem & the chosen approach, 2. Landmark extraction: MediaPipe Tasks Vision, 3.1 Static signs (MVP) — fingerspelling / held handshapes, 3.2 Dynamic signs — word-level, 3. Classifier design, 4. Datasets, 5.1 Dynamic frame normalization — **frozen (M6.1)**, 5. Normalization spec (shared TS ↔ Python) (+23 more)
-
-### Community 19 - "Community 19"
-Cohesion: 0.08
-Nodes (32): ADR-0007, ADR-0019, ADR-0030, PRIORITY_WORDS, EXPECTED_PLACEHOLDERS, recognized, route, routeWords (+24 more)
-
-### Community 20 - "Community 20"
-Cohesion: 0.10
-Nodes (21): devDependencies, @capacitor/cli, eslint, eslint-plugin-react-refresh, @playwright/test, @testing-library/jest-dom, @types/node, @types/react-dom (+13 more)
-
-### Community 21 - "Community 21"
-Cohesion: 0.07
-Nodes (44): LETTER_BATCHES, ADR-0029, unit(), WORD_UNITS, CurriculumSet, curriculumSetOf(), CurriculumUnit, flattenRoute() (+36 more)
-
-### Community 22 - "Community 22"
-Cohesion: 0.24
-Nodes (12): Activation, classify(), dense(), MlpLayer, MlpModel, Prediction, relu(), runModel() (+4 more)
-
-### Community 23 - "Community 23"
 Cohesion: 0.07
 Nodes (29): Acceptance, Acceptance, Acceptance, Conventions (unchanged from phases 1–2), Dataset review log (owner-provided candidates, 2026-05-24), Dataset sourcing & review (owner-curated), Deliverables, Deliverables (+21 more)
 
+### Community 18 - "Community 18"
+Cohesion: 0.11
+Nodes (19): 6.10 Runtime confidence: per-sign thresholds + calibration + voting (P4M7), 6.11 Mirroring + class-weighted loss — tested, did **not** help (P4M3), 6.12 Label smoothing — the win (P4M10, ADR-027), 6.13 On-disk vocabulary expansion toward 100 — tested, did **not** help (P4M15), 6.14 MS-ASL download → 100+ published signs (P4M16), 6.15 Drop the 3 confusers — restore stand/school/car (P4M17, shipped), 6.16 Self-supervised masked-pose pretraining — tested, did **not** help (P4M8), 6.17 Temporal-conv (TCN) encoder replaces the BiGRU (#64 bake-off → #66, shipped) (+11 more)
+
+### Community 19 - "Community 19"
+Cohesion: 0.14
+Nodes (19): SIGN_SYNONYMS, canFingerspell(), fingerspellLetters(), ALPHABET, autocomplete(), editDistance(), fuzzySuggestions(), matchSign() (+11 more)
+
+### Community 20 - "Community 20"
+Cohesion: 0.04
+Nodes (47): devDependencies, @capacitor/cli, eslint, eslint-config-prettier, @eslint/js, eslint-plugin-react-hooks, eslint-plugin-react-refresh, fake-indexeddb (+39 more)
+
+### Community 21 - "Community 21"
+Cohesion: 0.18
+Nodes (18): unit(), curriculumSetOf(), CurriculumUnit, flattenRoute(), isPlaceholderOnlySet(), priorityWords(), routeConstructibility(), sentencesBuildableFrom() (+10 more)
+
+### Community 22 - "Community 22"
+Cohesion: 0.19
+Nodes (14): Activation, classify(), dense(), MlpLayer, MlpModel, Prediction, relu(), runModel() (+6 more)
+
+### Community 23 - "Community 23"
+Cohesion: 0.11
+Nodes (21): ADR-0007, ADR-0019, ADR-0030, LETTER_BATCHES, PRIORITY_WORDS, EXPECTED_PLACEHOLDERS, recognized, route (+13 more)
+
 ### Community 24 - "Community 24"
-Cohesion: 0.09
-Nodes (25): build_masked_autoencoder(), build_model(), build_sequence_model(), build_tcn_model(), classify_low_signs(), mask_frames(), pretrain_encoder(), Any (+17 more)
+Cohesion: 0.10
+Nodes (19): 1. The shape of "deployment" for this app, 2. What `npm run build` actually does, 3. The PWA part, 4. Where it actually lives: Cloudflare Workers Static Assets, 5. CI: what gets checked before merge, 6. The full path: from commit to deployed PWA, 7. What we deliberately don't use, 8. Local development (+11 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.14
-Nodes (18): BoolArray, _carve(), NDArray, str_, Boolean train/val/test masks from WLASL split labels, with fallbacks for     the, Move a deterministic ``frac`` of the True positions of ``mask`` into a new     m, Train the ``arch`` model (:func:`build_model`) with early stopping on val loss;, resolve_splits() (+10 more)
+Cohesion: 0.21
+Nodes (12): BoolArray, _carve(), Boolean train/val/test masks from WLASL split labels, with fallbacks for     the, Move a deterministic ``frac`` of the True positions of ``mask`` into a new     m, Assign each sample to one of ``k`` folds, balanced per class. Returns a     per-, resolve_splits(), stratified_folds(), _partition_ok() (+4 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.12
-Nodes (17): dependencies, @capacitor/android, @capacitor/core, dexie, @mediapipe/tasks-vision, onnxruntime-web, react, react-dom (+9 more)
+Cohesion: 0.06
+Nodes (32): dependencies, @capacitor/android, @capacitor/core, dexie, @mediapipe/tasks-vision, onnxruntime-web, react, react-dom (+24 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.17
 Nodes (11): { chromium }, files, here, manifest, manifestPath, mlpBundle, ortDist, outDir (+3 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.17
-Nodes (16): build_metadata(), export_onnx(), Any, Path, quantize_weights_int8(), Export the trained dynamic-sign model to ONNX for the frontend (ADR-015).  PyTor, Export ``model`` to ``out_dir/model.onnx`` (batch axis dynamic) + metadata., Sidecar the frontend reads to validate + label the model (pure/testable).      O (+8 more)
+Cohesion: 0.11
+Nodes (18): classify_low_signs(), confusion_matrix(), distinct_signers_per_class(), fit_temperature(), mean_hand_presence_per_class(), Dynamic-sign sequence model: a small GRU over windowed landmark features.  PyTor, Count matrix where ``M[i, j]`` = #samples with true class ``i`` predicted as, Number of **distinct** non-empty signer ids contributing to each class. Signer (+10 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.12
@@ -323,100 +338,96 @@ Cohesion: 0.16
 Nodes (17): ADR-0022, normalizeFrame(), normalizePose(), L_SHOULDER_POS, R_SHOULDER_POS, withMotion(), zeros(), HolisticObservation (+9 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.18
-Nodes (11): scripts, build, dev, format, format:write, lint, preview, test (+3 more)
+Cohesion: 0.12
+Nodes (15): Architecture Diagram Skill, Auto-layout scaffold (local extension v1.2), Color Palette, Component Box Pattern, Design System, Export Toolbar (built-in), Info Card Pattern, Layout Structure (+7 more)
 
 ### Community 32 - "Community 32"
-Cohesion: 0.10
-Nodes (26): CameraContext, CameraContextValue, CameraStatus, TestConsumer(), ADR-0018, useCameraContext(), CameraView(), LabelStabilizer (+18 more)
+Cohesion: 0.15
+Nodes (16): CameraContext, CameraContextValue, CameraStatus, flushProfileLoad(), TestConsumer(), ADR-0018, useCameraContext(), CameraProvider() (+8 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.16
-Nodes (18): CanonicalSample, coverage_by_label(), DatasetAdapter, main(), merge(), Canonical, multi-source ingest layer (P2M5).  The plan's item #1 is "expand the, How many samples landed in each split., Report canonical coverage + a signer-disjoint split over the current     sources (+10 more)
+Cohesion: 0.12
+Nodes (27): assign_signer_disjoint_splits(), CanonicalSample, coverage_by_label(), DatasetAdapter, main(), merge(), Canonical, multi-source ingest layer (P2M5).  The plan's item #1 is "expand the, How many samples landed in each split. (+19 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.14
-Nodes (17): SignSentence, DynamicSignView(), mocks, ALPHABET, mocks, ADR-0021, SentenceDrillProps, ADR-0008 (+9 more)
+Cohesion: 0.18
+Nodes (10): shippedLabels(), DynamicSignView(), mocks, SentenceDrillProps, ADR-0008, ADR-0025, ADR-0028, CameraPlaceholder() (+2 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.09
-Nodes (23): 10. Honest caveats — read this part, 11. Where to read deeper, 1. The problem in one sentence, 2. Two families of approach — and which we picked, 3. MediaPipe: the landmark tracker, 4.1 Static signs — fingerspelling (letters), 4.2 Dynamic signs — words, 4. The classifiers (+15 more)
+Cohesion: 0.18
+Nodes (11): 10. Honest caveats — read this part, 11. Where to read deeper, 1. The problem in one sentence, 2. Two families of approach — and which we picked, 3. MediaPipe: the landmark tracker, 4.1 Static signs — fingerspelling (letters), 4.2 Dynamic signs — words, 4. The classifiers (+3 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.18
 Nodes (14): assign_columns(), endpoint(), esc(), group_chain(), layout(), main(), Node, (cx, cy, left, right, top, bottom, column) for a node OR group id. (+6 more)
 
 ### Community 37 - "Community 37"
-Cohesion: 0.24
-Nodes (11): A flat MediaPipe landmark list → ``[[x, y], ...]`` rounded, or ``None``., Pick one locally-available clip for ``gloss``, deterministically (lowest     ``v, representative_clip(), round_xy(), _clip(), FakePoint, Tests for the in-app sign-reference exporter pure helpers (no real data).  The M, test_representative_clip_is_deterministic_lowest_id() (+3 more)
+Cohesion: 0.25
+Nodes (12): db, defaultRepo, LEVELS, SettingsView(), defaultRepo, emit(), getOverlayColorMode(), listeners (+4 more)
 
 ### Community 38 - "Community 38"
 Cohesion: 0.29
 Nodes (10): band_label(), build_rows(), main(), Generate ``docs/sign-language-accuracy.xlsx`` — the per-word recognition-accurac, The deployed glosses, parsed from the frontend source of truth.      Matches ``S, Plain-text tier so the colour band is meaningful when printed / colour-blind., read_shipped(), write_data_sheet() (+2 more)
 
 ### Community 40 - "Community 40"
-Cohesion: 0.11
-Nodes (19): 1. The shape of "deployment" for this app, 2. What `npm run build` actually does, 3. The PWA part, 4. Where it actually lives: Cloudflare Workers Static Assets, 5. CI: what gets checked before merge, 6. The full path: from commit to deployed PWA, 7. What we deliberately don't use, 8. Local development (+11 more)
-
-### Community 41 - "Community 41"
-Cohesion: 0.11
-Nodes (19): 1. App startup, 2. Camera lifecycle, 3. The recognition loop, 4.1 Attempts and outcomes, 4.2 Buckets, 4.3 The practice selection algorithm, 4.4 Levels, 4. The domain layer (+11 more)
-
-### Community 42 - "Community 42"
-Cohesion: 0.24
-Nodes (9): Tests for the synthetic training pipeline and the export schema., test_clip_cache_path_namespaces_by_source_and_sanitizes(), test_pipeline_trains_and_exports(), test_resolve_vocab_pretrain_unions_all_on_disk_glosses(), test_resolve_vocab_static_returns_curated_tuple(), all_pool_glosses(), Every gloss available across both raw indices — the entire on-disk pool for, Map a ``--vocab`` name to its gloss list. ``pretrain`` is computed live from the (+1 more)
-
-### Community 43 - "Community 43"
-Cohesion: 0.24
-Nodes (15): available_video_ids(), load_wlasl_index(), Flatten ``WLASL_v0.3.json`` into a list of :class:`Clip`., Set of ``video_id``s for which ``<video_id>.mp4`` exists in ``videos_dir``., Tests for the WLASL metadata adapter (tiny synthetic fixtures, no real data)., vocab100/136/dl are disjoint extensions of vocab50; no duplicate glosses., test_available_video_ids_only_counts_mp4(), test_clips_by_gloss_groups() (+7 more)
-
-### Community 45 - "Community 45"
-Cohesion: 0.12
-Nodes (15): Architecture Diagram Skill, Auto-layout scaffold (local extension v1.2), Color Palette, Component Box Pattern, Design System, Export Toolbar (built-in), Info Card Pattern, Layout Structure (+7 more)
-
-### Community 46 - "Community 46"
 Cohesion: 0.13
 Nodes (15): Conventions, Dependency graph, M0 — Foundation & tooling, M1 — Camera + hand-tracking foundation, M2 — Recognition pipeline: fingerspelling MVP, M3 — Word bank & domain logic (Practice core, no UI), M4 — Practice mode UI, M5 — Learn mode + levels + curriculum (+7 more)
 
-### Community 47 - "Community 47"
+### Community 41 - "Community 41"
+Cohesion: 0.20
+Nodes (10): 1. App startup, 3. The recognition loop, 5. Persistence — Dexie / IndexedDB, 6. The two modes, 7. Drawing and overlays, 8. The "unified" recognizer, 9. Where to read deeper, Learn mode (`modes/learn/LearnMode.tsx`) (+2 more)
+
+### Community 42 - "Community 42"
 Cohesion: 0.13
 Nodes (15): 1. Goal, 2. Locked decisions (plan.md §6, owner, 2026-07-10), 3. Milestones, 4. Risks / watch items, 5. Checklist, P6M1 — Syllabus + reconciliation (content + pure domain), P6M2 — Store-wrap feasibility spike (early — de-risks Q1), P6M3 — Recall engine (pure domain) (+7 more)
 
-### Community 48 - "Community 48"
-Cohesion: 0.40
-Nodes (4): name, private, type, version
+### Community 43 - "Community 43"
+Cohesion: 0.12
+Nodes (29): available_video_ids(), Clip, clips_by_gloss(), coverage_for(), GlossCoverage, load_class_list(), load_wlasl_index(), WLASL dataset adapter — parse the canonical metadata, select a curated gloss sub (+21 more)
+
+### Community 45 - "Community 45"
+Cohesion: 0.13
+Nodes (13): Environment, Model export, Normalization parity, Python rules — ML pipeline, Quality gates (must pass before PR merge), Structure, Style & types, Testing (+5 more)
+
+### Community 46 - "Community 46"
+Cohesion: 0.13
+Nodes (15): class_weights(), Fraction of rows whose true label is in the model's top-``k`` predictions., Inverse-frequency class weights (normalized to mean 1) for a weighted     cross-, Train the ``arch`` model (:func:`build_model`) with early stopping on val loss;, top_k_accuracy(), train_and_eval(), test_class_weights_inverse_frequency_mean_one(), test_class_weights_unseen_class_gets_weight() (+7 more)
+
+### Community 47 - "Community 47"
+Cohesion: 0.21
+Nodes (11): LETTER_HINTS, SHORT_WORDS, spellableWords(), ADR-0012, learnedPool(), ALPHABET, AlphabetPathView(), defaultCurriculumRepo (+3 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.23
-Nodes (13): assign_signer_disjoint_splits(), canonical_label(), Normalize a source gloss to the canonical vocabulary.      Lowercase, collapse i, Reassign ``split`` so each **signer** falls entirely in one split.      Whole si, Tests for the canonical multi-source ingest layer (P2M5).  Pure logic on tiny sy, _sample(), test_canonical_label_applies_synonyms(), test_canonical_label_normalizes_case_and_whitespace() (+5 more)
+Cohesion: 0.14
+Nodes (14): Acceptance, Conventions (unchanged from phase 1), Deliverables, Dependency / sequencing notes, Non-goals (P2M1), P2M1 — Per-finger colors in the hand-tracking overlay, P2M2 — Camera persists across views (shared stream) + one-time explainer, P2M3 — Full UI redesign (+6 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.22
-Nodes (13): download_clip(), _ensure_deno_on_path(), _load_yt_dlp(), main(), _prepend_path(), Download MS-ASL clips for the chosen glosses -> ``data/msasl/videos/``.  MS-ASL, Make a JS runtime reachable so yt-dlp can solve YouTube's "n challenge".      Mo, Fetch ``[start_time, end_time]`` of the clip's YouTube video → ``<clip_id>.mp4`` (+5 more)
+Cohesion: 0.16
+Nodes (17): canonical_label(), Normalize a source gloss to the canonical vocabulary.      Lowercase, collapse i, download_clip(), _ensure_deno_on_path(), _load_yt_dlp(), main(), _prepend_path(), Download MS-ASL clips for the chosen glosses -> ``data/msasl/videos/``.  MS-ASL (+9 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.14
 Nodes (14): 1. High-level shape, 2. Tech stack, 3. Repository layout (monorepo), 4. Recognition data flow (runtime), 5. Data model (local-first, IndexedDB via Dexie), 6. Practice selection algorithm, 7. Offline & PWA, 8. Hosting (+6 more)
 
 ### Community 53 - "Community 53"
-Cohesion: 0.14
-Nodes (14): Acceptance, Conventions (unchanged from phase 1), Deliverables, Dependency / sequencing notes, Non-goals (P2M1), P2M1 — Per-finger colors in the hand-tracking overlay, P2M2 — Camera persists across views (shared stream) + one-time explainer, P2M3 — Full UI redesign (+6 more)
-
-### Community 54 - "Community 54"
-Cohesion: 0.40
-Nodes (5): Quality gates, Setup, sign-ml, Status, Train the model
-
-### Community 57 - "Community 57"
-Cohesion: 0.23
-Nodes (11): Clip, clips_by_gloss(), coverage_for(), GlossCoverage, WLASL dataset adapter — parse the canonical metadata, select a curated gloss sub, One WLASL clip instance for one gloss., How many of a gloss's clips are present on disk., Per-gloss available/total clip counts, in the given gloss order. (+3 more)
-
-### Community 58 - "Community 58"
 Cohesion: 0.15
 Nodes (13): Accuracy track — lifting the low-confidence signs (P4M2–P4M8), ADRs to record in this track (as each milestone lands), Cross-cutting rules (apply to every milestone in this track), P4M2 — Diagnose: confusion matrix + per-gloss diversity (measure first), P4M3 — Augmentation & loss levers (cheap, no spec change), P4M4 — Motion / velocity features (spec change — parity-critical), P4M5 — Temporal model upgrade (attention pooling; optional two-stream), P4M6 — Targeted per-gloss data fetch (the proven lever; owner-gated) (+5 more)
 
-### Community 59 - "Community 59"
+### Community 54 - "Community 54"
 Cohesion: 0.15
 Nodes (13): 1. Vision, 2. Target users, 3. Platforms, 4. Difficulty levels, 5.1 Learn mode, 5.2 Practice mode, 5. Modes, 6. Functional requirements summary (traceable) (+5 more)
+
+### Community 57 - "Community 57"
+Cohesion: 0.21
+Nodes (6): LabelStabilizer, handFromHolistic(), SignKind, SignMatch, ADR-0018, useUnifiedSignRecognition
+
+### Community 58 - "Community 58"
+Cohesion: 0.17
+Nodes (12): 1. The core problem & the chosen approach, 2. Landmark extraction: MediaPipe Tasks Vision, 3.1 Static signs (MVP) — fingerspelling / held handshapes, 3.2 Dynamic signs — word-level, 3. Classifier design, 4. Datasets, 5.1 Dynamic frame normalization — **frozen (M6.1)**, 5. Normalization spec (shared TS ↔ Python) (+4 more)
+
+### Community 59 - "Community 59"
+Cohesion: 0.26
+Nodes (6): PracticeSession, rememberRecent(), selectNextWord(), bankOf(), word(), Bucket
 
 ### Community 60 - "Community 60"
 Cohesion: 0.17
@@ -427,24 +438,24 @@ Cohesion: 0.17
 Nodes (12): Current state, Decisions made during planning, Historical narrative (Phase 2 → 3), Log, Milestone checklist, Open questions to resolve (by milestone), Phase 2 checklist (see [`docs/phase2.md`](docs/phase2.md)), Phase 3 checklist (see [`docs/phase3.md`](docs/phase3.md)) (+4 more)
 
 ### Community 68 - "Community 68"
-Cohesion: 0.20
-Nodes (9): Browser latency method, C: quantisation (every fold model, scored on its own held-out fold), Classifier bake-off: results (issue #64), Dynamic signs (signer-disjoint, 15 runs each), Letters (static fingerspelling MLP), Reproduce, Setup, Top-10 confused pairs (+1 more)
+Cohesion: 0.18
+Nodes (11): build_baseline(), build_model(), build_sequence_model(), build_tcn_model(), A 2-layer GRU classifier (logits output).      ``pooling`` chooses how the GRU o, A dilated 1D temporal-conv classifier (logits output), the #64 bake-off winner., Dispatch on ``arch``: ``"gru"`` (:func:`build_sequence_model`, which takes the, test_attention_pooling_handles_all_padding_row_without_nan() (+3 more)
 
 ### Community 69 - "Community 69"
-Cohesion: 0.40
-Nodes (5): Fraction of rows whose true label is in the model's top-``k`` predictions., top_k_accuracy(), test_top_k_accuracy_basic(), test_top_k_accuracy_empty(), test_top_k_clamps_k_above_classes()
+Cohesion: 0.22
+Nodes (10): build_metadata(), export_onnx(), quantize_weights_int8(), Export the trained dynamic-sign model to ONNX for the frontend (ADR-015).  PyTor, Export ``model`` to ``out_dir/model.onnx`` (batch axis dynamic) + metadata., Sidecar the frontend reads to validate + label the model (pure/testable).      O, Weight-only int8: store each fp32 initializer with ≥ ``min_size`` elements as, test_build_metadata_carries_skew_guard() (+2 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.19
-Nodes (14): normalize_clip(), Normalize each frame to the frozen 161-d feature → ``(T, FRAME_FEATURE_DIM)``., Shape a variable-length ``(T, F)`` sequence into exactly ``(window, F)``.      -, to_fixed_window(), _hand(), _pose(), Tests for the framework-free parts of dynamic_extract (no mediapipe needed)., test_fixed_window_downsamples_long_clip() (+6 more)
+Cohesion: 0.20
+Nodes (9): CoursePathSwitch(), defaultCurriculumRepo, defaultSentenceRepo, defaultWordRepo, RECOGNIZED, ROUTE, ADR-0008, ADR-0025 (+1 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.18
 Nodes (11): 1. The shape of the system, 2. The tech stack, 3. Repository layout, 4. End-to-end data flow, 5. The two recognition paths, side-by-side, 6. The boundary between deterministic logic and the model, 7. Hosting in one paragraph, Architecture (+3 more)
 
 ### Community 72 - "Community 72"
-Cohesion: 0.32
-Nodes (5): SHORT_WORDS, ADR-0012, mocks, renderView(), viewTree()
+Cohesion: 0.15
+Nodes (15): CurriculumRepo, ADR-0029, mulberry32(), Rng, AlphabetPathViewProps, mocks, renderView(), viewTree() (+7 more)
 
 ### Community 73 - "Community 73"
 Cohesion: 0.22
@@ -454,73 +465,73 @@ Nodes (7): HolisticDetector, firstOrNull(), HolisticResultLike, NOTE: WASM + mod
 Cohesion: 0.21
 Nodes (11): drawHolistic(), loadSignReference(), RawFrame, ReferenceClip, toLandmarks(), toObservation(), ADR-0017, SignReferencePlayer() (+3 more)
 
-### Community 76 - "Community 76"
+### Community 75 - "Community 75"
 Cohesion: 0.20
 Nodes (10): Branch & merge plan (owner-requested), Decisions to record on completion, Final — docs + integration merge, P5M1 — Sentence content bank + pure domain, P5M2 — Persisted sentence progress (FR-6 "tracked"), P5M3 — The Sentences section (route + UI + e2e), Phase 5 checklist, Phase 5 — the Sentences section (+2 more)
 
-### Community 78 - "Community 78"
-Cohesion: 0.29
-Nodes (5): Current state at a glance, Document map, Sign App — How It Works, The 60-second version, Where this docs set fits
+### Community 76 - "Community 76"
+Cohesion: 0.20
+Nodes (10): 0. (New, do first) Make accuracy *measurable* before chasing it, 1. MS-ASL download → retrain — ✅ green-light, highest leverage, 2. Scrape the internet for ASL videos — ⚠️ reframe hard; this is the trap, 3. Apply blur / modifiers to the data — ⚠️ right idea, wrong layer, Cross-cutting, Feedback on the Phase 3 Plan, Open questions to settle before P3M2, Overall — name the tension before building (+2 more)
 
 ### Community 79 - "Community 79"
 Cohesion: 0.20
-Nodes (10): 0. (New, do first) Make accuracy *measurable* before chasing it, 1. MS-ASL download → retrain — ✅ green-light, highest leverage, 2. Scrape the internet for ASL videos — ⚠️ reframe hard; this is the trap, 3. Apply blur / modifiers to the data — ⚠️ right idea, wrong layer, Cross-cutting, Feedback on the Phase 3 Plan, Open questions to settle before P3M2, Overall — name the tension before building (+2 more)
+Nodes (9): Browser latency method, C: quantisation (every fold model, scored on its own held-out fold), Classifier bake-off: results (issue #64), Dynamic signs (signer-disjoint, 15 runs each), Letters (static fingerspelling MLP), Reproduce, Setup, Top-10 confused pairs (+1 more)
+
+### Community 80 - "Community 80"
+Cohesion: 0.20
+Nodes (10): build_masked_autoencoder(), mask_frames(), pretrain_encoder(), Corrupt a batch of ``(B, T, F)`` windows for masked-pose pretraining (P4M8):, A denoising autoencoder that shares the classifier's GRU encoder (identical, Self-supervised masked-pose pretraining on the unlabeled pool (P4M8, ADR-026)., test_mask_frames_is_deterministic(), test_mask_frames_only_masks_real_frames() (+2 more)
 
 ### Community 81 - "Community 81"
 Cohesion: 0.20
 Nodes (10): 1. Goal, 2.1 Learning route (the syllabus), 2.2 Teach → recall loop, 2.3 Two paths, both open at all times, 2. The learning system, 3. Presentation, 4. Out of scope (this phase), 5. Suggested build order (+2 more)
 
-### Community 82 - "Community 82"
+### Community 83 - "Community 83"
 Cohesion: 0.22
 Nodes (8): After the first deploy — verify, Alternatives (equivalent, if ever needed), Hosting — Cloudflare Pages, How to deploy (M7) — click-by-click, What is Cloudflare?, What is Cloudflare Pages?, What we are NOT using, Why it fits this project
 
-### Community 83 - "Community 83"
+### Community 92 - "Workflow rules — issues, git, PRs, CI, quality gates"
 Cohesion: 0.22
 Nodes (9): Components, Domain logic must stay pure, Frontend rules — React + TypeScript, Language & types, Quality gates (must pass before PR merge), Recognition layer, State & data, Styling & a11y (+1 more)
 
-### Community 92 - "Workflow rules — issues, git, PRs, CI, quality gates"
-Cohesion: 0.22
-Nodes (9): CI, Commits, Invariants, Quality gates (every PR, before merge), Repository, Secrets, credentials & external accounts — STOP and ask, The loop, Workflow rules — issues, git, PRs, CI, quality gates (+1 more)
-
 ### Community 93 - "mediapipeDetector.ts"
-Cohesion: 0.29
-Nodes (5): NOTE: WASM + model are loaded from CDN at runtime for now. Bundling and, toHandedness(), toObservations(), ADR-0018, LandmarkDetector
+Cohesion: 0.19
+Nodes (10): CameraView(), createMediaPipeHandDetector(), NOTE: WASM + model are loaded from CDN at runtime for now. Bundling and, toHandedness(), toObservations(), ADR-0018, LandmarkDetector, SignPrediction (+2 more)
 
 ### Community 94 - "package_name"
 Cohesion: 0.25
 Nodes (5): package_name(), Sign App ML pipeline (build-time only).  Trains the ASL recognition model from h, Return the package name. Placeholder until M2 adds the real pipeline., Smoke tests proving the package imports and the toolchain runs (M0)., test_package_name()
 
 ### Community 95 - "P4M1 — Sign search tab"
+Cohesion: 0.22
+Nodes (9): CI, Commits, Invariants, Quality gates (every PR, before merge), Repository, Secrets, credentials & external accounts — STOP and ask, The loop, Workflow rules — issues, git, PRs, CI, quality gates (+1 more)
+
+### Community 96 - "Python rules — ML pipeline"
+Cohesion: 0.28
+Nodes (6): isDynamicGloss(), defaultRepo, Phase, PracticeMode(), mocks, ADR-0008
+
+### Community 97 - "Backlog"
+Cohesion: 0.22
+Nodes (8): SentenceDrill(), defaultSentenceRepo, defaultWordRepo, ADR-0008, ADR-0009, ADR-0012, ADR-0025, ADR-0028
+
+### Community 98 - "pull_request_template.md"
 Cohesion: 0.25
 Nodes (8): Acceptance criteria, Architecture — reuse, don't rebuild, Out of scope / deferred (future milestones), P4M1 — Sign search tab, Phase 4 — Discovery & Accuracy, Scope decisions (owner-confirmed), Tests (part of the deliverable), Work items
 
-### Community 96 - "Python rules — ML pipeline"
-Cohesion: 0.25
-Nodes (8): Environment, Model export, Normalization parity, Python rules — ML pipeline, Quality gates (must pass before PR merge), Structure, Style & types, Testing
-
-### Community 97 - "Backlog"
+### Community 99 - "Sign App"
 Cohesion: 0.29
 Nodes (6): Backlog, Bugs / known gaps, Learner app / content, Platform / store, Recognition / model track, Tooling
-
-### Community 98 - "pull_request_template.md"
-Cohesion: 0.33
-Nodes (5): Before merge, Follow-ups filed, How it was tested, What changed, Why
-
-### Community 99 - "Sign App"
-Cohesion: 0.33
-Nodes (6): Frontend, ML pipeline, Quick start, Repository layout, Sign App, Status
 
 ### Community 100 - ".prettierrc.json"
 Cohesion: 0.40
 Nodes (4): printWidth, semi, singleQuote, trailingComma
 
-### Community 101 - "Reaching 100 published signs"
-Cohesion: 0.40
-Nodes (4): Reaching 100 published signs, Step 1 — Download the clips (owner), Step 2 — Extract + retrain + gate (automated, after the download), The 36 download glosses
-
 ### Community 102 - "feature.md"
-Cohesion: 0.40
-Nodes (4): Acceptance criteria, Context, Notes, Scope
+Cohesion: 0.33
+Nodes (5): Before merge, Follow-ups filed, How it was tested, What changed, Why
+
+### Community 103 - "sign-ml"
+Cohesion: 0.33
+Nodes (6): Assign whole **signers** to ``k`` folds; return a per-fold boolean test mask, signer_folds(), test_signer_folds_balances_by_sample_count(), test_signer_folds_deterministic_with_seed(), test_signer_folds_handles_unknown_signers(), test_signer_folds_partition_and_no_leakage()
 
 ### Community 104 - "gradlew"
 Cohesion: 0.83
@@ -530,41 +541,81 @@ Nodes (3): gradlew script, die(), warn()
 Cohesion: 0.50
 Nodes (3): frames, gloss, videoId
 
+### Community 106 - "classify_low_signs"
+Cohesion: 0.33
+Nodes (6): Frontend, ML pipeline, Quick start, Repository layout, Sign App, Status
+
 ### Community 107 - "React + TypeScript + Vite"
+Cohesion: 0.40
+Nodes (4): Reaching 100 published signs, Step 1 — Download the clips (owner), Step 2 — Extract + retrain + gate (automated, after the download), The 36 download glosses
+
+### Community 108 - "bug.md"
+Cohesion: 0.40
+Nodes (5): Current state at a glance, Document map, Sign App — How It Works, The 60-second version, Where this docs set fits
+
+### Community 113 - "load_class_list"
+Cohesion: 0.40
+Nodes (4): Acceptance criteria, Context, Notes, Scope
+
+### Community 114 - "2026-11-03"
+Cohesion: 0.40
+Nodes (5): 7. Accuracy, honestly, Per-sign acceptance, not open-set classification, The numbers, Vocabulary expansion is accuracy-gated, Why "the user said it but the model didn't see it" is okay
+
+### Community 115 - "2026-11-05"
+Cohesion: 0.40
+Nodes (4): 2026-11-05, Classifier bake-off: baseline vs TCN vs hand-shape features vs quantised ONNX (#64), Published the 4 signs the TCN lifted over the gate (#67), Ship the TCN as the dynamic-sign model (#66)
+
+### Community 116 - "CLAUDE.md"
+Cohesion: 0.40
+Nodes (5): 4.1 Attempts and outcomes, 4.2 Buckets, 4.3 The practice selection algorithm, 4.4 Levels, 4. The domain layer
+
+### Community 117 - "run_all.sh"
 Cohesion: 0.50
 Nodes (3): Expanding the ESLint configuration, React Compiler, React + TypeScript + Vite
 
-### Community 108 - "bug.md"
+### Community 128 - "Any"
 Cohesion: 0.50
 Nodes (3): Acceptance criteria, Evidence, Problem
 
-### Community 113 - "load_class_list"
-Cohesion: 0.67
-Nodes (3): load_class_list(), Glosses from ``wlasl_class_list.txt`` (``<class_id>\\t<gloss>`` per line),     o, test_load_class_list_orders_by_id()
-
-### Community 115 - "2026-11-05"
+### Community 129 - "Path"
 Cohesion: 0.50
-Nodes (3): 2026-11-05, Classifier bake-off: baseline vs TCN vs hand-shape features vs quantised ONNX (#64), Ship the TCN as the dynamic-sign model (#66)
+Nodes (4): fit_per_sign_thresholds(), Per-gloss **acceptance threshold** = a low ``percentile`` of the (calibrated), test_fit_per_sign_thresholds_missing_class_defaults_to_cap(), test_fit_per_sign_thresholds_percentile_and_clamp()
+
+### Community 135 - "Any"
+Cohesion: 0.50
+Nodes (4): Rotate every landmark's ``(x, y)`` by a small **per-sample** angle (``z`` and, rotate_xy(), test_rotate_xy_is_isometry_and_preserves_zeros_presence(), test_rotate_xy_zero_angle_is_noop()
+
+### Community 136 - "FloatArray"
+Cohesion: 0.50
+Nodes (4): 9. The training pipeline (Python side), Dynamic (words), Quality gates, Static (letters)
+
+### Community 137 - "IntArray"
+Cohesion: 0.50
+Nodes (4): 2. Camera lifecycle, How a view attaches, One stream, shared across views, One-time privacy explainer
+
+### Community 139 - "str_"
+Cohesion: 0.67
+Nodes (3): 6. Datasets, Dynamic (words): WLASL (+ MS-ASL coming), Static (letters): the Kaggle ASL Alphabet dataset
 
 ## Knowledge Gaps
-- **606 isolated node(s):** `graphify-guard.sh script`, `PATH`, `semi`, `singleQuote`, `trailingComma` (+601 more)
+- **608 isolated node(s):** `graphify-guard.sh script`, `PATH`, `semi`, `singleQuote`, `trailingComma` (+603 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **66 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **72 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Decision Log (ADRs)` connect `Community 17` to `Community 39`?**
-  _High betweenness centrality (0.011) - this node is a cross-community bridge._
-- **Why does `Phase 6 — the learner app` connect `Community 47` to `Community 39`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `Phase 3 — Accuracy & Vocabulary Depth` connect `Community 23` to `Community 39`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `augment_sequences()` connect `Community 14` to `Community 2`, `Any`, `Community 12`, `Community 46`, `Community 28`?**
+  _High betweenness centrality (0.018) - this node is a cross-community bridge._
+- **Why does `cross_validate_frozen()` connect `Community 2` to `Community 14`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `cross_validate()` connect `Community 12` to `Path`, `Community 68`, `sign-ml`, `Community 46`, `Community 14`, `Community 25`, `Community 28`?**
+  _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **What connects `graphify-guard.sh script`, `PATH`, `semi` to the rest of the system?**
-  _606 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _608 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.14333333333333334 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.056051587301587304 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.054426705370101594 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.0653061224489796 - nodes in this community are weakly interconnected._
-- **Should `Community 4` be split into smaller, more focused modules?**
-  _Cohesion score 0.10158730158730159 - nodes in this community are weakly interconnected._

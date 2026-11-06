@@ -66,7 +66,7 @@ and the secrets/credentials policy.
 ## Status
 
 **Live:** Phases 1–5 + the Phase-6 learner shell (P6M1–P6M7) are merged and deployed on
-Cloudflare (Workers Static Assets): **24 fingerspelling letters + 103 dynamic signs**,
+Cloudflare (Workers Static Assets): **24 fingerspelling letters + 107 dynamic signs**,
 the learner app (`/` home, `/course` words, `/course/alphabet`, `/sentences`,
 `/search`), and the dev tabs (`/practice`, `/learn`, `/signs`, `/camera`) behind
 **Settings → Developer mode**. The Phase-4 accuracy track

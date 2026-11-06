@@ -69,6 +69,7 @@ export const WORD_UNITS: readonly CurriculumUnit[] = [
     ['learn', 'sign'],
     ['deaf'], // (placeholder)
     ['write'],
+    ['draw'],
     ['know', 'understand'],
     ['think', 'forget'],
     ['again', 'wrong'],
@@ -81,6 +82,7 @@ export const WORD_UNITS: readonly CurriculumUnit[] = [
     ['time', 'before'],
     ['money', 'shoes'],
     ['computer'],
+    ['lost'],
   ]),
   unit('asking-questions', 'Asking questions', [
     ['who', 'how'],
@@ -92,6 +94,7 @@ export const WORD_UNITS: readonly CurriculumUnit[] = [
     ['walk', 'run'],
     ['live', 'finish'],
   ]),
+  unit('animals', 'Animals', [['cat']]),
   unit('food', 'Food', [['apple', 'sandwich'], ['fish', 'hot'], ['cold']]),
   unit('colors-and-describing', 'Colors & describing', [
     ['black', 'white'],
@@ -100,6 +103,7 @@ export const WORD_UNITS: readonly CurriculumUnit[] = [
     ['pink', 'purple'],
     ['brown', 'big'],
     ['small', 'tall'],
+    ['same'],
   ]),
   unit('times-of-day', 'Times of day', [
     ['today', 'tomorrow'], // (placeholder, placeholder)

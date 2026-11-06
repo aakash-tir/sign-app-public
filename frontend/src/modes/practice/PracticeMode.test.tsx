@@ -71,8 +71,8 @@ describe('PracticeMode', () => {
     const { target } = await renderAndGetTarget()
     expect(target.length).toBeGreaterThan(0)
     expect(await repo.getProgress(target)).toBeDefined()
-    // bank holds 24 letters + 103 shipped dynamic glosses (P4M17 dropped 3 confusers)
-    expect(await repo.allProgress()).toHaveLength(127)
+    // bank holds 24 letters + 107 shipped dynamic glosses (#67)
+    expect(await repo.allProgress()).toHaveLength(131)
   })
 
   it('points the recognizer at the right model for the prompt', async () => {

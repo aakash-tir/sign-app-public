@@ -3,7 +3,8 @@ glosses (P2M4, ADR-017).
 
 Instead of linking out to an external ASL dictionary, the app shows an in-app
 animation of each sign rendered from landmarks. This module turns **one
-representative WLASL clip per gloss** into raw per-frame
+representative WLASL clip per gloss** (falling back to a local MS-ASL clip for the
+MS-ASL-download glosses WLASL doesn't cover, #67) into raw per-frame
 ``{pose, leftHand, rightHand}`` (x, y only — the overlay renderer ignores z),
 downsampled and rounded, and writes ``frontend/public/reference/<gloss>.json`` so
 the reference works fully offline.
@@ -24,6 +25,8 @@ from typing import Any, Protocol
 import numpy as np
 
 from .dynamic_extract import _load_holistic_detector
+from .ingest import canonical_label
+from .msasl import MsaslClip, load_msasl_index
 from .wlasl import Clip, available_video_ids, load_wlasl_index, select_clips
 
 # A short loop reads well as a reference; keep files tiny.
@@ -145,6 +148,12 @@ SHIPPED_GLOSSES: tuple[str, ...] = (
     "bus",
     "beautiful",
     "purple",
+    # #67: unpublished trained glosses the TCN (#66) lifted over the honest >=0.50
+    # gate. `lost` has no local WLASL clip, so its reference is from MS-ASL.
+    "cat",
+    "draw",
+    "lost",
+    "same",
 )
 
 
@@ -169,6 +178,23 @@ def representative_clip(
     ``video_id``), so re-running the exporter reproduces the same reference."""
     candidates = sorted(
         select_clips([gloss], clips, available), key=lambda c: c.video_id
+    )
+    return candidates[0] if candidates else None
+
+
+def representative_msasl_clip(
+    gloss: str, clips: list[MsaslClip], available: set[str]
+) -> MsaslClip | None:
+    """Fallback for glosses with no local WLASL clip (MS-ASL-download glosses such
+    as ``lost``, #67): the downloaded MS-ASL clip with the lowest ``clip_id``, so the
+    choice is deterministic too. Glosses are matched after ``canonical_label``."""
+    candidates = sorted(
+        (
+            c
+            for c in clips
+            if canonical_label(c.gloss) == gloss and c.clip_id in available
+        ),
+        key=lambda c: c.clip_id,
     )
     return candidates[0] if candidates else None
 
@@ -218,26 +244,36 @@ def export_references(
     model_asset_path: Path,
     out_dir: Path,
     glosses: tuple[str, ...] = SHIPPED_GLOSSES,
+    msasl_dir: Path | None = None,
 ) -> list[str]:  # pragma: no cover - real-data path
-    """Write ``<gloss>.json`` reference clips for each gloss; return those written."""
     clips = load_wlasl_index(data_dir / "WLASL_v0.3.json")
     videos_dir = data_dir / "videos"
     available = available_video_ids(videos_dir)
+    msasl_clips: list[MsaslClip] = []
+    msasl_available: set[str] = set()
+    if msasl_dir is not None and (msasl_dir / "videos").is_dir():
+        msasl_clips = load_msasl_index(msasl_dir)
+        msasl_available = {p.stem for p in (msasl_dir / "videos").glob("*.mp4")}
     out_dir.mkdir(parents=True, exist_ok=True)
 
     written: list[str] = []
     for gloss in glosses:
         clip = representative_clip(gloss, clips, available)
-        if clip is None:
-            print(f"  skip {gloss!r}: no local clip", flush=True)
-            continue
-        frames = capture_raw_frames(
-            videos_dir / f"{clip.video_id}.mp4", model_asset_path
-        )
+        if clip is not None:
+            video_path, video_id = videos_dir / f"{clip.video_id}.mp4", clip.video_id
+        else:
+            ms = representative_msasl_clip(gloss, msasl_clips, msasl_available)
+            if ms is None:
+                print(f"  skip {gloss!r}: no local clip", flush=True)
+                continue
+            assert msasl_dir is not None
+            video_path = msasl_dir / "videos" / f"{ms.clip_id}.mp4"
+            video_id = f"msasl:{ms.clip_id}"
+        frames = capture_raw_frames(video_path, model_asset_path)
         frames = [f for f in frames if f["pose"] or f["leftHand"] or f["rightHand"]]
         payload: dict[str, Any] = {
             "gloss": gloss,
-            "videoId": clip.video_id,
+            "videoId": video_id,
             "frames": frames,
         }
         (out_dir / f"{gloss}.json").write_text(
@@ -259,7 +295,17 @@ if __name__ == "__main__":  # pragma: no cover
     parser.add_argument(
         "--out", type=Path, default=Path("../frontend/public/reference")
     )
+    parser.add_argument(
+        "--msasl", type=Path, default=Path("data/msasl"), help="MS-ASL fallback"
+    )
+    parser.add_argument(
+        "--only", nargs="+", help="export just these shipped glosses (default: all)"
+    )
     args = parser.parse_args()
+    glosses = tuple(args.only) if args.only else SHIPPED_GLOSSES
+    unknown = sorted(set(glosses) - set(SHIPPED_GLOSSES))
+    if unknown:
+        parser.error(f"not in SHIPPED_GLOSSES: {unknown}")
     print("Exporting sign reference clips…")
-    names = export_references(args.data, args.model, args.out)
+    names = export_references(args.data, args.model, args.out, glosses, args.msasl)
     print(f"Done: {len(names)} clips -> {args.out}")

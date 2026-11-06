@@ -9,7 +9,7 @@ is in [`docs/milestones.md`](docs/milestones.md).
 > after this block are the historical Phase 2→3 narrative, kept for context.
 
 **Phases 1–5 are complete/paused and deployed** — the PWA is live on Cloudflare with
-**24 fingerspelling letters + 103 dynamic signs**, a per-finger overlay option, a
+**24 fingerspelling letters + 107 dynamic signs** (103 → 107 in #67), a per-finger overlay option, a
 persistent shared camera, a redesigned UI, offline in-app sign references, a **Search
 tab** (typo/stem-tolerant with a fingerspelling fallback + as-you-type autocomplete, P4M9/P4M11),
 and a **Sentences section** (Phase 5). See
@@ -347,6 +347,12 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 
 ## Log
 
+- **2026-11-05** — **Published 4 signs the TCN lifted over the gate (#67): 103 → 107.**
+  `cat` 0.67, `draw` 0.63, `lost` 0.56 and `same` 0.56 were already trained classes in
+  the shipped model, so there was no retraining. They got reference clips, curriculum
+  slots (a new Animals unit) and search synonyms. `stop`
+  (0.53, n = 15) and `nurse` (exactly 0.50) also clear the gate but wait on the owner's
+  call. recognition.md §6.17.
 - **2026-11-05** — **The TCN replaces the BiGRU as the dynamic model (#66, ADR-030).**
   Honest signer-disjoint CV goes from **0.691 to 0.763**. Published signs at or above
   0.50 go from 95 to 98 of 103, with no demotions (`bus` dips 0.53 → 0.47 and is kept).

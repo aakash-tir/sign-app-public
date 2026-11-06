@@ -37,7 +37,14 @@ export const SIGN_SYNONYMS: Record<string, string> = {
   physician: 'doctor',
   educator: 'teacher',
   pupil: 'student',
+  // animals (#67)
+  kitty: 'cat',
+  kitten: 'cat',
   // verbs & states
+  sketch: 'draw',
+  lose: 'lost',
+  alike: 'same',
+  identical: 'same',
   assist: 'help',
   comprehend: 'understand',
   beverage: 'drink',

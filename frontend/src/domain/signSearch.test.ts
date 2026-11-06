@@ -34,6 +34,14 @@ describe('matchSign', () => {
     expect(matchSign('PC')).toEqual({ status: 'found', gloss: 'computer' })
   })
 
+  it('finds the #67 signs directly and via their synonyms', () => {
+    for (const gloss of ['cat', 'draw', 'lost', 'same'])
+      expect(matchSign(gloss)).toEqual({ status: 'found', gloss })
+    expect(matchSign('kitten')).toEqual({ status: 'found', gloss: 'cat' })
+    expect(matchSign('lose')).toEqual({ status: 'found', gloss: 'lost' })
+    expect(matchSign('alike')).toEqual({ status: 'found', gloss: 'same' })
+  })
+
   it('reports an absent term as not-found (with the trimmed query)', () => {
     expect(matchSign('  xyzzy ')).toEqual({
       status: 'not-found',

@@ -114,7 +114,9 @@ export function LearnerHome({
 
         <Link to="/search" className="home-card" data-testid="home-search-card">
           <h3>Look up a sign</h3>
-          <p className="home-card-next">Search and try any of the 103 signs</p>
+          <p className="home-card-next">
+            Search and try any of the {SHIPPED_GLOSSES.length} signs
+          </p>
         </Link>
       </div>
     </section>
