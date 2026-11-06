@@ -11,6 +11,7 @@ import {
   routeConstructibility,
   stageSentenceCandidates,
   priorityWords,
+  courseProgress,
   type CurriculumUnit,
 } from './curriculum'
 import { sentenceOf } from './sentences'
@@ -206,5 +207,69 @@ describe('priorityWords', () => {
         new Set(['want', 'eat', 'you', 'me', 'drink', 'water', 'more']),
       ),
     ).toEqual([])
+  })
+})
+
+describe('courseProgress (P6M8, #60)', () => {
+  it('starts at zero, with placeholder-only sets left out of the totals', () => {
+    const progress = courseProgress(units, new Set(), recognized)
+    // u1 = [want eat] + placeholder [you me]; u2 = [drink water] + [more]
+    expect(progress.setsTotal).toBe(3)
+    expect(progress.setsDone).toBe(0)
+    expect(progress.unitsTotal).toBe(2)
+    expect(progress.unitsDone).toBe(0)
+    expect(
+      progress.units.map((u) => [u.unitId, u.setsDone, u.setsTotal]),
+    ).toEqual([
+      ['u1', 0, 1],
+      ['u2', 0, 2],
+    ])
+  })
+
+  it('completes a unit once every teachable set is done, ignoring placeholders', () => {
+    const progress = courseProgress(units, new Set(['want eat']), recognized)
+    expect(progress.units[0]).toMatchObject({ setsDone: 1, isComplete: true })
+    expect(progress.units[1]).toMatchObject({ setsDone: 0, isComplete: false })
+    expect(progress).toMatchObject({ setsDone: 1, unitsDone: 1 })
+  })
+
+  it('reaches 100 % with every teachable set done', () => {
+    const done = new Set(['want eat', 'drink water', 'more'])
+    const progress = courseProgress(units, done, recognized)
+    expect(progress).toMatchObject({
+      setsDone: 3,
+      setsTotal: 3,
+      unitsDone: 2,
+      unitsTotal: 2,
+    })
+  })
+
+  it('ignores stale completion ids and placeholder ids', () => {
+    const done = new Set(['want', 'you me', 'gone set'])
+    const progress = courseProgress(units, done, recognized)
+    expect(progress.setsDone).toBe(0)
+    expect(progress.unitsDone).toBe(0)
+  })
+
+  it('leaves an all-placeholder unit out of the unit totals and never completes it', () => {
+    const withStub: readonly CurriculumUnit[] = [
+      ...units,
+      { id: 'u3', title: 'Soon', sets: [curriculumSetOf(['you', 'me'])] },
+    ]
+    const done = new Set(['want eat', 'drink water', 'more'])
+    const progress = courseProgress(withStub, done, recognized)
+    expect(progress.units[2]).toMatchObject({ setsTotal: 0, isComplete: false })
+    expect(progress.unitsTotal).toBe(2)
+    expect(progress.unitsDone).toBe(2)
+  })
+
+  it('handles an empty route', () => {
+    expect(courseProgress([], new Set(), recognized)).toEqual({
+      units: [],
+      setsDone: 0,
+      setsTotal: 0,
+      unitsDone: 0,
+      unitsTotal: 0,
+    })
   })
 })

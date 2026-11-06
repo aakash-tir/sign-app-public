@@ -43,6 +43,9 @@ describe('LearnerHome', () => {
     expect(screen.getByTestId('home-words-card')).toHaveTextContent(
       /next: want \+ eat/i,
     )
+    expect(screen.getByTestId('home-units-progress')).toHaveTextContent(
+      /^0 of \d+ units complete$/,
+    )
     expect(screen.getByTestId('home-alphabet-card')).toHaveTextContent(
       /0 of 8 batches/,
     )
@@ -62,6 +65,24 @@ describe('LearnerHome', () => {
     )
     expect(screen.getByTestId('home-words-card')).toHaveTextContent(
       /next: drink \+ water/i,
+    )
+  })
+
+  it('counts a unit complete once its teachable sets are done (#60)', async () => {
+    for (const id of [
+      'want eat',
+      'drink water',
+      'more please',
+      'help milk',
+      'yes no',
+    ])
+      await curriculumRepo.markCompleted(id)
+    renderHome()
+    expect(await screen.findByTestId('home-units-progress')).toHaveTextContent(
+      /^1 of \d+ units complete$/,
+    )
+    expect(screen.getByTestId('home-words-card')).toHaveTextContent(
+      /5 of \d+ sets/,
     )
   })
 

@@ -134,8 +134,11 @@
   "132": "NDArray",
   "133": "Path",
   "134": "str_",
+  "135": "fit_temperature",
   "136": "FloatArray",
+  "137": "time_warp",
   "138": "NDArray",
+  "139": "mirror_frames",
   "140": "ArrayLike",
   "141": "FloatArray",
   "142": "Any",
@@ -183,5 +186,10 @@
   "184": "NDArray",
   "185": "str_",
   "186": "Any",
-  "187": "Path"
+  "187": "Path",
+  "188": "2. Camera lifecycle",
+  "189": "filter_repo",
+  "190": "load_class_list",
+  "191": "machine-learning.md",
+  "192": "4. The classifiers"
 }

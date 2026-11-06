@@ -26,6 +26,20 @@
   margin: 0;
   font-size: 1rem;
   color: var(--muted);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.path-unit-progress {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.path-unit-progress-done {
+  color: var(--success);
 }
 
 .path-sets {
@@ -129,4 +143,10 @@
 
 .exit-lesson:hover {
   color: var(--text);
+}
+
+.words-path-units {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
 }

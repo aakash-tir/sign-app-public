@@ -123,7 +123,40 @@ describe('the path list', () => {
     // The current set moved to the next teachable one.
     expect(sets[1]?.dataset.state).toBe('current')
   })
+
+  it("shows each unit's progress with placeholder sets left out (#60)", async () => {
+    await curriculumRepo.markCompleted('want eat')
+    renderView()
+    const badges = await screen.findAllByTestId('unit-progress')
+    // First needs: 1 of its 5 sets.
+    expect(badges[0]).toHaveTextContent(/^1 \/ 5$/)
+    expect(badges[0]?.dataset.complete).toBe('false')
+    // Saying hello has 8 sets, 3 of them placeholder-only: 0 of 5.
+    expect(badges[1]).toHaveTextContent(/^0 \/ 5$/)
+    expect(screen.getByTestId('words-path-units')).toHaveTextContent(
+      /^0 of \d+ units complete$/,
+    )
+  })
+
+  it('marks a unit complete once all its teachable sets are done (#60)', async () => {
+    for (const id of FIRST_UNIT) await curriculumRepo.markCompleted(id)
+    renderView()
+    const badges = await screen.findAllByTestId('unit-progress')
+    expect(badges[0]).toHaveTextContent(/^✓ 5 \/ 5$/)
+    expect(badges[0]?.dataset.complete).toBe('true')
+    expect(screen.getByTestId('words-path-units')).toHaveTextContent(
+      /^1 of \d+ units complete$/,
+    )
+  })
 })
+
+const FIRST_UNIT = [
+  'want eat',
+  'drink water',
+  'more please',
+  'help milk',
+  'yes no',
+]
 
 describe('the teach phase', () => {
   it('teaches each new word with its reference, then enters recall', async () => {

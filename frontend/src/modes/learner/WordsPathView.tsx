@@ -12,6 +12,7 @@ import { WORD_UNITS } from '../../content/curriculum'
 import { SIGN_SENTENCES } from '../../content/signSentences'
 import { SHIPPED_GLOSSES } from '../../content/dynamicVocab'
 import {
+  courseProgress,
   flattenRoute,
   learnedPool,
   routeAccess,
@@ -96,6 +97,13 @@ export function WordsPathView({
 
   const access = useMemo(
     () => (completedIds ? routeAccess(ROUTE, completedIds, RECOGNIZED) : null),
+    [completedIds],
+  )
+  const progress = useMemo(
+    () =>
+      completedIds
+        ? courseProgress(WORD_UNITS, completedIds, RECOGNIZED)
+        : null,
     [completedIds],
   )
   // Set ids are unique (test-enforced), so access states key cleanly by id.
@@ -414,72 +422,95 @@ export function WordsPathView({
 
   // ---- The path -----------------------------------------------------------
 
-  const completedCount = access.filter((a) => a === 'completed').length
-  const totalTeachable = access.filter((a) => a !== 'placeholder').length
+  const unitProgress = new Map(progress?.units.map((u) => [u.unitId, u]))
 
   return (
     <section className="words-path" aria-label="Words path">
       <h2>Words</h2>
       <CoursePathSwitch />
       <p className="words-path-progress" data-testid="words-path-progress">
-        {completedCount} of {totalTeachable} sets completed
+        {progress?.setsDone ?? 0} of {progress?.setsTotal ?? 0} sets completed
       </p>
+      {progress && progress.unitsTotal > 0 && (
+        <p className="words-path-units" data-testid="words-path-units">
+          {progress.unitsDone} of {progress.unitsTotal} units complete
+        </p>
+      )}
 
-      {WORD_UNITS.map((unit) => (
-        <div key={unit.id} className="path-unit">
-          <h3 className="path-unit-title">{unit.title}</h3>
-          <ul className="path-sets">
-            {unit.sets.map((set) => {
-              const state = accessById?.get(set.id) ?? 'locked'
-              return (
-                <li
-                  key={set.id}
-                  className={`path-set path-set-${state}`}
-                  data-testid="path-set"
-                  data-state={state}
+      {WORD_UNITS.map((unit) => {
+        const up = unitProgress.get(unit.id)
+        return (
+          <div key={unit.id} className="path-unit" data-testid="path-unit">
+            <h3 className="path-unit-title">
+              {unit.title}
+              {up && up.setsTotal > 0 && (
+                <span
+                  className={
+                    up.isComplete
+                      ? 'path-unit-progress path-unit-progress-done'
+                      : 'path-unit-progress'
+                  }
+                  data-testid="unit-progress"
+                  data-complete={up.isComplete ? 'true' : 'false'}
                 >
-                  <span className="path-set-signs">
-                    {set.signs.map((sign) => (
-                      <span
-                        key={sign}
-                        className={
-                          wordStatus(sign, RECOGNIZED) === 'placeholder'
-                            ? 'path-word path-word-soon'
-                            : 'path-word'
-                        }
+                  {up.isComplete ? '✓ ' : ''}
+                  {up.setsDone} / {up.setsTotal}
+                </span>
+              )}
+            </h3>
+            <ul className="path-sets">
+              {unit.sets.map((set) => {
+                const state = accessById?.get(set.id) ?? 'locked'
+                return (
+                  <li
+                    key={set.id}
+                    className={`path-set path-set-${state}`}
+                    data-testid="path-set"
+                    data-state={state}
+                  >
+                    <span className="path-set-signs">
+                      {set.signs.map((sign) => (
+                        <span
+                          key={sign}
+                          className={
+                            wordStatus(sign, RECOGNIZED) === 'placeholder'
+                              ? 'path-word path-word-soon'
+                              : 'path-word'
+                          }
+                        >
+                          {sign}
+                        </span>
+                      ))}
+                    </span>
+                    {state === 'placeholder' && (
+                      <span className="path-soon-note">coming soon</span>
+                    )}
+                    {state === 'current' && (
+                      <button
+                        type="button"
+                        data-testid="set-start"
+                        onClick={() => handleStartSet(set)}
                       >
-                        {sign}
-                      </span>
-                    ))}
-                  </span>
-                  {state === 'placeholder' && (
-                    <span className="path-soon-note">coming soon</span>
-                  )}
-                  {state === 'current' && (
-                    <button
-                      type="button"
-                      data-testid="set-start"
-                      onClick={() => handleStartSet(set)}
-                    >
-                      Start
-                    </button>
-                  )}
-                  {state === 'completed' && (
-                    <button
-                      type="button"
-                      className="path-review"
-                      data-testid="set-review"
-                      onClick={() => handleStartSet(set)}
-                    >
-                      Review
-                    </button>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ))}
+                        Start
+                      </button>
+                    )}
+                    {state === 'completed' && (
+                      <button
+                        type="button"
+                        className="path-review"
+                        data-testid="set-review"
+                        onClick={() => handleStartSet(set)}
+                      >
+                        Review
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )
+      })}
     </section>
   )
 }

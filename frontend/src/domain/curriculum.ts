@@ -170,3 +170,57 @@ export function priorityWords(
   }
   return queue
 }
+
+/** One unit's progress (P6M8, #60). Placeholder-only sets (Q6) are not counted. */
+export type UnitProgress = {
+  readonly unitId: string
+  readonly title: string
+  readonly setsDone: number
+  readonly setsTotal: number
+  /** True once every teachable set is done; never true for an all-placeholder unit. */
+  readonly isComplete: boolean
+}
+
+export type CourseProgress = {
+  readonly units: readonly UnitProgress[]
+  readonly setsDone: number
+  readonly setsTotal: number
+  readonly unitsDone: number
+  /** Units with at least one teachable set — an all-placeholder unit is left out. */
+  readonly unitsTotal: number
+}
+
+/**
+ * Visible progress for the learner (P6M8, #60): sets and units completed, per unit
+ * and overall. Totals count only what the app can teach today — a placeholder-only
+ * set (Q6) is neither done nor counted, so a learner can always reach 100 %. Stale
+ * completion ids (a set whose signs were later edited) are ignored, since only the
+ * route's current set ids are looked up.
+ */
+export function courseProgress(
+  units: readonly CurriculumUnit[],
+  completedIds: ReadonlySet<string>,
+  recognized: ReadonlySet<string>,
+): CourseProgress {
+  const unitProgress = units.map((unit): UnitProgress => {
+    const teachable = unit.sets.filter(
+      (set) => !isPlaceholderOnlySet(set, recognized),
+    )
+    const setsDone = teachable.filter((set) => completedIds.has(set.id)).length
+    return {
+      unitId: unit.id,
+      title: unit.title,
+      setsDone,
+      setsTotal: teachable.length,
+      isComplete: teachable.length > 0 && setsDone === teachable.length,
+    }
+  })
+  const counted = unitProgress.filter((unit) => unit.setsTotal > 0)
+  return {
+    units: unitProgress,
+    setsDone: counted.reduce((sum, unit) => sum + unit.setsDone, 0),
+    setsTotal: counted.reduce((sum, unit) => sum + unit.setsTotal, 0),
+    unitsDone: counted.filter((unit) => unit.isComplete).length,
+    unitsTotal: counted.length,
+  }
+}

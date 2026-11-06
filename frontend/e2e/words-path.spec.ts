@@ -61,4 +61,15 @@ test('teach → recall → set complete via the valve; progress survives reload'
   await expect(
     page.locator('[data-testid="path-set"][data-state="completed"]'),
   ).toHaveCount(1)
+  // Unit progress (P6M8, #60): placeholder sets are left out of the totals.
+  await expect(page.getByTestId('unit-progress').first()).toHaveText('1 / 5')
+
+  // …and the learner home reports the same progress.
+  await page.getByRole('link', { name: 'Home' }).click()
+  await expect(page.getByTestId('home-words-card')).toContainText(
+    /1 of \d+ sets/,
+  )
+  await expect(page.getByTestId('home-units-progress')).toHaveText(
+    /0 of \d+ units complete/,
+  )
 })

@@ -12,6 +12,9 @@ test('the app opens on the learner home with no developer tabs', async ({
   await expect(page.getByTestId('home-words-card')).toContainText(
     /0 of \d+ sets/,
   )
+  await expect(page.getByTestId('home-units-progress')).toHaveText(
+    /0 of \d+ units complete/,
+  )
   // Scope to the nav — the home cards are links with overlapping names.
   const nav = page.getByRole('navigation', { name: 'Main' })
   for (const name of ['Home', 'Course', 'Sentences', 'Search', 'Settings']) {

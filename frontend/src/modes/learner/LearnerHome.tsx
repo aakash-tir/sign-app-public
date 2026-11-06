@@ -5,7 +5,11 @@ import { CurriculumRepo } from '../../data/curriculumRepo'
 import { LETTER_BATCHES, WORD_UNITS } from '../../content/curriculum'
 import { LETTER_HINTS } from '../../content/fingerspelling'
 import { SHIPPED_GLOSSES } from '../../content/dynamicVocab'
-import { flattenRoute, routeAccess } from '../../domain/curriculum'
+import {
+  courseProgress,
+  flattenRoute,
+  routeAccess,
+} from '../../domain/curriculum'
 import './LearnerHome.css'
 
 const defaultCurriculumRepo = new CurriculumRepo(db)
@@ -45,22 +49,21 @@ export function LearnerHome({
     if (!completedIds) return null
     const wordAccess = routeAccess(WORD_ROUTE, completedIds, RECOGNIZED)
     const letterAccess = routeAccess(LETTER_BATCHES, completedIds, ALPHABET)
-    const wordsDone = wordAccess.filter((a) => a === 'completed').length
-    const wordsTotal = wordAccess.filter((a) => a !== 'placeholder').length
+    const words = courseProgress(WORD_UNITS, completedIds, RECOGNIZED)
     const lettersDone = letterAccess.filter((a) => a === 'completed').length
     const nextWordSet =
       WORD_ROUTE[wordAccess.indexOf('current')]?.signs.join(' + ') ?? null
     const nextBatch =
       LETTER_BATCHES[letterAccess.indexOf('current')]?.signs.join(' ') ?? null
-    return { wordsDone, wordsTotal, lettersDone, nextWordSet, nextBatch }
+    return { words, lettersDone, nextWordSet, nextBatch }
   }, [completedIds])
 
   if (!summary) {
     return <p className="home-loading">Loading…</p>
   }
 
-  const { wordsDone, wordsTotal, lettersDone, nextWordSet, nextBatch } = summary
-  const started = wordsDone > 0 || lettersDone > 0
+  const { words, lettersDone, nextWordSet, nextBatch } = summary
+  const started = words.setsDone > 0 || lettersDone > 0
 
   return (
     <section className="learner-home" aria-label="Home">
@@ -82,7 +85,10 @@ export function LearnerHome({
         <Link to="/course" className="home-card" data-testid="home-words-card">
           <h3>Words</h3>
           <p className="home-card-progress">
-            {wordsDone} of {wordsTotal} sets
+            {words.setsDone} of {words.setsTotal} sets
+          </p>
+          <p className="home-card-units" data-testid="home-units-progress">
+            {words.unitsDone} of {words.unitsTotal} units complete
           </p>
           <p className="home-card-next">
             {nextWordSet ? `Next: ${nextWordSet}` : 'All sets complete 🎉'}

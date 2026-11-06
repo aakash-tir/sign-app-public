@@ -342,11 +342,17 @@ plan-shaping questions answered 2026-07-10 (plan.md §6).
 | P6M5 — Sentence stage | ☑ merged [#54](https://github.com/aakash-tir/sign-app/pull/54) — shared `SentenceDrill`; also fixed the Dexie teardown flake for good | `milestone/P6M5-sentence-stage` |
 | P6M6 — Alphabet path UI | ☑ merged [#55](https://github.com/aakash-tir/sign-app/pull/55) — `/course/alphabet`: 8 batches → recall → spell-words stage | `milestone/P6M6-alphabet-path` |
 | P6M7 — Learner shell + new look | ☑ merged [#57](https://github.com/aakash-tir/sign-app/pull/57) — `/` = LearnerHome, dev-mode toggle, teal learner theme, exit-lesson | `milestone/P6M7-learner-shell` |
-| P6M8 — Progress & polish | ☐ not started | GitHub milestone `P6M8` (issue branches) |
+| P6M8 — Progress & polish | ◐ in progress — #60 unit progress (PR open); #61 streak next | GitHub milestone `P6M8` (issue branches) |
 | P6M9 — Store release (owner-gated) | ☐ not started | GitHub milestone `P6M9` (issue branches) |
 
 ## Log
 
+- **2026-11-05** — **P6M8: unit progress on the learner home and the course (#60).**
+  A pure `courseProgress()` (domain/curriculum.ts) counts sets and units done, per unit
+  and overall. Placeholder-only sets and all-placeholder units are left out of the
+  totals (Q6), so 100 % is always reachable. Home shows "N of M units complete" under
+  the sets count; each `/course` unit header shows "done / total", with a ✓ once
+  complete.
 - **2026-11-05** — **Published 4 signs the TCN lifted over the gate (#67): 103 → 107.**
   `cat` 0.67, `draw` 0.63, `lost` 0.56 and `same` 0.56 were already trained classes in
   the shipped model, so there was no retraining. They got reference clips, curriculum
